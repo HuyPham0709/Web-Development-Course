@@ -3,38 +3,41 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Status-In_Progress-yellow" alt="Status">
   <img src="https://img.shields.io/badge/Maintained%3F-yes-green.svg" alt="Maintenance">
-  <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
+  <img src="https://img.shields.io/badge/Academic_Year-2024--2025-blue" alt="Year">
 </p>
 
 ---
 
-## 👥 Thông tin nhóm (Team Members)
-Dưới đây là danh sách các thành viên thực hiện dự án:
+## 👥 Danh sách thành viên (Team Members)
 
 | STT | Họ và tên đệm | Tên | MSSV | Vai trò |
 |:---:|:---|:---|:---|:---|
-| 1 | **Nguyễn Trung** | **Hiếu** | N23DVCN019 | Team Leader / Backend |
-| 2 | **Nguyễn Hữu** | **Đức** | N23DVCN014 | Frontend Developer |
-| 3 | **Phạm Hoàng Quốc** | **Huy** | N23DVCN025 | Frontend Developer |
-| 4 | **Trương Đình Tấn** | **Tài** | N23DVCN052 | Database Designer |
+| 1 | **Nguyễn Trung** | **Hiếu** | N23DVCN019 | |
+| 2 | **Nguyễn Hữu** | **Đức** | N23DVCN014 | |
+| 3 | **Phạm Hoàng Quốc** | **Huy** | N23DVCN025 | |
+| 4 | **Trương Đình Tấn** | **Tài** | N23DVCN052 | |
 
 ---
 
-## 🛠 Công nghệ sử dụng (Tech Stack)
-Dự án được xây dựng dựa trên các công nghệ tiêu chuẩn hiện đại:
+## 🛠 Công nghệ dự kiến (Tech Stack)
+*Dự án được xây dựng dựa trên các công nghệ tiêu chuẩn:*
 
-* **Frontend:** React.js / Next.js (hoặc HTML5, CSS3, JS)
-* **Backend:** Node.js (Express) / Java (Spring Boot)
-* **Database:** MongoDB / MySQL / PostgreSQL
-* **Tools:** Git, Docker, Postman
+* **Frontend:** HTML5, CSS3, JavaScript (ES6+)
+* **Framework:** React.js / Next.js (Tùy chọn)
+* **Backend:** Node.js (Express)
+* **Database:** MongoDB / MySQL
+* **Version Control:** Git & GitHub
 
 ---
 
-## 📂 Cấu trúc mã nguồn (Project Structure)
+## 📂 Cấu trúc dự án (Project Structure)
 ```text
 /
-├── client/             # Mã nguồn phía Frontend
-├── server/             # Mã nguồn phía Backend (API)
-├── docs/               # Tài liệu thiết kế, DB Diagram
-├── .gitignore          # Cấu hình bỏ qua các file không cần thiết
+├── public/             # Tài nguyên tĩnh (images, icons, v.v.)
+├── src/                # Mã nguồn chính
+│   ├── components/     # Các thành phần tái sử dụng
+│   ├── pages/          # Giao diện các trang
+│   └── services/       # Xử lý API/Logic
+├── docs/               # Tài liệu hướng dẫn & báo cáo
+├── .gitignore          # Cấu hình loại bỏ file rác
 └── README.md           # Hướng dẫn dự án
