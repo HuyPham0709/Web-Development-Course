@@ -86,97 +86,68 @@ export default function CandidateManagement() {
 
         {/* Kanban View */}
         {viewMode === 'kanban' ? (
-          /* CHỈ SỬA CSS: Chuyển sang Grid 4 cột thay vì Flex cuộn ngang */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pb-8">
-            {STATUSES.map(status => {
-              // Khởi tạo biến kiểm tra nếu là trạng thái Rejected (Hãy đổi chữ 'reject' nếu key của bạn đặt khác)
-              const isRejected = status.toLowerCase().includes('reject') || status === 'FAILED';
-
-              return (
-                <div 
-                  key={status} 
-                  className={`flex flex-col transition-all duration-200 ${
-                    isRejected ? 'col-span-1 md:col-span-2 lg:col-span-4 mt-4' : 'w-full'
-                  }`}
-                >
-                  {/* Tiêu đề cột & Badge đếm số lượng */}
-                  <div className="flex items-center justify-between mb-4 px-1">
-                    <h3 className={`font-bold text-sm uppercase tracking-wider ${isRejected ? 'text-red-600' : 'text-gray-900'}`}>
-                      {STATUS_LABEL[status]}
-                    </h3>
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                      isRejected ? 'bg-red-100 text-red-700' : 'bg-gray-200 text-gray-600'
-                    }`}>
-                      {filtered.filter(c => c.status === status).length}
-                    </span>
-                  </div>
-
-                  {/* Khung chứa Card ứng viên (Đổi màu sắc font, nền và viền cho Rejected) */}
-                  <div className={`flex flex-col gap-4 rounded-2xl p-3 transition-colors ${
-                    isRejected 
-                      ? 'bg-red-50/30 border border-dashed border-red-200 min-h-[180px]' 
-                      : 'bg-gray-100/50 min-h-[450px]'
-                  }`}>
-                    {/* Nếu là Rejected, hiển thị danh sách dạng grid nằm ngang cho đẹp, nếu không thì xếp dọc như cũ */}
-                    <div className={isRejected ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' : 'flex flex-col gap-4'}>
-                      {filtered.filter(c => c.status === status).map(candidate => (
-                        <div key={candidate.application_id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                          <div className="flex justify-between items-start mb-3">
-                            <Link to={`/employer/candidate/${candidate.application_id}`} className="flex items-center gap-3 hover:opacity-80">
-                              <div className="w-10 h-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-sm shrink-0">
-                                {getInitials(candidate.full_name || candidate.candidate_name)}
-                              </div>
-                              <div>
-                                <h4 className="font-bold text-gray-900 text-sm hover:text-blue-600">
-                                  {candidate.full_name || candidate.candidate_name}
-                                </h4>
-                                <p className="text-xs text-gray-500 mt-0.5">{candidate.experience_level || 'N/A'}</p>
-                              </div>
-                            </Link>
-                            <div className="relative">
-                              <select value={candidate.status}
-                                onChange={e => handleStatusChange(candidate.application_id, e.target.value)}
-                                disabled={updatingId === candidate.application_id}
-                                className="text-xs bg-gray-50 border border-gray-200 text-gray-600 rounded-md py-1 pl-2 pr-6 appearance-none focus:ring-1 focus:ring-blue-500 cursor-pointer disabled:opacity-50">
-                                {STATUSES.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
-                              </select>
-                              <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
-                            </div>
-                          </div>
-                          <div className="space-y-2 mb-4">
-                            <div className="flex items-center gap-2 text-xs text-gray-600">
-                              <Briefcase className="w-3.5 h-3.5 text-gray-400" />
-                              <span className="truncate">{candidate.job_title}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-gray-600">
-                              <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                              <span>Nộp {formatDateVN(candidate.applied_at)}</span>
-                            </div>
-                          </div>
-                          <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
-                            <span className={`px-2.5 py-1 rounded-md text-xs font-bold border ${STATUS_COLORS[candidate.status]}`}>
-                              {STATUS_LABEL[candidate.status]}
-                            </span>
-                            <button className="text-gray-400 hover:text-blue-600">
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Trạng thái trống của cột Rejected cũng được đổi style */}
-                    {filtered.filter(c => c.status === status).length === 0 && (
-                      <div className={`text-center text-sm py-8 border-2 border-dashed rounded-xl w-full ${
-                        isRejected ? 'border-red-200/60 text-red-400 bg-white/50' : 'border-gray-200 text-gray-400'
-                      }`}>
-                        Không có ứng viên
-                      </div>
-                    )}
-                  </div>
+          <div className="flex gap-6 overflow-x-auto pb-8">
+            {STATUSES.map(status => (
+              <div key={status} className="w-80 min-w-[320px] flex-shrink-0 flex flex-col">
+                <div className="flex items-center justify-between mb-4 px-1">
+                  <h3 className="font-bold text-gray-900">{STATUS_LABEL[status]}</h3>
+                  <span className="bg-gray-200 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">
+                    {filtered.filter(c => c.status === status).length}
+                  </span>
                 </div>
-              );
-            })}
+                <div className="flex flex-col gap-4 rounded-2xl bg-gray-100/50 p-3 min-h-[500px]">
+                  {filtered.filter(c => c.status === status).map(candidate => (
+                    <div key={candidate.application_id} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-3">
+                        <Link to={`/employer/candidate/${candidate.application_id}`} className="flex items-center gap-3 hover:opacity-80">
+                          <div className="w-10 h-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-sm shrink-0">
+                            {getInitials(candidate.full_name || candidate.candidate_name)}
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-gray-900 text-sm hover:text-blue-600">
+                              {candidate.full_name || candidate.candidate_name}
+                            </h4>
+                            <p className="text-xs text-gray-500 mt-0.5">{candidate.experience_level || 'N/A'}</p>
+                          </div>
+                        </Link>
+                        <div className="relative">
+                          <select value={candidate.status}
+                            onChange={e => handleStatusChange(candidate.application_id, e.target.value)}
+                            disabled={updatingId === candidate.application_id}
+                            className="text-xs bg-gray-50 border border-gray-200 text-gray-600 rounded-md py-1 pl-2 pr-6 appearance-none focus:ring-1 focus:ring-blue-500 cursor-pointer disabled:opacity-50">
+                            {STATUSES.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
+                          </select>
+                          <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+                        </div>
+                      </div>
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center gap-2 text-xs text-gray-600">
+                          <Briefcase className="w-3.5 h-3.5 text-gray-400" />
+                          <span className="truncate">{candidate.job_title}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-gray-600">
+                          <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                          <span>Nộp {formatDateVN(candidate.applied_at)}</span>
+                        </div>
+                      </div>
+                      <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+                        <span className={`px-2.5 py-1 rounded-md text-xs font-bold border ${STATUS_COLORS[candidate.status]}`}>
+                          {STATUS_LABEL[candidate.status]}
+                        </span>
+                        <button className="text-gray-400 hover:text-blue-600">
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {filtered.filter(c => c.status === status).length === 0 && (
+                    <div className="text-center text-gray-400 text-sm py-8 border-2 border-dashed border-gray-200 rounded-xl">
+                      Không có ứng viên
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           /* Table View */
