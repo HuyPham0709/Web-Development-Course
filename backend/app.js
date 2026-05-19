@@ -10,6 +10,8 @@ const categoryRoutes = require('./routes/categoryRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const applicationRoutes = require('./routes/applicationRoutes');
 const profileRoutes = require('./routes/profileRoutes');
+const companyRoutes = require('./routes/companyRoutes');
+const skillRoutes = require('./routes/skillRoutes');
 const { verifyToken, authorizeRole } = require('./middlewares/authMiddleware');
 
 require('dotenv').config();
@@ -39,7 +41,8 @@ app.use('/api/locations', locationRoutes);
 
 app.use('/api/profile', profileRoutes);
 app.use('/api/jobs', jobRoutes);
-
+app.use('/api/companies', companyRoutes);
+app.use('/api/skills', skillRoutes);
 
 
 // Serve file upload tĩnh (ảnh avatar, cover, CV...)
