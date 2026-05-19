@@ -147,22 +147,22 @@ export default function ProfileDashboard() {
       setModal(null);
       showToast('success', 'Hồ sơ đã được cập nhật!');
       if (modal === 'personalInfo') {
-        const savedUserStr = localStorage.getItem('user');
-        if (savedUserStr) {
-          const savedUser = JSON.parse(savedUserStr);
+  const savedUserStr = localStorage.getItem('user');
+  if (savedUserStr) {
+    const savedUser = JSON.parse(savedUserStr);
+    savedUser.full_name = newPI.full_name;
+    if (newPI.avatar_url) savedUser.avatar_url = newPI.avatar_url;
+    localStorage.setItem('user', JSON.stringify(savedUser));
 
-          // Cập nhật full_name và avatar vào localStorage
-          savedUser.full_name = newPI.full_name;
-          if (newPI.avatar_url) savedUser.avatar_url = newPI.avatar_url;
-
-          localStorage.setItem('user', JSON.stringify(savedUser));
-
-          // Bắn sự kiện "user-profile-updated" cho Navbar bắt lấy
-          window.dispatchEvent(new CustomEvent('user-profile-updated', {
-            detail: { full_name: newPI.full_name, avatar_url: newPI.avatar_url }
-          }));
-        }
+    // Dispatch event cho Navbar cập nhật ngay
+    window.dispatchEvent(new CustomEvent('user-profile-updated', {
+      detail: {
+        full_name: newPI.full_name,
+        avatar_url: newPI.avatar_url || null
       }
+    }));
+  }
+}
     } catch (err: any) {
       showToast('error', err?.message || 'Lưu thất bại');
     } finally {
@@ -219,6 +219,17 @@ export default function ProfileDashboard() {
   setAvatarSrc(fullUrl);                                          // ✅ full URL
   setPersonalInfo(prev => ({ ...prev, avatar_url: data.avatar_url }));
   showToast('success', 'Cập nhật ảnh đại diện thành công!');
+  // ✅ Thêm đoạn này để Navbar cập nhật ngay lập tức
+  const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+  savedUser.avatar_url = data.avatar_url;
+  localStorage.setItem('user', JSON.stringify(savedUser));
+
+  window.dispatchEvent(new CustomEvent('user-profile-updated', {
+    detail: {
+      full_name: savedUser.full_name || null,
+      avatar_url: data.avatar_url
+    }
+  }));
 }
   } catch (err) {
     showToast('error', 'Upload ảnh thất bại');
@@ -249,6 +260,18 @@ const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
   setCoverSrc(fullUrl);                                           // ✅ full URL
   setPersonalInfo(prev => ({ ...prev, cover_url: data.cover_url }));
   showToast('success', 'Cập nhật ảnh bìa thành công!');
+  
+  // ✅ Thêm đoạn này để Navbar cập nhật ngay lập tức
+  const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+  savedUser.avatar_url = data.avatar_url;
+  localStorage.setItem('user', JSON.stringify(savedUser));
+
+  window.dispatchEvent(new CustomEvent('user-profile-updated', {
+    detail: {
+      full_name: savedUser.full_name || null,
+      avatar_url: data.avatar_url
+    }
+  }));
 }
   } catch (err) {
     showToast('error', 'Upload ảnh bìa thất bại');
@@ -546,18 +569,18 @@ const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
             )}
 
             {/* ══ VIỆC LÀM ĐÃ ỨNG TUYỂN ══ */}
-            {activeTab === 'applied' && <MyApplications />}
+            {activeTab === 'applications' && <MyApplications />}
 
             {/* ══ Other Tabs Fallback ══ */}
-            {!['profile', 'cv-builder', 'recommended', 'applied'].includes(activeTab) && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
-                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                  <FileText className="w-8 h-8 text-gray-400" />
-                </div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">{getActiveTabLabel()}</h2>
-                <p className="text-gray-500 max-w-md">Tính năng đang được phát triển. Vui lòng quay lại sau.</p>
-              </div>
-            )}
+            {!['profile', 'cv-builder', 'recommended', 'applied', 'applications'].includes(activeTab) && (
+  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
+    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+      <FileText className="w-8 h-8 text-gray-400" />
+    </div>
+    <h2 className="text-xl font-bold text-gray-900 mb-2">{getActiveTabLabel()}</h2>
+    <p className="text-gray-500 max-w-md">Tính năng đang được phát triển. Vui lòng quay lại sau.</p>
+  </div>
+)}
 
           </div>
         </main>
