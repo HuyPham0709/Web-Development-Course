@@ -20,22 +20,22 @@ export function ProfileSidebar({ activeTab, setActiveTab, userName }: ProfileSid
   };
 
   return (
-    <aside className="w-full bg-white border border-gray-100 shadow-sm rounded-2xl flex flex-col h-[calc(100vh-2rem)] md:h-[calc(100vh-4rem)] sticky top-4 md:top-8 z-10">
+    <aside className="w-full bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-sm rounded-2xl flex flex-col h-[calc(100vh-2rem)] md:h-[calc(100vh-4rem)] sticky top-4 md:top-8 z-10 transition-colors duration-200">
       <div className="p-5 overflow-y-auto custom-scrollbar h-full">
 
         {/* ── Header Sidebar ── */}
         <div className="mb-6">
-          <h2 className="text-xl font-extrabold text-gray-900 mb-4">
+          <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100 mb-4">
             {userName || 'Chưa cập nhật tên'}
           </h2>
 
-          <div className="bg-white rounded-xl p-4 flex items-center justify-between border border-gray-200 shadow-sm">
-            <span className="text-sm text-gray-700 font-semibold pr-4 leading-tight">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 flex items-center justify-between border border-gray-200 dark:border-gray-700 shadow-sm transition-colors duration-200">
+            <span className="text-sm text-gray-700 dark:text-gray-300 font-semibold pr-4 leading-tight">
               Cho phép Nhà tuyển dụng tìm bạn
             </span>
             <button
               onClick={() => setAllowSearch(!allowSearch)}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${allowSearch ? 'bg-blue-600' : 'bg-gray-400'}`}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${allowSearch ? 'bg-blue-600' : 'bg-gray-400 dark:bg-gray-600'}`}
             >
               <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${allowSearch ? 'translate-x-5' : 'translate-x-0'}`} />
             </button>
@@ -54,26 +54,26 @@ export function ProfileSidebar({ activeTab, setActiveTab, userName }: ProfileSid
                 <div key={item.id} className="mb-2">
                   <button
                     onClick={() => toggleMenu(item.id)}
-                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      {item.icon && <item.icon className="w-5 h-5 text-gray-500" />}
+                      {item.icon && <item.icon className="w-5 h-5 text-gray-500 dark:text-gray-400" />}
                       {item.label}
                     </div>
-                    {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                    {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-500" /> : <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500" />}
                   </button>
 
                   {/* Render Menu Con */}
                   {isExpanded && (
-                    <div className="mt-1 ml-4 border-l-2 border-gray-100 pl-4 space-y-1">
+                    <div className="mt-1 ml-4 border-l-2 border-gray-100 dark:border-gray-800 pl-4 space-y-1">
                       {item.subItems!.map((sub) => (
                         <button
                           key={sub.id}
                           onClick={() => setActiveTab(sub.id)}
                           className={`w-full text-left px-3 py-2.5 rounded-xl text-sm transition-colors ${
                             activeTab === sub.id
-                              ? 'text-purple-700 font-bold bg-purple-50'
-                              : 'text-gray-600 font-medium hover:text-gray-900 hover:bg-gray-50'
+                              ? 'text-purple-700 dark:text-purple-400 font-bold bg-purple-50 dark:bg-purple-950/30'
+                              : 'text-gray-600 dark:text-gray-400 font-medium hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800'
                             }`}
                         >
                           {sub.label}
@@ -92,12 +92,12 @@ export function ProfileSidebar({ activeTab, setActiveTab, userName }: ProfileSid
                 onClick={() => setActiveTab(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
                   activeTab === item.id
-                    ? 'text-purple-700 font-bold bg-purple-50'
-                    : 'text-gray-700 font-bold hover:bg-gray-50'
+                    ? 'text-purple-700 dark:text-purple-400 font-bold bg-purple-50 dark:bg-purple-950/30'
+                    : 'text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
               >
                 {item.icon && (
-                  <item.icon className={`w-5 h-5 ${activeTab === item.id ? 'text-purple-600' : 'text-gray-500'}`} />
+                  <item.icon className={`w-5 h-5 ${activeTab === item.id ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400'}`} />
                 )}
                 {item.label}
               </button>
