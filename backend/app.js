@@ -65,7 +65,7 @@ app.use('/api/admin', require('./routes/admin/adminRoutes'));
 app.use('/api/admin/users', require('./routes/admin/Userroutes'));
 app.use('/api/admin/jobs', require('./routes/admin/adminJobRoutes'));
 app.use('/api/admin/metadata', require('./routes/admin/metadataRoutes'));
-app.use('/api/admin/reports', require('./routes/admin/reportRoutes'));
+app.use('/api/admin/reports', require('./routes/admin/Reportroutes'));
 // 2. Import Routes (Sau này bạn sẽ import authRoutes, jobRoutes vào đây)
 // const authRoutes = require('./routes/authRoutes');
 // app.use('/api/auth', authRoutes);
