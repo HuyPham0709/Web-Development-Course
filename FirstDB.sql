@@ -1117,3 +1117,110 @@ UPDATE Categories SET icon_url = 'BarChart3' WHERE name LIKE '%Sales%' OR name L
 
 -- Bật lại chế độ bảo vệ Safe Updates để an toàn cho database
 SET SQL_SAFE_UPDATES = 1;
+
+-- ==========================================================
+-- THÊM BẢNG JobCriteria (Tích hợp hợp lý với schema hiện tại)
+-- ==========================================================
+CREATE TABLE IF NOT EXISTS JobCriteria (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    
+    user_id INT NOT NULL UNIQUE,
+    
+    desired_position VARCHAR(255),
+    job_type ENUM('full-time', 'part-time', 'contract', 'freelance', 'internship') NULL,
+    experience_level ENUM('intern', 'fresher', 'junior', 'middle', 'senior') NULL,
+    
+    salary_min BIGINT NULL,
+    salary_max BIGINT NULL,
+    
+    preferred_location VARCHAR(255),
+    workplace_type ENUM('office', 'remote', 'hybrid', 'onsite') NULL,
+    
+    skills TEXT NULL COMMENT 'Danh sách kỹ năng cách nhau bởi dấu phẩy hoặc JSON',
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2. Tạo Index hỗ trợ tìm kiếm nhanh
+CREATE INDEX idx_jobcriteria_user ON JobCriteria(user_id);
+CREATE INDEX idx_jobcriteria_salary ON JobCriteria(salary_min, salary_max);
+CREATE INDEX idx_jobcriteria_location ON JobCriteria(preferred_location);
+CREATE INDEX idx_jobcriteria_job_type ON JobCriteria(job_type);
+
+-- ==========================================
+-- DỮ LIỆU MẪU (Seed Data)
+-- ==========================================
+
+INSERT IGNORE INTO JobCriteria (user_id, desired_position, job_type, experience_level, 
+                               salary_min, salary_max, preferred_location, workplace_type, skills) 
+VALUES 
+(210, 'Senior AI Engineer', 'full-time', 'senior', 35000000, 70000000, 'Hồ Chí Minh', 'hybrid', 'Python,TensorFlow,Deep Learning,Agile'),
+(211, 'Frontend Developer Intern', 'internship', 'fresher', 5000000, 12000000, 'Hà Nội', 'office', 'React,JavaScript,HTML,CSS'),
+(212, 'Data Analyst', 'full-time', 'middle', 18000000, 35000000, 'Hồ Chí Minh', 'remote', 'Python,SQL,Excel,Power BI,Tableau');
+
+
+
+USE job_finder_db;
+
+-- =========================================
+-- UPDATE JOBCRITERIA TABLE
+-- =========================================
+
+ALTER TABLE jobcriteria
+MODIFY COLUMN job_type VARCHAR(100),
+
+MODIFY COLUMN experience_level VARCHAR(100),
+
+MODIFY COLUMN workplace_type VARCHAR(100);
+
+
+
+-- =========================================
+-- OPTIONAL: THÊM FIELD MỚI
+-- =========================================
+
+ALTER TABLE jobcriteria
+
+ADD COLUMN industry VARCHAR(255) NULL AFTER desired_position,
+
+ADD COLUMN career_level VARCHAR(100) NULL AFTER experience_level,
+
+ADD COLUMN preferred_salary_type VARCHAR(50) NULL AFTER salary_max,
+
+ADD COLUMN languages TEXT NULL AFTER skills,
+
+ADD COLUMN preferred_companies TEXT NULL AFTER languages,
+
+ADD COLUMN benefits TEXT NULL AFTER preferred_companies,
+ADD COLUMN available_from DATE NULL AFTER benefits,
+
+ADD COLUMN is_open_to_work TINYINT(1) DEFAULT 1 AFTER available_from;
+
+
+
+-- =========================================
+-- INDEX TỐI ƯU SEARCH
+-- =========================================
+
+CREATE INDEX idx_jobcriteria_industry
+ON jobcriteria(industry);
+
+CREATE INDEX idx_jobcriteria_career_level
+ON jobcriteria(career_level);
+
+CREATE INDEX idx_jobcriteria_workplace
+ON jobcriteria(workplace_type);
+
+CREATE INDEX idx_jobcriteria_open_to_work
+ON jobcriteria(is_open_to_work);
+
+ALTER TABLE jobcriteria
+MODIFY COLUMN is_open_to_work TINYINT DEFAULT 1;
+
+ALTER TABLE Profiles 
+  MODIFY COLUMN cv_url     LONGTEXT,
+  MODIFY COLUMN avatar_url LONGTEXT,
+  MODIFY COLUMN cover_url  LONGTEXT;
