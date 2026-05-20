@@ -30,9 +30,7 @@ export const Navbar = () => {
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState({
-    name: '',
-    avatarUrl: '',
-    role: ''
+    avatarUrl: ''
   });
 
   const navLinks = [
@@ -58,9 +56,7 @@ export const Navbar = () => {
         try {
           const parsedUser = JSON.parse(savedUserStr);
           setUser({
-            name: parsedUser.full_name || parsedUser.display_name || parsedUser.username || 'Người dùng',
             avatarUrl: toFullUrl(parsedUser.avatar_url),
-            role: parsedUser.role === 'candidate' ? 'Ứng viên' : 'Nhà tuyển dụng'
           });
         } catch (e) {
           console.error("Lỗi parse user từ localStorage:", e);
