@@ -1105,3 +1105,15 @@ CREATE TABLE Application_Notes (
 );
 ALTER TABLE Applications 
 MODIFY COLUMN status ENUM('pending', 'reviewed', 'interviewing', 'accepted', 'rejected') DEFAULT 'pending';
+
+SET SQL_SAFE_UPDATES = 0;
+
+-- Thực hiện cập nhật icon
+UPDATE Categories SET icon_url = 'Code2' WHERE name LIKE '%Thông tin%' OR name LIKE '%IT%';
+UPDATE Categories SET icon_url = 'PenTool' WHERE name LIKE '%Design%' OR name LIKE '%Thiết kế%';
+UPDATE Categories SET icon_url = 'Megaphone' WHERE name LIKE '%Marketing%' OR name LIKE '%Quảng cáo%';
+UPDATE Categories SET icon_url = 'Truck' WHERE name LIKE '%Logistics%' OR name LIKE '%Vận tải%';
+UPDATE Categories SET icon_url = 'BarChart3' WHERE name LIKE '%Sales%' OR name LIKE '%Bán hàng%';
+
+-- Bật lại chế độ bảo vệ Safe Updates để an toàn cho database
+SET SQL_SAFE_UPDATES = 1;
