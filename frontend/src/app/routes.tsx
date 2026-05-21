@@ -1,3 +1,5 @@
+// frontend/src/app/routes.tsx
+
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import App from "./App";
 import Home from "./pages/public/Home";
@@ -10,9 +12,10 @@ import CandidateManagement from "./pages/employer/CandidateManagement";
 import CandidateDetail from "./pages/employer/CandidateDetail";
 import { JobForm } from './pages/employer/JobForm';
 import Settings from "./pages/shared/Settings";
-
-// BỔ SUNG: Import ErrorPage bạn vừa tạo
 import ErrorPage from "./pages/shared/ErrorPage";
+
+// BỔ SUNG: Import CVSearch (Dạng named import vì file CVSearch dùng `export function CVSearch`)
+import { CVSearch } from "./pages/employer/CVSearch";
 
 // --- PROTECTED ROUTE ---
 const ProtectedRoute = ({ allowedRole }: { allowedRole: string }) => {
@@ -72,6 +75,7 @@ export const router = createBrowserRouter([
           { path: "employer/candidates", element: <CandidateManagement /> }, // BỔ SUNG
           { path: "employer/candidate/:id", element: <CandidateDetail /> },  // BỔ SUNG
           { path: "employer/jobs/new", element: <JobForm /> },
+          { path: "employer/cv-search", element: <CVSearch /> },
         ],
       }
     ],

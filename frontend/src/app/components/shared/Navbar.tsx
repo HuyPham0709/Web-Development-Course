@@ -48,7 +48,7 @@ export const Navbar = () => {
       return [
         ...baseLinks,
         { name: "Dashboard", path: "/employer/dashboard" },
-        { name: "Candidates", path: "/employer/candidates" },
+        { name: "CV Sreach", path: "/employer/cv-search" },
       ];
     }
 

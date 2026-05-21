@@ -5,7 +5,7 @@ const profileController = require('../controllers/ProfileController');
 const { verifyToken } = require('../middlewares/authMiddleware'); // dùng đúng tên export
 const upload = require('../middlewares/uploadMiddleware');        // multer đã cấu hình
 
-// Lấy profile theo userId (có thể public hoặc bảo mật tùy yêu cầu)
+router.get('/search-cv', profileController.searchCandidates); // Đẩy lên trên đầu
 router.get('/:userId', profileController.getProfile);
 
 // Lưu toàn bộ profile (personalInfo + experiences + education + skills)

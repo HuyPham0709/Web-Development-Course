@@ -210,16 +210,16 @@ export default function ProfileDashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Instant preview
-    const reader = new FileReader();
-    reader.onloadend = () => setAvatarSrc(reader.result as string);
-    reader.readAsDataURL(file);
+    // 1. Tạo blob url cục bộ để hiển thị ngay lập tức trên UI (Cực mượt, không tốn tải mạng)
+    const localPreviewUrl = URL.createObjectURL(file);
+    setAvatarSrc(localPreviewUrl);
 
     try {
       const formData = new FormData();
       formData.append('avatar', file);
       const token = localStorage.getItem('token');
 
+      // 2. Gọi API trung chuyển lên thẳng Cloud
       const { data } = await axios.post(
         'http://127.0.0.1:5000/api/profile/upload-avatar',
         formData,
@@ -227,21 +227,15 @@ export default function ProfileDashboard() {
       );
 
       if (data.success) {
-        const fullUrl = `http://127.0.0.1:5000${data.avatar_url}`;
-        setAvatarSrc(fullUrl);
+        // data.avatar_url lúc này là link Cloud dạng https:// sạch sẽ
+        setAvatarSrc(data.avatar_url);
         setPersonalInfo(prev => ({ ...prev, avatar_url: data.avatar_url }));
         showToast('success', 'Cập nhật ảnh đại diện thành công!');
-
+        
+        // Đồng bộ lại local storage nếu cần
         const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
         savedUser.avatar_url = data.avatar_url;
         localStorage.setItem('user', JSON.stringify(savedUser));
-
-        window.dispatchEvent(new CustomEvent('user-profile-updated', {
-          detail: {
-            full_name: savedUser.full_name || null,
-            avatar_url: data.avatar_url
-          }
-        }));
       }
     } catch (err) {
       showToast('error', 'Upload ảnh thất bại');

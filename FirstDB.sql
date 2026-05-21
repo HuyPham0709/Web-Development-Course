@@ -1224,3 +1224,12 @@ ALTER TABLE Profiles
   MODIFY COLUMN cv_url     LONGTEXT,
   MODIFY COLUMN avatar_url LONGTEXT,
   MODIFY COLUMN cover_url  LONGTEXT;
+
+  -- 1. Trả các trường URL về đúng bản chất (Chỉ lưu link string, không lưu Base64)
+ALTER TABLE Profiles 
+  MODIFY COLUMN cv_url     VARCHAR(512) NULL,
+  MODIFY COLUMN avatar_url VARCHAR(512) NULL,
+  MODIFY COLUMN cover_url  VARCHAR(512) NULL;
+
+-- 2. Xóa bỏ avatar_url ở bảng Users để tránh xung đột dữ liệu (chỉ giữ lại ở Profiles)
+ALTER TABLE Users DROP COLUMN avatar_url;
