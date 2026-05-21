@@ -53,6 +53,24 @@ export interface ProfileData {
     skills: string[];
 }
 
+// ─── BỔ SUNG: Types cho tính năng Tìm kiếm CV (CVSearch) ───────────────────────
+
+export interface SearchCandidateParams {
+    keyword?: string;
+    location?: string;
+}
+
+export interface Candidate {
+    id: number;
+    name: string;
+    title: string;
+    exp: string;
+    location: string;
+    skills: string[];
+    avatar: string;
+    avatar_url?: string;
+}
+
 // ─── API calls ────────────────────────────────────────────────────────────────
 
 /** Lấy toàn bộ profile theo userId */
@@ -113,6 +131,7 @@ export async function deleteCV(): Promise<void> {
         throw new Error(err.message || 'Xóa CV thất bại');
     }
 }
+
 export const uploadProfileImage = async (
   file: File,
   type: 'avatar' | 'cover'
@@ -133,3 +152,32 @@ export const uploadProfileImage = async (
 
   return res.json(); // { image_url: string }
 };
+
+// ─── BỔ SUNG: Hàm kết nối API Tìm kiếm ứng viên (Đã gia cố an toàn) ───────────────
+export async function searchCandidates(params: SearchCandidateParams): Promise<Candidate[]> {
+    try {
+        const queryParams = new URLSearchParams();
+        if (params.keyword) queryParams.append('keyword', params.keyword);
+        if (params.location) queryParams.append('location', params.location);
+
+        const url = `${BASE_URL}/api/profile/search-cv?${queryParams.toString()}`;
+
+        const res = await fetch(url, {
+            method: 'GET',
+            headers: authHeaders(),
+        });
+        
+        // Nếu không thành công (ví dụ lỗi kết nối hoặc chưa sửa route backend), 
+        // trả về mảng rỗng để Frontend hiển thị "Không tìm thấy ứng viên..." thay vì crash giao diện
+        if (!res.ok) {
+            console.warn("API tìm kiếm ứng viên trả về status lỗi:", res.status);
+            return [];
+        }
+        
+        const json = await res.json();
+        return json.data || []; // Trả về danh sách ứng viên (đảm bảo luôn là mảng)
+    } catch (error) {
+        console.error("Lỗi kết nối hàm searchCandidates:", error);
+        return []; // Trả về mảng rỗng nếu mất mạng hoặc sập server
+    }
+}

@@ -23,7 +23,7 @@ export const CVBuilder = ({ onClose }: CVBuilderProps) => {
     website: "alexwalker.dev",
     summary: "Passionate Frontend Developer with 5+ years of experience building scalable web applications using React, TypeScript, and modern CSS frameworks."
   });
-
+const getThemeBorder = () => THEMES[cvData.color].split(' ')[1];
   const [experience, setExperience] = useState([
     {
       id: "1", company: "TechFlow Inc.", role: "Frontend Engineer",
