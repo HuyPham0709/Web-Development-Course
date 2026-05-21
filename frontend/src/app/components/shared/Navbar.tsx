@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Briefcase, Bell, CheckCircle2, LogOut, Settings, ChevronDown, Moon, Sun, Menu, X, User } from 'lucide-react';
+// BỔ SUNG: Import thêm MessageSquare
+import { Briefcase, Bell, MessageSquare, CheckCircle2, LogOut, Settings, ChevronDown, Moon, Sun, Menu, X, User } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from 'next-themes';
 
@@ -29,14 +30,12 @@ export const Navbar = () => {
   const { theme, setTheme } = useTheme();
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  // BỔ SUNG: Khởi tạo đầy đủ các field cần thiết cho user state
   const [user, setUser] = useState({
     name: '',
     avatarUrl: '',
     role: ''
   });
 
-  // BỔ SUNG: Logic lấy NavLinks tùy theo role
   const getNavLinks = () => {
     const baseLinks = [{ name: "Home", path: "/" }];
 
@@ -80,7 +79,6 @@ export const Navbar = () => {
         setIsLoggedIn(true);
         try {
           const parsedUser = JSON.parse(savedUserStr);
-          // BỔ SUNG: Lấy thêm role và name từ localStorage
           setUser({
             name: parsedUser.full_name || parsedUser.name || '',
             avatarUrl: toFullUrl(parsedUser.avatar_url),
@@ -134,7 +132,7 @@ export const Navbar = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setIsLoggedIn(false);
-    setUser({ name: '', avatarUrl: '', role: '' }); // Clear state
+    setUser({ name: '', avatarUrl: '', role: '' }); 
     window.dispatchEvent(new Event('auth-change'));
     navigate('/');
   };
@@ -201,6 +199,21 @@ export const Navbar = () => {
             />
           </button>
 
+          {/* BỔ SUNG: CHAT ICON TRÊN DESKTOP */}
+          {isLoggedIn && (
+            <Link
+              to="/chat"
+              className={`relative rounded-full p-2 transition-colors ${
+                location.pathname === '/chat'
+                  ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
+                  : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10"
+              }`}
+              title="Messages"
+            >
+              <MessageSquare size={20} />
+            </Link>
+          )}
+
           {/* NOTIFICATIONS */}
           <div className="relative" ref={dropdownRef}>
             <button
@@ -262,7 +275,6 @@ export const Navbar = () => {
                 </div>
                 <DropdownMenuSeparator className="bg-gray-100 dark:bg-white/5" />
 
-                {/* Giữ Link Profile dành cho candidate hoặc dùng chung tùy nhu cầu */}
                 {(!isEmployer) && (
                   <DropdownMenuItem className="p-1 cursor-pointer focus:bg-transparent">
                     <Link
@@ -307,7 +319,6 @@ export const Navbar = () => {
             </Link>
           )}
 
-          {/* BỔ SUNG: POST A JOB - Chỉ hiển thị cho Employer */}
           {isLoggedIn && isEmployer && (
             <Link to="/employer/jobs/new" className="hidden rounded-full bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-2 text-sm font-medium text-white shadow-md transition-all hover:opacity-90 md:block">
               Post a Job
@@ -344,8 +355,22 @@ export const Navbar = () => {
               </Link>
             );
           })}
+
+          {/* BỔ SUNG: LINK CHAT TRÊN MOBILE MENU */}
+          {isLoggedIn && (
+            <Link
+              to="/chat"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`block px-4 py-2.5 text-sm font-semibold rounded-xl transition-all ${
+                location.pathname === '/chat'
+                  ? "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-950/40"
+                  : "text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5"
+              }`}
+            >
+              Messages
+            </Link>
+          )}
           
-          {/* BỔ SUNG: POST A JOB TRÊN MOBILE - Chỉ hiển thị cho Employer */}
           {isLoggedIn && isEmployer && (
             <div className="pt-2 border-t border-gray-100 dark:border-white/5">
               <Link

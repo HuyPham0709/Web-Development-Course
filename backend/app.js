@@ -1,7 +1,10 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
-const path = require('path'); // ← thêm dòng này
+const path = require('path');
+const http = require('http'); // ← Bắt buộc thêm để chạy Socket.io
+const mongoose = require('mongoose'); // ← Bắt buộc thêm để dùng MongoDB
+require('dotenv').config();
 
 // Import Routes
 const authRoutes = require('./routes/authRoutes');
@@ -14,77 +17,57 @@ const companyRoutes = require('./routes/companyRoutes');
 const skillRoutes = require('./routes/skillRoutes');
 const { verifyToken, authorizeRole } = require('./middlewares/authMiddleware');
 const jobCriteriaRoutes = require('./routes/jobCriteriaRoutes');
-require('dotenv').config();
 
-// 1. Cấu hình Middlewares cơ bản
+// Import Chat Routes & Socket
+const messageRoutes = require('./routes/messageRoutes'); // ← Route cho tin nhắn
+const socketUtils = require('./utils/socket'); // ← Khởi tạo Socket.io
+
+// ==========================================
+// 1. KẾT NỐI MONGODB (CHO TÍNH NĂNG CHAT)
+// ==========================================
+mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/job_finder_chat_db')
+    .then(() => console.log('✅ MongoDB connected for Chat successfully!'))
+    .catch(err => console.error('❌ MongoDB connection error:', err));
+
+// ==========================================
+// 2. CẤU HÌNH MIDDLEWARES CƠ BẢN
+// ==========================================
 app.use(cors({
     origin: ['http://localhost:5173', 'http://localhost:5174'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
 }));
 
-
 // --- QUAN TRỌNG: SỬA Ở ĐÂY ĐỂ HẾT LỖI PAYLOAD TOO LARGE ---
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-// -------------------------------------------------------
 
-app.use(express.json()); // Đọc dữ liệu JSON từ req.body
-app.use(express.urlencoded({ extended: true }));
-
-// Sử dụng routes
-app.use('/api/auth', authRoutes);
-
-
-app.use('/api/categories', categoryRoutes);
-app.use('/api/locations', locationRoutes);
-
-app.use('/api/profile', profileRoutes);
-app.use('/api/jobs', jobRoutes);
-app.use('/api/companies', companyRoutes);
-app.use('/api/skills', skillRoutes);
-app.use('/api/job-criteria', jobCriteriaRoutes);
-
-
-// Serve file upload tĩnh (ảnh avatar, cover, CV...)
-
+// Cấu hình phục vụ file tĩnh
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-
-app.use('/api/categories', require('./routes/categoryRoutes'));
-app.use('/api/locations', require('./routes/locationRoutes'));
-app.use('/api/jobs', require('./routes/jobRoutes'));
-// app.use("/api", applicationRoutes);
-
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({
-        success: false,
-        message: err.message || 'Lỗi server nội bộ!'
-    });
-});
-
-// THÊM DÒNG NÀY CHO ADMIN:
+// ==========================================
+// 3. ĐỊNH TUYẾN (ROUTES)
+// ==========================================
+// Admin Routes
 app.use('/api/admin', require('./routes/admin/adminRoutes'));
 app.use('/api/admin/users', require('./routes/admin/Userroutes'));
 app.use('/api/admin/jobs', require('./routes/admin/adminJobRoutes'));
 app.use('/api/admin/metadata', require('./routes/admin/metadataRoutes'));
 app.use('/api/admin/reports', require('./routes/admin/Reportroutes'));
-// 2. Import Routes (Sau này bạn sẽ import authRoutes, jobRoutes vào đây)
-// const authRoutes = require('./routes/authRoutes');
-// app.use('/api/auth', authRoutes);
 
-
-
-
-// 2. Sử dụng routes
+// Main Application Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/jobs', jobRoutes);
+app.use('/api/companies', companyRoutes);
+app.use('/api/skills', skillRoutes);
+app.use('/api/job-criteria', jobCriteriaRoutes);
 
+// Chat Routes
+app.use('/api/messages', messageRoutes); // ← Cắm route tin nhắn vào đây
 
 // Route test cho Employer
 app.post('/api/jobs/create', verifyToken, authorizeRole(['employer']), (req, res) => {
@@ -95,20 +78,29 @@ app.post('/api/jobs/create', verifyToken, authorizeRole(['employer']), (req, res
 });
 
 app.get('/', (req, res) => {
-    res.send('Backend JobFinder đang hoạt động!');
+    res.send('Backend JobFinder đang hoạt động! (Tích hợp MySQL + MongoDB + Socket.io)');
 });
 
-// 3. Error Handler Middleware (Hứng lỗi tập trung)
+// ==========================================
+// 4. ERROR HANDLER (HỨNG LỖI TẬP TRUNG)
+// ==========================================
 app.use((err, req, res, next) => {
     console.error("LỖI SERVER:", err.message);
     res.status(err.status || 500).json({
         success: false,
-        message: err.message || 'Lỗi server nội bộ!'
+        message: err.message || "Lỗi Server Internal"
     });
 });
 
-// 4. Khởi động Server
+// ==========================================
+// 5. KHỞI ĐỘNG SERVER (HTTP + SOCKET.IO)
+// ==========================================
+const server = http.createServer(app); // Tạo HTTP server bọc Express app lại
+
+// Khởi tạo Socket.io với server vừa tạo
+socketUtils.init(server);
+
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`🚀 Server đang chạy tại http://localhost:${PORT}`);
+server.listen(PORT, () => {
+    console.log(`🚀 Server is running on port ${PORT}`);
 });

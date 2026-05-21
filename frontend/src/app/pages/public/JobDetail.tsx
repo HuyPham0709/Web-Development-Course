@@ -13,11 +13,14 @@ import {
   Upload,
   FileText,
   X,
+  MessageCircle // Thêm icon Chat
 } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+// Thêm useNavigate
+import { Link, useParams, useNavigate } from "react-router-dom"; 
 
 export default function JobDetail() {
   const { id } = useParams();
+  const navigate = useNavigate(); // Khởi tạo hook điều hướng
   const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -33,6 +36,28 @@ export default function JobDetail() {
     yearsExperience: "",
     remoteComfort: "",
   });
+
+  // --- XỬ LÝ SỰ KIỆN NHẮN TIN ---
+  const handleStartChat = () => {
+    // Sửa thành job?.posted_by theo đúng chuẩn Database của bạn
+    const targetId = job?.posted_by; 
+
+    if (!targetId) {
+      alert("Không tìm thấy thông tin nhà tuyển dụng để nhắn tin!");
+      return;
+    }
+
+    // Chuyển hướng sang trang chat kèm state
+    navigate('/chat', {
+      state: {
+        targetUser: {
+          id: targetId,
+          name: job?.company_name || "Nhà tuyển dụng",
+          avatar_url: job?.logo_url || ""
+        }
+      }
+    });
+  };
 
   const handleApply = () => {
     setShowApplyModal(true);
@@ -184,7 +209,16 @@ export default function JobDetail() {
                     </span>
                   </div>
                 </div>
-                <div className="hidden sm:block">
+
+                {/* THÊM NÚT NHẮN TIN VÀO ĐÂY (DESKTOP) */}
+                <div className="hidden sm:flex items-start gap-3">
+                  <button
+                    onClick={handleStartChat}
+                    className="flex items-center gap-2 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-500 dark:text-blue-400 dark:hover:bg-blue-900/20 px-6 py-3 rounded-full font-bold transition-all whitespace-nowrap"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    Nhắn tin
+                  </button>
                   <button
                     onClick={handleApply}
                     className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 text-white px-8 py-3.5 rounded-full font-bold transition-all shadow-md hover:shadow-lg dark:shadow-blue-900/20 whitespace-nowrap"
@@ -192,6 +226,7 @@ export default function JobDetail() {
                     Apply Now
                   </button>
                 </div>
+
               </div>
             </div>
 
@@ -292,14 +327,23 @@ export default function JobDetail() {
         </div>
       </div>
 
-      {/* Mobile Sticky Button */}
+      {/* THÊM NÚT VÀO THANH CỐ ĐỊNH (MOBILE) */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-[#0E1422] border-t border-gray-100 dark:border-white/10 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] dark:shadow-none sm:hidden z-40 transition-colors duration-300">
-        <button
-          onClick={handleApply}
-          className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 text-white rounded-xl py-3.5 font-bold shadow-md dark:shadow-blue-900/20 transition-all"
-        >
-          Apply Now
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleStartChat}
+            className="flex items-center justify-center bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-100 dark:border-blue-800 rounded-xl px-4 py-3.5 font-bold transition-all"
+            title="Nhắn tin"
+          >
+            <MessageCircle className="w-6 h-6" />
+          </button>
+          <button
+            onClick={handleApply}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 text-white rounded-xl py-3.5 font-bold shadow-md dark:shadow-blue-900/20 transition-all"
+          >
+            Apply Now
+          </button>
+        </div>
       </div>
 
       {/* --- APPLICATION MODAL --- */}
