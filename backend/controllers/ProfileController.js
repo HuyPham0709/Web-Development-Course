@@ -401,25 +401,89 @@ exports.uploadCV = async (req, res) => {
         }
 
         const userId = req.user.id;
-        const cvUrl = `/uploads/${req.file.filename}`;
+
+        // ✅ Chuyển buffer sang base64, kèm mime type để frontend dùng được luôn
+        const base64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
 
         await db.query(
             `UPDATE Profiles SET cv_url = ?, updated_at = NOW() WHERE user_id = ?`,
-            [cvUrl, userId]
+            [base64, userId]
         );
 
         res.status(200).json({
             success: true,
             message: "CV đã được upload thành công",
             data: {
-                cv_url:        cvUrl,
+                cv_url: base64,
                 original_name: req.file.originalname,
-                size:          req.file.size,
+                size: req.file.size,
             },
         });
 
     } catch (error) {
         console.error("[uploadCV]", error.message);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// ====================== UPLOAD AVATAR - BASE64 (GIỐNG CV) ======================
+exports.uploadAvatar = async (req, res) => {
+    try {
+        console.log("=== UPLOAD AVATAR START ===");
+        console.log("req.file:", req.file ? "✅ Có file" : "❌ Không có file");
+
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: "Không có file nào" });
+        }
+
+        const userId = req.user.id;
+        const base64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+
+        await db.query(
+            `UPDATE Profiles SET avatar_url = ?, updated_at = NOW() WHERE user_id = ?`,
+            [base64, userId]
+        );
+
+        console.log("✅ Avatar lưu thành công dưới dạng Base64");
+        res.json({ 
+            success: true, 
+            message: "Cập nhật ảnh đại diện thành công", 
+            avatar_url: base64 
+        });
+
+    } catch (error) {
+        console.error("❌ [uploadAvatar]", error.message);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// ====================== UPLOAD COVER - BASE64 ======================
+exports.uploadCover = async (req, res) => {
+    try {
+        console.log("=== UPLOAD COVER START ===");
+        console.log("req.file:", req.file ? "✅ Có file" : "❌ Không có file");
+
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: "Không có file nào" });
+        }
+
+        const userId = req.user.id;
+        const base64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+
+        await db.query(
+            `UPDATE Profiles SET cover_url = ?, updated_at = NOW() WHERE user_id = ?`,
+            [base64, userId]
+        );
+
+        console.log("✅ Cover lưu thành công dưới dạng Base64");
+        res.json({ 
+            success: true, 
+            message: "Cập nhật ảnh bìa thành công", 
+            cover_url: base64 
+        });
+
+    } catch (error) {
+        console.error("❌ [uploadCover]", error.message);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -450,62 +514,6 @@ exports.deleteCV = async (req, res) => {
 
     } catch (error) {
         console.error("[deleteCV]", error.message);
-        res.status(500).json({ success: false, message: error.message });
-    }
-};
-
-// ─── 7. POST /api/profile/avatar ──────────────────────────────────────────────
-// [THÊM TỪ CODE MỚI] Upload Avatar
-exports.uploadAvatar = async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ success: false, message: "Không có file nào" });
-        }
-
-        const userId = req.user.id;
-        const avatarUrl = `/uploads/${req.file.filename}`;
-
-        await db.query(
-            `UPDATE Profiles SET avatar_url = ? WHERE user_id = ?`,
-            [avatarUrl, userId]
-        );
-
-        res.json({
-            success: true,
-            message: "Cập nhật ảnh đại diện thành công",
-            avatar_url: avatarUrl
-        });
-
-    } catch (error) {
-        console.error("[uploadAvatar]", error.message);
-        res.status(500).json({ success: false, message: error.message });
-    }
-};
-
-// ─── 8. POST /api/profile/cover ───────────────────────────────────────────────
-// [THÊM TỪ CODE MỚI] Upload Cover
-exports.uploadCover = async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ success: false, message: "Không có file nào" });
-        }
-
-        const userId = req.user.id;
-        const coverUrl = `/uploads/${req.file.filename}`;
-
-        await db.query(
-            `UPDATE Profiles SET cover_url = ? WHERE user_id = ?`,
-            [coverUrl, userId]
-        );
-
-        res.json({
-            success: true,
-            message: "Cập nhật ảnh bìa thành công",
-            cover_url: coverUrl
-        });
-
-    } catch (error) {
-        console.error("[uploadCover]", error.message);
         res.status(500).json({ success: false, message: error.message });
     }
 };

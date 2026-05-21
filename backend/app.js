@@ -14,6 +14,7 @@ const companyRoutes = require('./routes/companyRoutes');
 const skillRoutes = require('./routes/skillRoutes');
 const { verifyToken, authorizeRole } = require('./middlewares/authMiddleware');
 const jobCriteriaRoutes = require('./routes/jobCriteriaRoutes');
+const favoriteRoutes = require('./routes/favoriteRoutes');
 require('dotenv').config();
 
 // 1. Cấu hình Middlewares cơ bản
@@ -75,6 +76,7 @@ app.use('/api/admin/reports', require('./routes/admin/Reportroutes'));
 // app.use('/api/auth', authRoutes);
 
 
+app.use('/api/favorites', favoriteRoutes);
 
 
 // 2. Sử dụng routes

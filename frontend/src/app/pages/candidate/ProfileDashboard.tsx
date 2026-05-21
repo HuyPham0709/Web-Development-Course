@@ -21,6 +21,7 @@ import { ProfileSidebar } from '../../components/candidate/profile/ProfileSideba
 import MyApplications from './MyApplications';
 import JobCriteria from '../../components/candidate/profile/JobCriteria';
 import axios from 'axios';
+import SavedJobs from '../../components/candidate/profile/SavedJobs';
 
 const CV_TEMPLATES = [
   { id: '1', name: 'Đào Phú Quý', tags: ['Đơn giản', 'Chuyên nghiệp'], isNew: true,
@@ -99,16 +100,9 @@ export default function ProfileDashboard() {
         const avatar = data.personalInfo.avatar_url;
         const cover = data.personalInfo.cover_url;
 
-        setAvatarSrc(
-          avatar
-            ? avatar.startsWith('http') ? avatar : `${baseUrl}${avatar}`
-            : DEFAULT_AVATAR
-        );
-        setCoverSrc(
-          cover
-            ? cover.startsWith('http') ? cover : `${baseUrl}${cover}`
-            : DEFAULT_COVER
-        );
+        // ✅ base64 dùng trực tiếp, không ghép baseUrl nữa
+      setAvatarSrc(avatar || DEFAULT_AVATAR);
+      setCoverSrc(cover || DEFAULT_COVER);
       })
       .catch(() => showToast('error', 'Không thể tải hồ sơ'))
       .finally(() => setLoading(false));
@@ -206,90 +200,83 @@ export default function ProfileDashboard() {
   };
 
   // ── Avatar Upload ─────────────────────────────────────────────────────────
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    // Instant preview
-    const reader = new FileReader();
-    reader.onloadend = () => setAvatarSrc(reader.result as string);
-    reader.readAsDataURL(file);
+  // Instant preview
+  const reader = new FileReader();
+  reader.onloadend = () => setAvatarSrc(reader.result as string);
+  reader.readAsDataURL(file);
 
-    try {
-      const formData = new FormData();
-      formData.append('avatar', file);
-      const token = localStorage.getItem('token');
+  try {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const token = localStorage.getItem('token');
 
-      const { data } = await axios.post(
-        'http://127.0.0.1:5000/api/profile/upload-avatar',
-        formData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+    const { data } = await axios.post(
+      'http://127.0.0.1:5000/api/profile/upload-avatar',
+      formData,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      if (data.success) {
-        const fullUrl = `http://127.0.0.1:5000${data.avatar_url}`;
-        setAvatarSrc(fullUrl);
-        setPersonalInfo(prev => ({ ...prev, avatar_url: data.avatar_url }));
-        showToast('success', 'Cập nhật ảnh đại diện thành công!');
+    if (data.success) {
+      // ✅ avatar_url giờ là base64, dùng trực tiếp không cần ghép URL
+      setAvatarSrc(data.avatar_url);
+      setPersonalInfo(prev => ({ ...prev, avatar_url: data.avatar_url }));
+      showToast('success', 'Cập nhật ảnh đại diện thành công!');
 
-        const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
-        savedUser.avatar_url = data.avatar_url;
-        localStorage.setItem('user', JSON.stringify(savedUser));
+      const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      savedUser.avatar_url = data.avatar_url;
+      localStorage.setItem('user', JSON.stringify(savedUser));
 
-        window.dispatchEvent(new CustomEvent('user-profile-updated', {
-          detail: {
-            full_name: savedUser.full_name || null,
-            avatar_url: data.avatar_url
-          }
-        }));
-      }
-    } catch (err) {
-      showToast('error', 'Upload ảnh thất bại');
+      window.dispatchEvent(new CustomEvent('user-profile-updated', {
+        detail: { full_name: savedUser.full_name || null, avatar_url: data.avatar_url }
+      }));
     }
-  };
+  } catch (err) {
+    showToast('error', 'Upload ảnh thất bại');
+  }
+};
 
-  // ── Cover Upload ──────────────────────────────────────────────────────────
-  const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+// ── Cover Upload ──────────────────────────────────────────────────────────
+const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    // Instant preview
-    const reader = new FileReader();
-    reader.onloadend = () => setCoverSrc(reader.result as string);
-    reader.readAsDataURL(file);
+  const reader = new FileReader();
+  reader.onloadend = () => setCoverSrc(reader.result as string);
+  reader.readAsDataURL(file);
 
-    try {
-      const formData = new FormData();
-      formData.append('cover', file);
-      const token = localStorage.getItem('token');
+  try {
+    const formData = new FormData();
+    formData.append('cover', file);
+    const token = localStorage.getItem('token');
 
-      const { data } = await axios.post(
-        'http://127.0.0.1:5000/api/profile/upload-cover',
-        formData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+    const { data } = await axios.post(
+      'http://127.0.0.1:5000/api/profile/upload-cover',
+      formData,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      if (data.success) {
-        const fullUrl = `http://127.0.0.1:5000${data.cover_url}`;
-        setCoverSrc(fullUrl);
-        setPersonalInfo(prev => ({ ...prev, cover_url: data.cover_url }));
-        showToast('success', 'Cập nhật ảnh bìa thành công!');
+    if (data.success) {
+      // ✅ cover_url giờ là base64, dùng trực tiếp không cần ghép URL
+      setCoverSrc(data.cover_url);
+      setPersonalInfo(prev => ({ ...prev, cover_url: data.cover_url }));
+      showToast('success', 'Cập nhật ảnh bìa thành công!');
 
-        const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
-        savedUser.cover_url = data.cover_url;
-        localStorage.setItem('user', JSON.stringify(savedUser));
+      const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      savedUser.cover_url = data.cover_url;
+      localStorage.setItem('user', JSON.stringify(savedUser));
 
-        window.dispatchEvent(new CustomEvent('user-profile-updated', {
-          detail: {
-            full_name: savedUser.full_name || null,
-            avatar_url: savedUser.avatar_url || null
-          }
-        }));
-      }
-    } catch (err) {
-      showToast('error', 'Upload ảnh bìa thất bại');
+      window.dispatchEvent(new CustomEvent('user-profile-updated', {
+        detail: { full_name: savedUser.full_name || null, avatar_url: savedUser.avatar_url || null }
+      }));
     }
-  };
+  } catch (err) {
+    showToast('error', 'Upload ảnh bìa thất bại');
+  }
+};
 
   // ── Formatters ────────────────────────────────────────────────────────────
   const formatDate = (dateString: string | undefined | null) => {
@@ -578,11 +565,11 @@ export default function ProfileDashboard() {
 
             {/* APPLICATIONS TAB */}
             {activeTab === 'applications' && <MyApplications />}
-            {activeTab === 'search-criteria' && (
-  <JobCriteria />
-)}
+            {activeTab === 'search-criteria' && (<JobCriteria />)}
+            {activeTab === 'saved' && <SavedJobs />}
+            
             {/* FALLBACK for unimplemented tabs */}
-            {!['profile', 'cv-builder', 'recommended', 'applied', 'applications','search-criteria'].includes(activeTab) && (
+            {!['profile', 'cv-builder', 'recommended', 'applied', 'applications','search-criteria', 'saved'].includes(activeTab) && (
               <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
                 <div className="w-16 h-16 bg-gray-50 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
                   <FileText className="w-8 h-8 text-gray-400 dark:text-gray-500" />

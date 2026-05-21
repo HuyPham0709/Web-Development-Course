@@ -1,32 +1,21 @@
 const multer = require("multer");
 const path = require("path");
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/");
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
-});
-
-// ✅ Thêm fileFilter
 const fileFilter = (req, file, cb) => {
-  const imageTypes = /jpeg|jpg|png|gif|webp/;
-  const cvTypes = /pdf|docx/;
+  const allowedTypes = /jpeg|jpg|png|gif|webp/;
   const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
-  
-  if (imageTypes.test(ext) || cvTypes.test(ext)) {
+
+  if (allowedTypes.test(ext)) {
     cb(null, true);
   } else {
-    cb(new Error("Chỉ chấp nhận file ảnh (jpg, png) hoặc CV (pdf, docx)"), false);
+    cb(new Error("Chỉ chấp nhận file ảnh (jpg, png, gif, webp)"), false);
   }
 };
 
-const upload = multer({ 
-  storage,
+const upload = multer({
+  storage: multer.memoryStorage(),   // ← Quan trọng
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
 
 module.exports = upload;

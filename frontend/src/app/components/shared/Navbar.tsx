@@ -16,7 +16,7 @@ const BASE_URL = 'http://localhost:5000';
 
 const toFullUrl = (url: string | null | undefined): string => {
   if (!url) return '';
-  if (url.startsWith('http')) return url;
+  if (url.startsWith('http') || url.startsWith('data:')) return url;
   return `${BASE_URL}${url}`;
 };
 

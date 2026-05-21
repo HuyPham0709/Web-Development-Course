@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Heart, MapPin, DollarSign, Clock } from 'lucide-react';
+import axios from 'axios';
 
 const SUGGESTED_DATA = [
   { id: 1, title: 'Nhân Viên QC', company: 'Công Ty Cổ Phần Tập Đoàn Kido', salary: '8 - 10 triệu', location: 'TP.HCM', deadline: '17 ngày', logo: 'https://via.placeholder.com/40' },
