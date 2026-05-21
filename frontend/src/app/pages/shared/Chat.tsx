@@ -49,7 +49,7 @@ const Chat = () => {
     chatService.getConversations()
       .then(data => {
         setConversations(data || []); 
-        setIsLoaded(true); // Đánh dấu đã load xong danh sách từ Backend
+        setIsLoaded(true);
       })
       .catch(err => {
         console.error("Lỗi lấy danh sách chat:", err);
@@ -141,12 +141,15 @@ const Chat = () => {
     }
   }, [activeConversation]);
 
-  // 5. Tự động cuộn xuống tin nhắn mới nhất
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages]);
+    // 5. Tự động cuộn xuống tin nhắn mới nhất (Đã sửa lỗi kéo trang xuống footer)
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'nearest' // <--- Thêm dòng này để cố định vị trí trang web
+            });
+        }
+    }, [messages]);
 
   // 6. Xử lý Gửi tin nhắn
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -193,36 +196,59 @@ const Chat = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-100px)] border rounded-xl overflow-hidden bg-white shadow-sm max-w-6xl mx-auto mt-6">
-      {/* SIDEBAR: Danh sách hội thoại */}
-      <div className="w-1/3 border-r bg-gray-50 flex flex-col">
-        <div className="p-4 border-b bg-white font-semibold text-lg text-slate-800">
+    <div className="flex h-[calc(100vh-100px)] border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden bg-white dark:bg-[#0E1422] shadow-sm max-w-6xl mx-auto mt-6 transition-colors duration-300">
+      {/* Khởi tạo cục bộ CSS Animation để không phụ thuộc vào tailwind.config.js */}
+      <style>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(14px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fade-in-up {
+          animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+      `}</style>
+
+      {/* SIDEBAR: Danh sách hội thoại - Thêm shrink-0 để cố định layout chống tràn */}
+      <div className="w-1/3 shrink-0 border-r border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0E1422]/40 flex flex-col h-full min-h-0">
+        <div className="p-4 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-[#0E1422] font-semibold text-lg text-slate-800 dark:text-white transition-colors duration-300">
           Tin nhắn
         </div>
         <ScrollArea className="flex-1">
           {conversations.length === 0 ? (
-            <div className="p-4 text-center text-sm text-gray-500">Chưa có cuộc trò chuyện nào</div>
+            <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">Chưa có cuộc trò chuyện nào</div>
           ) : (
             conversations.map((conv, index) => {
               const targetUser = conv.targetUser;
               const isActive = activeConversation?._id === conv._id;
               
-              // Dùng index làm fallback key nếu lỡ có 2 new_chat (dù đã chặn)
               return (
                 <div 
                   key={conv._id || index} 
                   onClick={() => setActiveConversation(conv)}
-                  className={`flex items-center gap-3 p-4 border-b cursor-pointer hover:bg-gray-100 transition-colors ${isActive ? 'bg-blue-50' : ''}`}
+                  className={`flex items-center gap-3 p-4 border-b border-gray-100 dark:border-white/5 cursor-pointer transition-all duration-200 opacity-0 animate-fade-in-up group
+                    ${isActive 
+                      ? 'bg-blue-50 dark:bg-blue-950/40 border-l-2 border-l-blue-600 dark:border-l-blue-500' 
+                      : 'hover:bg-gray-100 dark:hover:bg-white/5'
+                    }`}
+                  style={{ animationDelay: `${index * 60}ms` }}
                 >
-                  <Avatar>
+                  <Avatar className="ring-2 ring-transparent group-hover:ring-blue-500/30 transition-all">
                     <AvatarImage src={targetUser?.avatar_url || ''} />
-                    <AvatarFallback className="bg-blue-100 text-blue-600 font-bold">
+                    <AvatarFallback className="bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400 font-bold">
                       {targetUser?.name?.charAt(0) || 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-sm truncate">{targetUser?.name || 'Người dùng ẩn danh'}</h4>
-                    <p className="text-xs text-gray-500 truncate">
+                    <h4 className="font-semibold text-sm truncate text-slate-800 dark:text-white dark:group-hover:text-blue-400 transition-colors">
+                      {targetUser?.name || 'Người dùng ẩn danh'}
+                    </h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
                       {conv.lastMessage?.text || 'Bắt đầu trò chuyện...'}
                     </p>
                   </div>
@@ -233,31 +259,36 @@ const Chat = () => {
         </ScrollArea>
       </div>
 
-      {/* CHAT WINDOW: Khung chat chi tiết */}
-      <div className="w-2/3 flex flex-col bg-white">
+      {/* CHAT WINDOW: Khung chat chi tiết - Thêm min-w-0 & min-h-0 cô lập nội dung */}
+      <div className="w-2/3 min-w-0 flex flex-col bg-white dark:bg-[#0E1422] h-full min-h-0 transition-colors duration-300">
         {activeConversation ? (
           <>
             {/* Header phòng chat */}
-            <div className="p-4 border-b flex items-center gap-3 bg-white shadow-sm z-10">
+            <div className="p-4 border-b border-gray-200 dark:border-white/10 flex items-center gap-3 bg-white dark:bg-[#0E1422] shadow-sm z-10 text-slate-800 dark:text-white transition-colors duration-300">
                <Avatar>
                   <AvatarImage src={activeConversation.targetUser?.avatar_url || ''} />
-                  <AvatarFallback className="bg-blue-100 text-blue-600 font-bold">
+                  <AvatarFallback className="bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400 font-bold">
                     {activeConversation.targetUser?.name?.charAt(0) || 'U'}
                   </AvatarFallback>
                 </Avatar>
-                <h3 className="font-semibold text-slate-800">
+                <h3 className="font-semibold text-slate-800 dark:text-white">
                   {activeConversation.targetUser?.name || 'Đang trò chuyện...'}
                 </h3>
             </div>
 
             {/* Vùng hiển thị tin nhắn */}
-            <ScrollArea className="flex-1 p-4 bg-gray-50/50">
+            <ScrollArea className="flex-1 p-4 bg-gray-50/50 dark:bg-[#0E1422]/20 min-h-0">
               <div className="flex flex-col gap-3">
                 {messages.map((msg, idx) => {
                   const isMe = msg.senderId === user?.id;
                   return (
                     <div key={msg._id || idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[70%] p-3 text-sm shadow-sm ${isMe ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm' : 'bg-white border border-gray-100 text-slate-800 rounded-2xl rounded-tl-sm'}`}>
+                      <div className={`max-w-[70%] p-3 text-sm shadow-sm transition-all duration-300
+                        ${isMe 
+                          ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm' 
+                          : 'bg-white border border-gray-100 dark:bg-white/5 dark:border-white/10 text-slate-800 dark:text-gray-200 rounded-2xl rounded-tl-sm'
+                        }`}
+                      >
                         {msg.text}
                       </div>
                     </div>
@@ -268,15 +299,15 @@ const Chat = () => {
             </ScrollArea>
 
             {/* Input gửi tin nhắn */}
-            <form onSubmit={handleSendMessage} className="p-4 border-t bg-white flex items-center gap-2">
-              <Button type="button" variant="ghost" size="icon" className="text-gray-500 hover:text-blue-600 shrink-0">
+            <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200 dark:border-white/10 bg-white dark:bg-[#0E1422] flex items-center gap-2 transition-colors duration-300">
+              <Button type="button" variant="ghost" size="icon" className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 shrink-0">
                 <Paperclip className="w-5 h-5" />
               </Button>
               <Input 
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
                 placeholder="Nhập tin nhắn của bạn..." 
-                className="flex-1 rounded-full bg-gray-100 border-transparent focus-visible:ring-1 focus-visible:ring-blue-500"
+                className="flex-1 rounded-full bg-gray-100 dark:bg-white/5 border-transparent dark:border-white/10 text-slate-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus-visible:ring-1 focus-visible:ring-blue-500"
               />
               <Button type="submit" size="icon" className="rounded-full bg-blue-600 hover:bg-blue-700 shrink-0" disabled={!newMessage.trim()}>
                 <Send className="w-4 h-4" />
@@ -284,11 +315,12 @@ const Chat = () => {
             </form>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-400 flex-col gap-4 bg-gray-50/30">
-            <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center">
-               <Send className="w-8 h-8 text-blue-300 ml-1" />
+          /* Trạng thái trống (Chưa chọn phòng chat) */
+          <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500 flex-col gap-4 bg-gray-50/30 dark:bg-[#0E1422]/40">
+            <div className="w-20 h-20 bg-blue-50 dark:bg-blue-950/40 rounded-full flex items-center justify-center border border-transparent dark:border-blue-500/10">
+               <Send className="w-8 h-8 text-blue-300 dark:text-blue-500/70 ml-1" />
             </div>
-            <p className="font-medium text-gray-500">Chọn một cuộc hội thoại để bắt đầu</p>
+            <p className="font-medium text-gray-500 dark:text-gray-400">Chọn một cuộc hội thoại để bắt đầu</p>
           </div>
         )}
       </div>
