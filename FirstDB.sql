@@ -1093,3 +1093,27 @@ INSERT IGNORE INTO Job_Skills (job_id, skill_id) VALUES (200, 3), (200, 11);
 INSERT IGNORE INTO Applications (candidate_id, job_id, cover_letter, status) VALUES (210, 200, 'Tôi rất quan tâm đến vị trí AI.', 'pending');
 
 ALTER TABLE Profiles ADD COLUMN location VARCHAR(255) AFTER title;
+
+CREATE TABLE Application_Notes (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    application_id INT NOT NULL,
+    author_id INT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (application_id) REFERENCES Applications(id) ON DELETE CASCADE,
+    FOREIGN KEY (author_id) REFERENCES Users(id) ON DELETE CASCADE
+);
+ALTER TABLE Applications 
+MODIFY COLUMN status ENUM('pending', 'reviewed', 'interviewing', 'accepted', 'rejected') DEFAULT 'pending';
+
+SET SQL_SAFE_UPDATES = 0;
+
+-- Thực hiện cập nhật icon
+UPDATE Categories SET icon_url = 'Code2' WHERE name LIKE '%Thông tin%' OR name LIKE '%IT%';
+UPDATE Categories SET icon_url = 'PenTool' WHERE name LIKE '%Design%' OR name LIKE '%Thiết kế%';
+UPDATE Categories SET icon_url = 'Megaphone' WHERE name LIKE '%Marketing%' OR name LIKE '%Quảng cáo%';
+UPDATE Categories SET icon_url = 'Truck' WHERE name LIKE '%Logistics%' OR name LIKE '%Vận tải%';
+UPDATE Categories SET icon_url = 'BarChart3' WHERE name LIKE '%Sales%' OR name LIKE '%Bán hàng%';
+
+-- Bật lại chế độ bảo vệ Safe Updates để an toàn cho database
+SET SQL_SAFE_UPDATES = 1;

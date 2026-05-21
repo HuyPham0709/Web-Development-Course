@@ -321,8 +321,13 @@ exports.withdrawApplication = async (req, res) => {
 // ======================================================
 // NOTES (GIỮ NGUYÊN TỪ CODE CŨ)
 // ======================================================
+// ======================================================
+// NOTES (ĐÃ SỬA LỖI 500 DO SAI TÊN PARAMS, GIỮ NGUYÊN LOGIC)
+// ======================================================
 exports.getNotes = async (req, res) => {
-    const { application_id } = req.params;
+    // SỬA Ở ĐÂY: Thêm req.params.id để linh hoạt lấy tham số từ URL
+    const application_id = req.params.id || req.params.application_id; 
+    
     try {
         const [rows] = await db.execute(`
             SELECT n.id, n.content, n.created_at, u.username
@@ -332,6 +337,7 @@ exports.getNotes = async (req, res) => {
 
         res.status(200).json({ success: true, data: rows });
     } catch (error) {
+        console.error("Lỗi getNotes:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -357,12 +363,14 @@ exports.addNote = async (req, res) => {
 
         res.status(201).json({ success: true, data: newNote[0] });
     } catch (error) {
+        console.error("Lỗi addNote:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
 exports.deleteNote = async (req, res) => {
-    const { note_id } = req.params;
+    // SỬA Ở ĐÂY: Thêm req.params.id 
+    const note_id = req.params.id || req.params.note_id; 
     const author_id = req.user.id;
 
     try {
@@ -377,10 +385,10 @@ exports.deleteNote = async (req, res) => {
 
         res.status(200).json({ success: true, message: "Đã xóa ghi chú" });
     } catch (error) {
+        console.error("Lỗi deleteNote:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
-
 // ======================================================
 // TOGGLE JOB STATUS (GIỮ NGUYÊN TỪ CODE CŨ)
 // ======================================================

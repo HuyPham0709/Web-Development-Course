@@ -113,9 +113,13 @@ exports.login = async (req, res) => {
 
   try {
     // 2. Tìm user theo email trong Database
-    const [users] = await db.execute("SELECT * FROM Users WHERE email = ?", [
-      email,
-    ]);
+    const [users] = await db.execute(
+  `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name 
+   FROM Users u 
+   LEFT JOIN Profiles p ON p.user_id = u.id 
+   WHERE u.email = ?`,
+  [email]
+);
     if (users.length === 0) {
       return res
         .status(404)
@@ -171,11 +175,12 @@ exports.login = async (req, res) => {
       message: "Đăng nhập thành công!",
       token,
       user: {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        avatar_url: user.avatar_url,
-      },
+  id: user.id,
+  username: user.username,
+  full_name: user.full_name || user.username,
+  role: user.role,
+  avatar_url: user.profile_avatar || user.avatar_url || null,
+},
     });
   } catch (error) {
     console.error("=== LỖI TẠI HÀM LOGIN ===", error);
@@ -268,9 +273,9 @@ exports.resetPassword = async (req, res) => {
 
   try {
     const [users] = await db.execute(
-      "SELECT * FROM Users WHERE email = ? AND otp_code = ?",
-      [email, otp],
-    );
+  "SELECT * FROM Users WHERE email = ? AND otp_code = ?",
+  [email, otp]
+);
 
     if (users.length === 0) {
       return res
@@ -319,9 +324,12 @@ exports.verifyEmail = async (req, res) => {
   const { email, otp } = req.body;
   try {
     const [users] = await db.execute(
-      "SELECT * FROM Users WHERE email = ? AND otp_code = ?",
-      [email, otp],
-    );
+  `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name
+   FROM Users u
+   LEFT JOIN Profiles p ON p.user_id = u.id
+   WHERE u.email = ? AND u.otp_code = ?`,
+  [email, otp]
+);
 
     if (users.length === 0) {
       return res.status(400).json({ message: "Mã xác thực không đúng!" });
@@ -355,7 +363,13 @@ exports.googleLogin = async (req, res) => {
     const { email, name, picture } = googleResponse.data;
 
     // 2. Kiểm tra xem Email này đã có trong hệ thống chưa
-    const [users] = await db.execute('SELECT * FROM Users WHERE email = ?', [email]);
+    const [users] = await db.execute(
+  `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name
+   FROM Users u
+   LEFT JOIN Profiles p ON p.user_id = u.id
+   WHERE u.email = ?`,
+  [email]
+);
     let user = users[0];
 
     if (!user) {
@@ -374,7 +388,7 @@ exports.googleLogin = async (req, res) => {
         await db.execute('INSERT INTO Profiles (user_id, full_name) VALUES (?, ?)', [userId, name]);
       }
 
-      user = { id: userId, email, role: role || 'candidate', username: autoUsername, avatar_url: picture };
+      user = { id: userId, email, role: role || 'candidate', username: autoUsername, profile_avatar: null, full_name: name, avatar_url: picture };
     } else {
       // TRƯỜNG HỢP 2: Email đã tồn tại (Họ từng đăng ký bằng mật khẩu hoặc Google trước đó)
       // Cập nhật Avatar và Display Name mới nhất từ Google (nếu cần)
@@ -397,12 +411,12 @@ exports.googleLogin = async (req, res) => {
       success: true,
       token: token,
       user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        avatar_url: user.avatar_url
-      }
+  id: user.id,
+  username: user.username,
+  full_name: user.full_name || user.username,
+  role: user.role,
+  avatar_url: user.profile_avatar || user.avatar_url || null,
+}
     });
 
   } catch (error) {
@@ -534,11 +548,12 @@ exports.verifyLoginOTP = async (req, res) => {
       message: "Đăng nhập thành công!",
       token,
       user: {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        avatar_url: user.avatar_url,
-      },
+  id: user.id,
+  username: user.username,
+  full_name: user.full_name || user.username,
+  role: user.role,
+  avatar_url: user.profile_avatar || user.avatar_url || null,
+},
     });
   } catch (error) {
     console.error("Lỗi tại verifyLoginOTP:", error);
