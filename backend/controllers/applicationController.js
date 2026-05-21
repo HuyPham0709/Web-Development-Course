@@ -86,7 +86,8 @@ exports.getEmployerApplications = async (req, res) => {
                 u.email AS candidate_email,
                 p.full_name,
                 p.phone,
-                p.cv_url, -- [THÊM TỪ CODE MỚI]
+                p.cv_url, 
+                p.avatar_url,
                 j.title AS job_title,
                 j.id AS job_id,
                 j.experience_level,
@@ -128,7 +129,8 @@ exports.getApplicationById = async (req, res) => {
                 p.phone,
                 p.bio,
                 p.cv_url,
-                a.cv_snapshot_url, -- [THÊM TỪ CODE MỚI]
+                p.avatar_url, -- 🔥 THÊM DÒNG NÀY ĐỂ LẤY AVATAR VÀO TRANG CHI TIẾT
+                a.cv_snapshot_url, 
                 j.title AS job_title,
                 j.id AS job_id,
                 a.cover_letter,
