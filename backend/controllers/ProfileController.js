@@ -1,30 +1,14 @@
 // backend/controllers/ProfileController.js
 const db = require('../config/db');
-const cloudinary = require('cloudinary').v2;
-const streamifier = require('streamifier');
 const path = require('path');
 const fs = require('fs');
+
+// Import hàm upload từ file config mới tách
+const { uploadToCloudinary } = require('../config/cloudinary');
 
 const formatDate = (date) => {
     if (!date) return null;
     return new Date(date).toISOString().split("T")[0];
-};
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-const uploadToCloudinary = (fileBuffer, folder) => {
-  return new Promise((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      { folder: folder, resource_type: 'auto' }, // 'auto' tự nhận dạng pdf hay ảnh
-      (error, result) => {
-        if (result) resolve(result);
-        else reject(error);
-      }
-    );
-    streamifier.createReadStream(fileBuffer).pipe(uploadStream);
-  });
 };
 // ─── 1. GET /api/profile ───────────────────────────────────────────────────────
 // Lấy profile của user đang đăng nhập (qua JWT token)
