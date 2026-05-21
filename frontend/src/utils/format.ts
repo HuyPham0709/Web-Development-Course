@@ -22,3 +22,18 @@ export function timeAgo(dateStr: string): string {
     if (days < 30) return `${Math.floor(days / 7)} tuần trước`;
     return `${Math.floor(days / 30)} tháng trước`;
 }
+export const resolveFileUrl = (url: string | null | undefined): string => {
+  if (!url) return '#';
+  
+  // Nếu url đã bắt đầu bằng http hoặc https (đây là link Cloudinary), trả về luôn không nối chuỗi
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  
+  // Nếu là link cũ lưu local ở backend
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  if (url.startsWith('/uploads/')) {
+    return `${baseUrl}${url}`;
+  }
+  return `${baseUrl}/uploads/${url}`;
+};

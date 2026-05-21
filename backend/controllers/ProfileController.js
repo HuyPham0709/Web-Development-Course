@@ -10,6 +10,13 @@ const formatDate = (date) => {
     if (!date) return null;
     return new Date(date).toISOString().split("T")[0];
 };
+const getCloudinaryPublicId = (url) => {
+    const splitUrl = url.split('/');
+    const filenameWithExt = splitUrl[splitUrl.length - 1];
+    const folder = splitUrl[splitUrl.length - 2];
+    const filename = filenameWithExt.split('.')[0];
+    return `job_finder/${folder}/${filename}`; 
+};
 // ─── 1. GET /api/profile ───────────────────────────────────────────────────────
 // Lấy profile của user đang đăng nhập (qua JWT token)
 exports.getMyProfile = async (req, res) => {
@@ -426,12 +433,23 @@ exports.deleteCV = async (req, res) => {
             `SELECT cv_url FROM Profiles WHERE user_id = ?`,
             [userId]
         );
+        
         if (rows.length === 0 || !rows[0].cv_url) {
             return res.status(404).json({ success: false, message: "Không tìm thấy CV" });
         }
 
-        const filePath = path.join(__dirname, '..', rows[0].cv_url);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        const cvUrl = rows[0].cv_url;
+
+        // Nếu là link Cloudinary thì gọi API Cloudinary để xóa
+        if (cvUrl.includes('cloudinary.com')) {
+            const publicId = getCloudinaryPublicId(cvUrl);
+            const { cloudinary } = require('../config/cloudinary');
+            await cloudinary.uploader.destroy(publicId);
+        } else {
+            // Logic cũ xóa file local (giữ lại phòng trường hợp DB còn link cũ)
+            const filePath = path.join(__dirname, '..', cvUrl);
+            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        }
 
         await db.query(
             `UPDATE Profiles SET cv_url = NULL, updated_at = NOW() WHERE user_id = ?`,

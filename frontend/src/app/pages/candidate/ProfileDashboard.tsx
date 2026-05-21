@@ -11,7 +11,7 @@ import {
   getProfile, saveProfile, uploadCV, deleteCV,
   PersonalInfo, WorkExperience, Education
 } from '../../../services/profileService';
-
+import { resolveFileUrl } from '../../../utils/format';
 import { SIDEBAR_MENU, DEFAULT_AVATAR, DEFAULT_COVER } from '../../components/candidate/profile/constants';
 import { ProfileToast, ToastState } from '../../components/candidate/profile/ProfileToast';
 import { ProfileSkeleton } from '../../components/candidate/profile/ProfileSkeleton';
@@ -555,9 +555,19 @@ export default function ProfileDashboard() {
                           </div>
                         </div>
                         <div className="flex gap-3 mt-6">
-                          <a href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${personalInfo.cv_url}`} target="_blank" rel="noreferrer" className="flex-1 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors text-center">Xem</a>
-                          <button onClick={handleCVDelete} className="flex-1 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center justify-center gap-2"><Trash2 className="w-4 h-4" /> Xóa</button>
-                        </div>
+                          <a 
+                            href={resolveFileUrl(personalInfo.cv_url)} 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            className="flex-1 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors text-center"
+                          >
+                            Xem
+                          </a>
+                          
+                          <button onClick={handleCVDelete} className="flex-1 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center justify-center gap-2">
+                            <Trash2 className="w-4 h-4" /> Xóa
+                          </button>
+                      </div>
                       </div>
                     ) : (
                       <div className="bg-gray-50 dark:bg-white/5 border border-dashed border-gray-200 dark:border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center text-center text-gray-400 dark:text-gray-500">

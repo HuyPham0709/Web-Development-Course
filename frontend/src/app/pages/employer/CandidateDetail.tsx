@@ -127,8 +127,12 @@ export default function CandidateDetail() {
 
   const displayName = candidate.full_name || candidate.candidate_name || 'Ứng viên';
   const cvFile = candidate.cv_url || ''; 
-  const cleanCvFile = cvFile.replace(/^(?:\/?uploads\/)+/, ''); 
-  const cvLink = `http://localhost:5000/uploads/${cleanCvFile}`;
+ const cvLink = cvFile.startsWith('http') 
+    ? cvFile 
+    : `${backendUrl}/uploads/${cvFile.replace(/^(?:\/?uploads\/)+/, '')}`;
+
+  // Biến này dùng để check xem có file hay không (để render iframe)
+  const cleanCvFile = cvFile;
 
   // =========================================================================
   // LOGIC XỬ LÝ AVATAR ĐỒNG BỘ HOÀN TOÀN TỪ CVSearch.tsx
