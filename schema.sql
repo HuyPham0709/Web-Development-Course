@@ -62,6 +62,7 @@ CREATE TABLE Users (
     is_verified BOOLEAN DEFAULT FALSE,
     otp_code VARCHAR(6) NULL,
     otp_expires DATETIME NULL,
+    avatar_url VARCHAR(255) NULL,
     display_name VARCHAR(100) NULL,
     reset_password_token VARCHAR(255) NULL,
     reset_password_expires DATETIME NULL,
@@ -266,3 +267,6 @@ CREATE INDEX idx_jobcriteria_industry ON JobCriteria(industry);
 CREATE INDEX idx_jobcriteria_career_level ON JobCriteria(career_level);
 CREATE INDEX idx_jobcriteria_workplace ON JobCriteria(workplace_type);
 CREATE INDEX idx_jobcriteria_open_to_work ON JobCriteria(is_open_to_work);
+
+ALTER TABLE Notifications ADD COLUMN link_url VARCHAR(255) DEFAULT NULL;
+ALTER TABLE Notifications ADD COLUMN title VARCHAR(255) NOT NULL AFTER user_id;
