@@ -26,32 +26,39 @@ exports.createJob = async (req, res) => {
     }
 };
 
-// 2. API Lấy tất cả tin (cho Trang chủ) [cite: 16]
 // 2. API Lấy tất cả tin (cho Trang chủ)
 // 2. API Lấy tất cả tin (cho Trang chủ)
 exports.getAllJobs = async (req, res) => {
     try {
-        // ĐÃ SỬA: Đổi 'keyword' thành 'title' để khớp với Frontend
         const { title, location } = req.query; 
         
+        // SỬA Ở ĐÂY: Thêm GROUP_CONCAT(s.name) và LEFT JOIN bảng Skills
         let query = `
-            SELECT j.*, c.name as company_name, c.logo_url, l.name as location_name 
+            SELECT j.*, 
+                   c.name as company_name, 
+                   c.logo_url, 
+                   l.name as location_name,
+                   GROUP_CONCAT(s.name SEPARATOR ',') as skills
             FROM Jobs j
             LEFT JOIN Companies c ON j.company_id = c.id
             LEFT JOIN Locations l ON j.location_id = l.id
+            LEFT JOIN Job_Skills js ON j.id = js.job_id
+            LEFT JOIN Skills s ON js.skill_id = s.id
             WHERE 1=1 
         `;
         
         const params = [];
-        // ĐÃ SỬA: Đổi biến kiểm tra thành 'title'
         if (title) {
             query += ` AND (j.title LIKE ? OR j.description LIKE ?)`;
             params.push(`%${title}%`, `%${title}%`);
         }
         if (location) {
-            query += ` AND l.name LIKE ?`; // Nên dùng LIKE cho location để tìm kiếm linh hoạt hơn (=)
+            query += ` AND l.name LIKE ?`;
             params.push(`%${location}%`);
         }
+
+        // Bắt buộc phải có GROUP BY khi dùng hàm gộp GROUP_CONCAT
+        query += ` GROUP BY j.id`;
 
         const [rows] = await db.execute(query, params);
         res.status(200).json({ success: true, data: rows });

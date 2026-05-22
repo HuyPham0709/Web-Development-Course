@@ -179,3 +179,21 @@
     line-height: 1.5;
   }
 }
+<<<<<<< HEAD
+=======
+
+@keyframes slide-in {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+>>>>>>> 4caaaecf4d9a0bd2cadb41e7fbae447e76e39d81

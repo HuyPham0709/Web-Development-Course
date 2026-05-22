@@ -1,3 +1,6 @@
+// ==========================================
+// EmployerDashboard.tsx (Dark Mode & Staggered Animation)
+// ==========================================
 import React, { useState, useEffect, useRef } from 'react';
 import { Briefcase, Users, MessageSquare, Eye, Plus, MoreVertical, MapPin, Clock, Loader2, Pencil, Trash2, XCircle, RefreshCw, AlertCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom'; 
@@ -15,6 +18,9 @@ export default function EmployerDashboard() {
   const [togglingId, setTogglingId] = useState<number | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // ĐÃ THÊM: Trạng thái kiểm soát animation xuất hiện so le
+  const [animate, setAnimate] = useState(false);
+
   useEffect(() => {
     applicationService.getEmployerJobs()
       .then(res => {
@@ -24,6 +30,14 @@ export default function EmployerDashboard() {
       .catch(err => setError(err.response?.data?.message || 'Lỗi khi tải dữ liệu'))
       .finally(() => setLoading(false));
   }, []);
+
+  // ĐÃ THÊM: Kích hoạt hiệu ứng ngay sau khi tắt trạng thái loading
+  useEffect(() => {
+    if (!loading) {
+      const timer = setTimeout(() => setAnimate(true), 60);
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
 
   // Đóng menu khi click ra ngoài
   useEffect(() => {
@@ -58,20 +72,18 @@ export default function EmployerDashboard() {
         return [
           {
             label: 'Chỉnh sửa tin',
-            icon: <Pencil className="w-4 h-4 text-blue-500" />,
+            icon: <Pencil className="w-4 h-4 text-blue-500 dark:text-blue-400" />,
             onClick: () => {
               setOpenMenuId(null);
-              // TODO: navigate to edit page
               alert(`Chỉnh sửa job #${job.id}`);
             },
           },
           {
             label: 'Xóa tin',
-            icon: <Trash2 className="w-4 h-4 text-red-500" />,
+            icon: <Trash2 className="w-4 h-4 text-red-500 dark:text-red-400" />,
             danger: true,
             onClick: () => {
               setOpenMenuId(null);
-              // TODO: confirm & delete
               alert(`Xóa job #${job.id}`);
             },
           },
@@ -81,7 +93,7 @@ export default function EmployerDashboard() {
         return [
           {
             label: 'Đóng tin',
-            icon: <XCircle className="w-4 h-4 text-red-500" />,
+            icon: <XCircle className="w-4 h-4 text-red-500 dark:text-red-400" />,
             danger: true,
             onClick: () => handleToggleJobStatus(job.id),
           },
@@ -91,7 +103,7 @@ export default function EmployerDashboard() {
         return [
           {
             label: 'Mở lại tin',
-            icon: <RefreshCw className="w-4 h-4 text-green-500" />,
+            icon: <RefreshCw className="w-4 h-4 text-green-500 dark:text-green-400" />,
             onClick: () => handleToggleJobStatus(job.id),
           },
         ];
@@ -100,19 +112,17 @@ export default function EmployerDashboard() {
         return [
           {
             label: 'Xem lý do từ chối',
-            icon: <AlertCircle className="w-4 h-4 text-orange-500" />,
+            icon: <AlertCircle className="w-4 h-4 text-orange-500 dark:text-orange-400" />,
             onClick: () => {
               setOpenMenuId(null);
-              // TODO: show rejection reason modal
               alert(`Xem lý do từ chối job #${job.id}`);
             },
           },
           {
             label: 'Chỉnh sửa & gửi lại',
-            icon: <Pencil className="w-4 h-4 text-blue-500" />,
+            icon: <Pencil className="w-4 h-4 text-blue-500 dark:text-blue-400" />,
             onClick: () => {
               setOpenMenuId(null);
-              // TODO: navigate to edit page
               alert(`Chỉnh sửa job #${job.id}`);
             },
           },
@@ -123,96 +133,108 @@ export default function EmployerDashboard() {
     }
   };
 
+  // ĐÃ CẬP NHẬT: Thêm dải màu Dark Mode cho cấu hình trạng thái
   const STATUS_CONFIG: Record<string, { label: string; dotColor: string; badgeClass: string }> = {
     approved: {
       label: 'Open',
       dotColor: 'bg-green-500',
-      badgeClass: 'bg-green-50 text-green-700 border-green-200',
+      badgeClass: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-400 dark:border-green-500/20',
     },
     pending: {
       label: 'Pending',
       dotColor: 'bg-yellow-400',
-      badgeClass: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+      badgeClass: 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-400 dark:border-yellow-500/20',
     },
     closed: {
       label: 'Closed',
       dotColor: 'bg-gray-400',
-      badgeClass: 'bg-gray-100 text-gray-600 border-gray-200',
+      badgeClass: 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-white/10 dark:text-gray-400 dark:border-white/5',
     },
     rejected: {
       label: 'Rejected',
       dotColor: 'bg-red-400',
-      badgeClass: 'bg-red-50 text-red-600 border-red-200',
+      badgeClass: 'bg-red-50 text-red-600 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-500/20',
     },
   };
 
+  // ĐÃ CẬP NHẬT: Định dạng bảng màu phù hợp cho cả Light & Dark Mode
   const STATS_DISPLAY = [
-    { id: 1, label: 'Total Jobs', value: String(stats.total_jobs), icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { id: 2, label: 'Active Applications', value: String(stats.total_applications), icon: Users, color: 'text-green-600', bg: 'bg-green-50' },
-    { id: 3, label: 'New Messages', value: '0', icon: MessageSquare, color: 'text-purple-600', bg: 'bg-purple-50' },
-    { id: 4, label: 'Total Views', value: '—', icon: Eye, color: 'text-orange-600', bg: 'bg-orange-50' },
+    { id: 1, label: 'Total Jobs', value: String(stats.total_jobs), icon: Briefcase, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/40' },
+    { id: 2, label: 'Active Applications', value: String(stats.total_applications), icon: Users, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-950/40' },
+    { id: 3, label: 'New Messages', value: '0', icon: MessageSquare, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-950/40' },
+    { id: 4, label: 'Total Views', value: '—', icon: Eye, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/40' },
   ];
 
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center gap-2 text-blue-600 dark:text-blue-400 dark:bg-[#0E1422] transition-colors duration-300">
+        <Loader2 className="w-8 h-8 animate-spin" />
+        <span className="text-gray-400 text-sm">Đang tải dữ liệu tổng quan...</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50/50 py-8 relative">
+    <div className="min-h-screen bg-gray-50/50 dark:bg-[#0E1422] py-8 relative transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* Header */}
-        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {/* 1. Header Block - Xuất hiện trước tiên */}
+        <div className={`mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transform transition-all duration-500 ease-out ${
+          animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+        }`}>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Employer Dashboard</h1>
-            <div className="flex space-x-8 border-b border-gray-200 mt-6">
-              <Link to="/employer/dashboard" className="border-b-2 border-blue-600 pb-4 text-blue-600 font-medium text-sm transition-colors">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Employer Dashboard</h1>
+            <div className="flex space-x-8 border-b border-gray-200 dark:border-white/10 mt-6">
+              <Link to="/employer/dashboard" className="border-b-2 border-blue-600 dark:border-blue-400 pb-4 text-blue-600 dark:text-blue-400 font-medium text-sm transition-colors">
                 Overview & Jobs
               </Link>
-              <Link to="/employer/candidates" className="border-b-2 border-transparent pb-4 text-gray-500 hover:text-gray-700 font-medium text-sm transition-colors">
+              <Link to="/employer/candidates" className="border-b-2 border-transparent pb-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-medium text-sm transition-colors">
                 Candidates
               </Link>
             </div>
           </div>
           <button 
             onClick={() => navigate('/employer/jobs/new')} 
-            className="hidden sm:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-sm self-start mt-2"
+            className="hidden sm:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-sm self-start mt-2"
           >
             <Plus className="w-5 h-5" />
             Post a New Job
           </button>
         </div>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        {/* 2. Stats Row - Xuất hiện tiếp theo với delay-75 */}
+        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10 transform transition-all duration-500 ease-out delay-75 ${
+          animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+        }`}>
           {STATS_DISPLAY.map(stat => (
-            <div key={stat.id} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex items-center gap-4">
+            <div key={stat.id} className="bg-white dark:bg-white/5 rounded-2xl p-6 border border-gray-100 dark:border-white/10 shadow-sm flex items-center gap-4 transition-colors">
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${stat.bg}`}>
                 <stat.icon className={`w-6 h-6 ${stat.color}`} />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">{stat.label}</p>
-                <p className="text-2xl font-bold text-gray-900 mt-0.5">{stat.value}</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{stat.label}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">{stat.value}</p>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Job Postings */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-24 sm:mb-8">
-          <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center">
-            <h2 className="text-lg font-bold text-gray-900">Active Job Postings</h2>
-            <button className="text-sm font-medium text-blue-600 hover:text-blue-700">View All</button>
+        {/* 3. Job Postings Card - Khối dưới cùng xuất hiện với delay-150 */}
+        <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden mb-24 sm:mb-8 transform transition-all duration-500 ease-out delay-150 ${
+          animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+        }`}>
+          <div className="px-6 py-5 border-b border-gray-100 dark:border-white/10 flex justify-between items-center">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Active Job Postings</h2>
+            <button className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">View All</button>
           </div>
 
-          {loading ? (
-            <div className="flex items-center justify-center py-16 gap-2 text-gray-400">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span className="text-sm">Đang tải dữ liệu...</span>
-            </div>
-          ) : error ? (
+          {error ? (
             <div className="text-center py-16 text-red-500 text-sm">{error}</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-50/50 text-gray-500 text-xs uppercase tracking-wider">
+                  <tr className="bg-gray-50/50 dark:bg-[#0E1422]/40 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider border-b border-gray-100 dark:border-white/5">
                     <th className="px-6 py-4 font-semibold">Job Title</th>
                     <th className="px-6 py-4 font-semibold">Status</th>
                     <th className="px-6 py-4 font-semibold">Applications</th>
@@ -220,10 +242,10 @@ export default function EmployerDashboard() {
                     <th className="px-6 py-4 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 text-sm">
+                <tbody className="divide-y divide-gray-100 dark:divide-white/5 text-sm">
                   {jobs.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                      <td colSpan={5} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">
                         Chưa có tin tuyển dụng nào.
                       </td>
                     </tr>
@@ -232,10 +254,10 @@ export default function EmployerDashboard() {
                     const actions = getActions(job);
 
                     return (
-                      <tr key={job.id} className="hover:bg-gray-50/50 transition-colors">
+                      <tr key={job.id} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
                         <td className="px-6 py-4">
-                          <div className="font-semibold text-gray-900 mb-1">{job.title}</div>
-                          <div className="flex items-center gap-3 text-gray-500 text-xs">
+                          <div className="font-semibold text-gray-900 dark:text-white mb-1">{job.title}</div>
+                          <div className="flex items-center gap-3 text-gray-500 dark:text-gray-400 text-xs">
                             <span className="flex items-center gap-1">
                               <Briefcase className="w-3.5 h-3.5" /> {job.job_type}
                             </span>
@@ -246,7 +268,7 @@ export default function EmployerDashboard() {
                         </td>
 
                         <td className="px-6 py-4">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${cfg.badgeClass}`}>
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${cfg.badgeClass}`}>
                             <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${cfg.dotColor}`} />
                             {cfg.label}
                           </span>
@@ -254,40 +276,41 @@ export default function EmployerDashboard() {
 
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-gray-900">{job.application_count}</span>
+                            <span className="font-medium text-gray-900 dark:text-white">{job.application_count}</span>
                             {job.application_count > 0 && job.status === 'approved' && (
-                              <span className="text-xs text-blue-600 font-medium bg-blue-50 px-1.5 py-0.5 rounded">New</span>
+                              <span className="text-xs text-blue-600 dark:text-blue-400 font-medium bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded">New</span>
                             )}
                           </div>
                         </td>
 
-                        <td className="px-6 py-4 text-gray-500">
+                        <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
                           <div className="flex items-center gap-1.5">
-                            <Clock className="w-4 h-4 text-gray-400" />
+                            <Clock className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                             {timeAgo(job.created_at)}
                           </div>
                         </td>
 
-                        {/* Actions cell */}
+                        {/* Actions Dropdown cell */}
                         <td className="px-6 py-4 text-right">
                           <div className="relative inline-block" ref={openMenuId === job.id ? menuRef : null}>
                             <button
                               onClick={() => setOpenMenuId(openMenuId === job.id ? null : job.id)}
-                              className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                              className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors"
                               disabled={togglingId === job.id}
                             >
-                              {togglingId === job.id
-                                ? <Loader2 className="w-5 h-5 animate-spin" />
-                                : <MoreVertical className="w-5 h-5" />
-                              }
+                              {togglingId === job.id ? (
+                                <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                              ) : (
+                                <MoreVertical className="w-5 h-5" />
+                              )}
                             </button>
 
                             {openMenuId === job.id && actions.length > 0 && (
-                              <div className="absolute right-0 mt-1 w-52 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden py-1">
-
-                                {/* Header nhỏ cho biết trạng thái hiện tại */}
-                                <div className="px-4 py-2 border-b border-gray-100">
-                                  <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">
+                              <div className="absolute right-0 mt-1 w-52 bg-white dark:bg-[#151D30] border border-gray-200 dark:border-white/10 rounded-xl shadow-lg z-20 overflow-hidden py-1 transition-all">
+                                
+                                {/* Header mini thể hiện trạng thái gốc */}
+                                <div className="px-4 py-2 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-[#0E1422]/40">
+                                  <span className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">
                                     Trạng thái: {cfg.label}
                                   </span>
                                 </div>
@@ -298,8 +321,8 @@ export default function EmployerDashboard() {
                                     onClick={action.onClick}
                                     className={`w-full text-left px-4 py-2.5 text-sm font-medium flex items-center gap-3 transition-colors
                                       ${action.danger
-                                        ? 'text-red-600 hover:bg-red-50'
-                                        : 'text-gray-700 hover:bg-gray-50'
+                                        ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20'
+                                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'
                                       }`}
                                   >
                                     {action.icon}
@@ -324,7 +347,7 @@ export default function EmployerDashboard() {
       <div className="sm:hidden fixed bottom-6 right-6 z-50">
         <button 
           onClick={() => navigate('/employer/jobs/new')}
-          className="bg-blue-600 hover:bg-blue-700 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(37,99,235,0.3)] transition-transform hover:scale-105 active:scale-95"
+          className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(37,99,235,0.3)] dark:shadow-[0_8px_20px_rgba(59,130,246,0.2)] transition-transform hover:scale-105 active:scale-95"
         >
           <Plus className="w-6 h-6" />
         </button>

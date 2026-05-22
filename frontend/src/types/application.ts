@@ -9,6 +9,8 @@ export interface Candidate {
     experience_level: string;
     status: string;
     applied_at: string;
+    avatar_url?: string;
+    avatar?: string;
 }
 
 export interface ApplicationDetail extends Candidate {
