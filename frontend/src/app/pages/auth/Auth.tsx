@@ -27,6 +27,7 @@ export default function AuthPage() {
 
   // Toggle Theme Logic
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
     } else {

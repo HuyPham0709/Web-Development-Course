@@ -1121,8 +1121,7 @@ SET SQL_SAFE_UPDATES = 1;
 -- ==========================================================
 -- THÊM BẢNG JobCriteria (Tích hợp hợp lý với schema hiện tại)
 -- ==========================================================
-USE job_finder_db;
--- 1. Tạo bảng JobCriteria
+
 CREATE TABLE IF NOT EXISTS JobCriteria (
     id INT PRIMARY KEY AUTO_INCREMENT,
     
@@ -1228,5 +1227,16 @@ ALTER TABLE Profiles
   MODIFY COLUMN avatar_url LONGTEXT,
   MODIFY COLUMN cover_url  LONGTEXT;
 
+
 ALTER TABLE applications 
 MODIFY COLUMN cv_snapshot_url LONGTEXT;
+
+  -- 1. Trả các trường URL về đúng bản chất (Chỉ lưu link string, không lưu Base64)
+ALTER TABLE Profiles 
+  MODIFY COLUMN cv_url     VARCHAR(512) NULL,
+  MODIFY COLUMN avatar_url VARCHAR(512) NULL,
+  MODIFY COLUMN cover_url  VARCHAR(512) NULL;
+
+-- 2. Xóa bỏ avatar_url ở bảng Users để tránh xung đột dữ liệu (chỉ giữ lại ở Profiles)
+ALTER TABLE Users DROP COLUMN avatar_url;
+

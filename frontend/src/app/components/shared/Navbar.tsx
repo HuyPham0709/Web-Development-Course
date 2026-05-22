@@ -29,18 +29,41 @@ export const Navbar = () => {
   const { theme, setTheme } = useTheme();
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // BỔ SUNG: Khởi tạo đầy đủ các field cần thiết cho user state
   const [user, setUser] = useState({
     name: '',
     avatarUrl: '',
     role: ''
   });
 
-  const navLinks = [
-    { name: "Home", path: "/" },
-    { name: "My Applications", path: "/applications" },
-    { name: "Dashboard", path: "/employer/dashboard" },
-    { name: "Settings", path: "/settings" },
-  ];
+  // BỔ SUNG: Logic lấy NavLinks tùy theo role
+  const getNavLinks = () => {
+    const baseLinks = [{ name: "Home", path: "/" }];
+
+    if (!isLoggedIn) return baseLinks;
+
+    const userRole = user.role?.toLowerCase();
+
+    if (userRole === 'employer') {
+      return [
+        ...baseLinks,
+        { name: "Dashboard", path: "/employer/dashboard" },
+        { name: "CV Sreach", path: "/employer/cv-search" },
+      ];
+    }
+
+    if (userRole === 'candidate') {
+      return [
+        ...baseLinks,
+        { name: "My Applications", path: "/applications" },
+        { name: "Settings", path: "/settings" },
+      ];
+    }
+
+    return baseLinks;
+  };
+
+  const navLinks = getNavLinks();
 
   const notifications = [
     { id: 1, title: 'Application Viewed', desc: 'NextGen Tech viewed your Senior AI Engineer application.', time: '2 hours ago', unread: true },
@@ -57,10 +80,11 @@ export const Navbar = () => {
         setIsLoggedIn(true);
         try {
           const parsedUser = JSON.parse(savedUserStr);
+          // BỔ SUNG: Lấy thêm role và name từ localStorage
           setUser({
-            name: parsedUser.full_name || parsedUser.display_name || parsedUser.username || 'Người dùng',
+            name: parsedUser.full_name || parsedUser.name || '',
             avatarUrl: toFullUrl(parsedUser.avatar_url),
-            role: parsedUser.role === 'candidate' ? 'Ứng viên' : 'Nhà tuyển dụng'
+            role: parsedUser.role || ''
           });
         } catch (e) {
           console.error("Lỗi parse user từ localStorage:", e);
@@ -74,11 +98,12 @@ export const Navbar = () => {
 
     const handleProfileUpdate = (e: Event) => {
       const customEvent = e as CustomEvent;
-      const { full_name, avatar_url } = customEvent.detail;
+      const { full_name, avatar_url, role } = customEvent.detail;
       setUser(prev => ({
         ...prev,
         name: full_name || prev.name,
-        avatarUrl: avatar_url ? toFullUrl(avatar_url) : prev.avatarUrl
+        avatarUrl: avatar_url ? toFullUrl(avatar_url) : prev.avatarUrl,
+        role: role || prev.role
       }));
     };
 
@@ -109,9 +134,12 @@ export const Navbar = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setIsLoggedIn(false);
+    setUser({ name: '', avatarUrl: '', role: '' }); // Clear state
     window.dispatchEvent(new Event('auth-change'));
     navigate('/');
   };
+
+  const isEmployer = user.role?.toLowerCase() === 'employer';
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/80 backdrop-blur-md transition-colors dark:border-white/10 dark:bg-[#0B0F19]/80">
@@ -234,27 +262,32 @@ export const Navbar = () => {
                 </div>
                 <DropdownMenuSeparator className="bg-gray-100 dark:bg-white/5" />
 
-                <DropdownMenuItem className="p-1 cursor-pointer focus:bg-transparent">
-                  <Link
-                    to="/profile"
-                    className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group"
-                  >
-                    <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-green-500/10 dark:group-hover:bg-green-500/20 transition-colors">
-                      <User className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400" />
-                    </div>
-                    <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">Hồ sơ cá nhân</span>
-                  </Link>
-                </DropdownMenuItem>
+                {/* Giữ Link Profile dành cho candidate hoặc dùng chung tùy nhu cầu */}
+                {(!isEmployer) && (
+                  <DropdownMenuItem className="p-1 cursor-pointer focus:bg-transparent">
+                    <Link
+                      to="/profile"
+                      className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-green-500/10 dark:group-hover:bg-green-500/20 transition-colors">
+                        <User className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400" />
+                      </div>
+                      <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">Hồ sơ cá nhân</span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
 
                 <DropdownMenuItem className="p-1 cursor-pointer focus:bg-transparent">
                   <Link
-                    to={user.role === 'Nhà tuyển dụng' ? '/employer/dashboard' : '/candidate/dashboard'}
+                    to={isEmployer ? '/employer/dashboard' : '/settings'}
                     className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group"
                   >
                     <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-blue-500/10 dark:group-hover:bg-blue-500/20 transition-colors">
                       <Settings className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
                     </div>
-                    <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">Dashboard</span>
+                    <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
+                      {isEmployer ? 'Dashboard' : 'Cài đặt'}
+                    </span>
                   </Link>
                 </DropdownMenuItem>
 
@@ -274,10 +307,12 @@ export const Navbar = () => {
             </Link>
           )}
 
-          {/* POST A JOB */}
-          <Link to="/employer/dashboard" className="hidden rounded-full bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-2 text-sm font-medium text-white shadow-md transition-all hover:opacity-90 md:block">
-            Post a Job
-          </Link>
+          {/* BỔ SUNG: POST A JOB - Chỉ hiển thị cho Employer */}
+          {isLoggedIn && isEmployer && (
+            <Link to="/employer/jobs/new" className="hidden rounded-full bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-2 text-sm font-medium text-white shadow-md transition-all hover:opacity-90 md:block">
+              Post a Job
+            </Link>
+          )}
 
           {/* MOBILE MENU TOGGLE */}
           <button
@@ -309,15 +344,19 @@ export const Navbar = () => {
               </Link>
             );
           })}
-          <div className="pt-2 border-t border-gray-100 dark:border-white/5">
-            <Link
-              to="/employer/dashboard"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block w-full text-center rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 py-2.5 text-sm font-medium text-white shadow-sm"
-            >
-              Post a Job
-            </Link>
-          </div>
+          
+          {/* BỔ SUNG: POST A JOB TRÊN MOBILE - Chỉ hiển thị cho Employer */}
+          {isLoggedIn && isEmployer && (
+            <div className="pt-2 border-t border-gray-100 dark:border-white/5">
+              <Link
+                to="/employer/jobs/new"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block w-full text-center rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 py-2.5 text-sm font-medium text-white shadow-sm"
+              >
+                Post a Job
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </nav>

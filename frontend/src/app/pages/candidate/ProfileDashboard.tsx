@@ -88,25 +88,23 @@ export default function ProfileDashboard() {
 
   // ── Load profile ──────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!userId) { setLoading(false); return; }
-    getProfile(userId)
-      .then(data => {
+  if (!userId) { setLoading(false); return; }
+  getProfile(userId)
+    .then(data => {
+      // Đảm bảo data và data.personalInfo tồn tại
+      if (data && data.personalInfo) {
         setPersonalInfo(data.personalInfo);
-        setExperiences(data.experiences);
-        setEducation(data.education);
-        setSkills(data.skills);
-
-        const baseUrl = 'http://127.0.0.1:5000';
-        const avatar = data.personalInfo.avatar_url;
-        const cover = data.personalInfo.cover_url;
-
-        // ✅ base64 dùng trực tiếp, không ghép baseUrl nữa
-      setAvatarSrc(avatar || DEFAULT_AVATAR);
-      setCoverSrc(cover || DEFAULT_COVER);
-      })
-      .catch(() => showToast('error', 'Không thể tải hồ sơ'))
-      .finally(() => setLoading(false));
-  }, [userId]);
+        setExperiences(data.experiences || []);
+        setEducation(data.education || []);
+        setSkills(data.skills || []);
+        
+        setAvatarSrc(data.personalInfo.avatar_url || DEFAULT_AVATAR);
+        setCoverSrc(data.personalInfo.cover_url || DEFAULT_COVER);
+      }
+    })
+    .catch(() => showToast('error', 'Không thể tải hồ sơ'))
+    .finally(() => setLoading(false));
+}, [userId]);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const showToast = (type: 'success' | 'error', message: string) => setToast({ type, message });
@@ -200,39 +198,58 @@ export default function ProfileDashboard() {
   };
 
   // ── Avatar Upload ─────────────────────────────────────────────────────────
+// ── Avatar Upload ─────────────────────────────────────────────────────────
 const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
   const file = e.target.files?.[0];
   if (!file) return;
 
-  // Instant preview
-  const reader = new FileReader();
-  reader.onloadend = () => setAvatarSrc(reader.result as string);
-  reader.readAsDataURL(file);
+  // Preview local ngay lập tức
+  const localPreviewUrl = URL.createObjectURL(file);
+  setAvatarSrc(localPreviewUrl);
 
   try {
     const formData = new FormData();
     formData.append('avatar', file);
+
     const token = localStorage.getItem('token');
 
     const { data } = await axios.post(
       'http://127.0.0.1:5000/api/profile/upload-avatar',
       formData,
-      { headers: { Authorization: `Bearer ${token}` } }
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
     );
 
     if (data.success) {
-      // ✅ avatar_url giờ là base64, dùng trực tiếp không cần ghép URL
+      // URL cloudinary
       setAvatarSrc(data.avatar_url);
-      setPersonalInfo(prev => ({ ...prev, avatar_url: data.avatar_url }));
+
+      setPersonalInfo(prev => ({
+        ...prev,
+        avatar_url: data.avatar_url,
+      }));
+
       showToast('success', 'Cập nhật ảnh đại diện thành công!');
 
+      // sync localStorage
       const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+
       savedUser.avatar_url = data.avatar_url;
+
       localStorage.setItem('user', JSON.stringify(savedUser));
 
-      window.dispatchEvent(new CustomEvent('user-profile-updated', {
-        detail: { full_name: savedUser.full_name || null, avatar_url: data.avatar_url }
-      }));
+      // update navbar/avatar global
+      window.dispatchEvent(
+        new CustomEvent('user-profile-updated', {
+          detail: {
+            full_name: savedUser.full_name || null,
+            avatar_url: data.avatar_url,
+          },
+        })
+      );
     }
   } catch (err) {
     showToast('error', 'Upload ảnh thất bại');
@@ -240,54 +257,71 @@ const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 };
 
 // ── Cover Upload ──────────────────────────────────────────────────────────
+// ── Cover Upload ──────────────────────────────────────────────────────────
 const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
   const file = e.target.files?.[0];
   if (!file) return;
 
-  const reader = new FileReader();
-  reader.onloadend = () => setCoverSrc(reader.result as string);
-  reader.readAsDataURL(file);
+  // Preview local
+  const localPreviewUrl = URL.createObjectURL(file);
+  setCoverSrc(localPreviewUrl);
 
   try {
     const formData = new FormData();
     formData.append('cover', file);
+
     const token = localStorage.getItem('token');
 
     const { data } = await axios.post(
       'http://127.0.0.1:5000/api/profile/upload-cover',
       formData,
-      { headers: { Authorization: `Bearer ${token}` } }
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
     );
 
     if (data.success) {
-      // ✅ cover_url giờ là base64, dùng trực tiếp không cần ghép URL
       setCoverSrc(data.cover_url);
-      setPersonalInfo(prev => ({ ...prev, cover_url: data.cover_url }));
+
+      setPersonalInfo(prev => ({
+        ...prev,
+        cover_url: data.cover_url,
+      }));
+
       showToast('success', 'Cập nhật ảnh bìa thành công!');
 
       const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+
       savedUser.cover_url = data.cover_url;
+
       localStorage.setItem('user', JSON.stringify(savedUser));
 
-      window.dispatchEvent(new CustomEvent('user-profile-updated', {
-        detail: { full_name: savedUser.full_name || null, avatar_url: savedUser.avatar_url || null }
-      }));
+      window.dispatchEvent(
+        new CustomEvent('user-profile-updated', {
+          detail: {
+            full_name: savedUser.full_name || null,
+            avatar_url: savedUser.avatar_url || null,
+          },
+        })
+      );
     }
   } catch (err) {
     showToast('error', 'Upload ảnh bìa thất bại');
   }
 };
-
   // ── Formatters ────────────────────────────────────────────────────────────
   const formatDate = (dateString: string | undefined | null) => {
-    if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  };
-
-  const formatDateForInput = (dateString?: string | null) => {
-    if (!dateString) return '';
-    return new Date(dateString).toISOString().split('T')[0];
-  };
+  if (!dateString) return 'Chưa cập nhật';
+  
+  // Xử lý chuỗi YYYY-MM-DD
+  if (dateString.includes('-')) {
+    const [year, month, day] = dateString.split('-');
+    return `${day}-${month}-${year}`; // Trả về định dạng 02-03-2007
+  }
+  return dateString;
+};
 
   const getTagColor = (tag: string) => {
     if (tag === 'Đơn giản') return 'text-blue-500 bg-blue-50 dark:bg-blue-950/40 dark:text-blue-400';
@@ -538,17 +572,17 @@ const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                       <span className="px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:border-blue-300 dark:group-hover:border-blue-500/50">Chọn file</span>
                     </label>
 
-                    {loading ? <ProfileSkeleton className="rounded-2xl h-40" /> : personalInfo.cv_url ? (
+                    {loading ? <ProfileSkeleton className="rounded-2xl h-40" /> : personalInfo?.cv_url ? (
                       <div className="bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl p-6 flex flex-col">
                         <div className="flex items-start gap-4 mb-auto">
                           <div className="w-12 h-12 bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-xl flex items-center justify-center flex-shrink-0"><FileText className="w-6 h-6" /></div>
                           <div className="min-w-0">
-                            <h3 className="font-bold text-gray-900 dark:text-white truncate">{personalInfo.cv_url.split('/').pop()}</h3>
+                            <h3 className="font-bold text-gray-900 dark:text-white truncate">{personalInfo?.cv_url?.split('/').pop()}</h3>
                             <p className="text-sm text-gray-500 dark:text-gray-400">CV đã tải lên</p>
                           </div>
                         </div>
                         <div className="flex gap-3 mt-6">
-                          <a href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${personalInfo.cv_url}`} target="_blank" rel="noreferrer" className="flex-1 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors text-center">Xem</a>
+                          <a href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${personalInfo?.cv_url}`} target="_blank" rel="noreferrer" className="flex-1 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors text-center">Xem</a>
                           <button onClick={handleCVDelete} className="flex-1 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center justify-center gap-2"><Trash2 className="w-4 h-4" /> Xóa</button>
                         </div>
                       </div>
