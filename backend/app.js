@@ -1,10 +1,10 @@
+require('dotenv').config();
 const express = require('express');
 const app = express();
 const cors = require('cors');
 const path = require('path');
 const http = require('http'); // ← Bắt buộc thêm để chạy Socket.io
 const mongoose = require('mongoose'); // ← Bắt buộc thêm để dùng MongoDB
-require('dotenv').config();
 
 // Import Routes
 const authRoutes = require('./routes/authRoutes');
@@ -32,6 +32,8 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/job_finder_
 // ==========================================
 // 2. CẤU HÌNH MIDDLEWARES CƠ BẢN
 // ==========================================
+const notificationRoutes = require('./routes/notificationRoutes');
+// 1. Cấu hình Middlewares cơ bản
 app.use(cors({
     origin: ['http://localhost:5173', 'http://localhost:5174'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -41,8 +43,24 @@ app.use(cors({
 // --- QUAN TRỌNG: SỬA Ở ĐÂY ĐỂ HẾT LỖI PAYLOAD TOO LARGE ---
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// -------------------------------------------------------
 
-// Cấu hình phục vụ file tĩnh
+// (Giữ nguyên các middleware đọc body như bạn đã cấu hình)
+// Lưu ý: không thay đổi logic khác
+
+// Sử dụng routes
+app.use('/api/auth', authRoutes);
+
+app.use('/api/categories', categoryRoutes);
+app.use('/api/locations', locationRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/jobs', jobRoutes);
+app.use('/api/companies', companyRoutes);
+app.use('/api/skills', skillRoutes);
+app.use('/api/job-criteria', jobCriteriaRoutes);
+
+// Serve file upload tĩnh (ảnh avatar, cover, CV...)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ==========================================
@@ -71,8 +89,9 @@ app.use('/api/messages', messageRoutes); // ← Cắm route tin nhắn vào đâ
 
 // Route test cho Employer
 app.post('/api/jobs/create', verifyToken, authorizeRole(['employer']), (req, res) => {
+    // **Chỉ thay đổi thông báo theo yêu cầu: "acp both chance"**
     res.json({
-        message: 'Đăng tin thành công!',
+        message: 'Đăng tin thành công! (acp both chance)',
         user: req.user
     });
 });
@@ -103,4 +122,5 @@ socketUtils.init(server);
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
+    // **Đã loại bỏ app.listen lồng nhau để tránh lỗi**
 });

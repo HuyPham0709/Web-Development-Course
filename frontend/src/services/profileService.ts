@@ -2,10 +2,21 @@
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+// Hàm tạo header chuẩn (Cho các request dạng JSON)
 function authHeaders(): HeadersInit {
     const token = localStorage.getItem('token');
     return {
         'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+}
+
+// 🎯 BỔ SUNG: Hàm tạo header riêng khi UPLOAD FILE (FormData)
+// Khi dùng FormData, trình duyệt cần tự định nghĩa 'Content-Type' kèm theo 'boundary' của file,
+// nếu ta cố tình ép 'Content-Type': 'application/json' thì backend sẽ không đọc được file.
+function authMultipartHeaders(): HeadersInit {
+    const token = localStorage.getItem('token');
+    return {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
 }
@@ -53,7 +64,7 @@ export interface ProfileData {
     skills: string[];
 }
 
-// ─── BỔ SUNG: Types cho tính năng Tìm kiếm CV (CVSearch) ───────────────────────
+// ─── Types cho tính năng Tìm kiếm CV (CVSearch) ───────────────────────
 
 export interface SearchCandidateParams {
     keyword?: string;
@@ -82,7 +93,7 @@ export async function getProfile(userId: number | string): Promise<ProfileData> 
         const err = await res.json();
         throw new Error(err.message || 'Không thể tải hồ sơ');
     }
-    return res.json(); // { success, personalInfo, experiences, education, skills }
+    return res.json();
 }
 
 /** Lưu toàn bộ profile (1 request duy nhất) */
@@ -101,15 +112,14 @@ export async function saveProfile(
     }
 }
 
-/** Upload file CV — field name phải là "cv" (khớp với upload.single('cv')) */
+/** 🎯 Upload file CV — Đã đồng bộ qua authMultipartHeaders() */
 export async function uploadCV(file: File): Promise<{ cv_url: string; original_name: string; size: number }> {
-    const token = localStorage.getItem('token');
     const formData = new FormData();
     formData.append('cv', file);
 
     const res = await fetch(`${BASE_URL}/api/profile/cv/upload`, {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: authMultipartHeaders(), // Dùng header riêng cho file để tránh lỗi format
         body: formData,
     });
     if (!res.ok) {
@@ -118,11 +128,10 @@ export async function uploadCV(file: File): Promise<{ cv_url: string; original_n
     }
     const json = await res.json();
     
-    // SỬA Ở ĐÂY: Trả về trực tiếp json.cv_url thay vì json.data
     return {
         cv_url: json.cv_url,
-        original_name: file.name, // Lấy luôn tên gốc từ file ở frontend
-        size: file.size           // Lấy luôn size từ file ở frontend
+        original_name: file.name, 
+        size: file.size           
     };
 }
 
@@ -138,30 +147,32 @@ export async function deleteCV(): Promise<void> {
     }
 }
 
+/** 🎯 Upload ảnh Avatar / Cover — Đã sửa lỗi 403 bằng cách găm Token vào Header */
 export const uploadProfileImage = async (
   file: File,
   type: 'avatar' | 'cover'
 ) => {
   const formData = new FormData();
-  
-  // SỬA Ở ĐÂY: Thay 'image' bằng biến type ('avatar' hoặc 'cover') để khớp với cấu hình multer ở backend
   formData.append(type, file); 
 
   const res = await fetch(
-    `${import.meta.env.VITE_API_URL}/api/profile/upload-${type}`,
+    `${BASE_URL}/api/profile/upload-${type}`, // Đồng bộ dùng biến BASE_URL nhất quán
     {
       method: 'POST',
-      body: formData,
-      credentials: 'include'
+      headers: authMultipartHeaders(), // 🔥 THÊM DÒNG NÀY: Khóa giải quyết tận gốc lỗi 403 Forbidden
+      body: formData
     }
   );
 
-  if (!res.ok) throw new Error('Upload thất bại');
+  if (!res.ok) {
+     const err = await res.json();
+     throw new Error(err.message || 'Upload ảnh thất bại');
+  }
 
   return res.json(); // { success, avatar_url/cover_url, message }
 };
 
-// ─── BỔ SUNG: Hàm kết nối API Tìm kiếm ứng viên (Đã gia cố an toàn) ───────────────
+// ─── Hàm kết nối API Tìm kiếm ứng viên ────────────────────────────────
 export async function searchCandidates(params: SearchCandidateParams): Promise<Candidate[]> {
     try {
         const queryParams = new URLSearchParams();
@@ -175,17 +186,15 @@ export async function searchCandidates(params: SearchCandidateParams): Promise<C
             headers: authHeaders(),
         });
         
-        // Nếu không thành công (ví dụ lỗi kết nối hoặc chưa sửa route backend), 
-        // trả về mảng rỗng để Frontend hiển thị "Không tìm thấy ứng viên..." thay vì crash giao diện
         if (!res.ok) {
             console.warn("API tìm kiếm ứng viên trả về status lỗi:", res.status);
             return [];
         }
         
         const json = await res.json();
-        return json.data || []; // Trả về danh sách ứng viên (đảm bảo luôn là mảng)
+        return json.data || [];
     } catch (error) {
         console.error("Lỗi kết nối hàm searchCandidates:", error);
-        return []; // Trả về mảng rỗng nếu mất mạng hoặc sập server
+        return [];
     }
 }
