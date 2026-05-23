@@ -33,6 +33,7 @@ export default function MyApplications() {
   const [showFilter, setShowFilter] = useState(false);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
     fetchApplications();
   }, []);
 

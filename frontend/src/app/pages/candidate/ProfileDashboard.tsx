@@ -87,6 +87,7 @@ export default function ProfileDashboard() {
 
   // ── Load profile ──────────────────────────────────────────────────────────
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
     if (!userId) { setLoading(false); return; }
     getProfile(userId)
       .then(data => {
