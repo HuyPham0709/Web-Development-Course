@@ -47,6 +47,10 @@ export interface Job {
     created_at: string;
     application_count: number;
     status: string;
+    rejection_reason?: string;
+    salary_min: number;
+    salary_max: number;
+    currency: string;
 }
 
 export interface Stats {

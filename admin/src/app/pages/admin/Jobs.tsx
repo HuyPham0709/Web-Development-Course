@@ -4,6 +4,8 @@ import {
   ShieldCheck, AlertTriangle, Check, Loader2, Building2, RefreshCw
 } from "lucide-react"
 import { toast } from "sonner"
+import { PendingJob } from '../../../types'
+
 
 const API_URL = 'http://localhost:5000/api/admin';
 
@@ -12,26 +14,6 @@ function getHeaders() {
   return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 }
 
-interface PendingJob {
-  id: number;
-  title: string;
-  description: string;
-  requirements: string;
-  job_type: string;
-  experience_level: string;
-  salary_min: number;
-  salary_max: number;
-  status: string;
-  created_at: string;
-  company_id: number;
-  company_name: string;
-  logo_url: string | null;
-  company_verified: number;
-  location_name: string;
-  category_name: string;
-  posted_by_username: string;
-  posted_by_email: string;
-}
 
 const QUICK_REASONS = [
   "Missing salary info",
@@ -88,8 +70,8 @@ export function Jobs() {
   }, []);
 
   const handleAction = async (action: 'approve' | 'reject') => {
-    if (!jobs[0]) return;
-    const currentJob = jobs[0];
+    if (!jobs[selectedIndex]) return;
+    const currentJob = jobs[selectedIndex];
 
     if (action === 'reject' && !reason.trim()) {
       toast.warning('Vui lòng nhập lý do từ chối!');
@@ -116,7 +98,8 @@ export function Jobs() {
         } else {
           toast.error(`Job #${currentJob.id} rejected. ${reason ? `Reason: ${reason}` : ''}`);
         }
-        // Xóa job đầu khỏi queue
+
+        // Xóa job vừa duyệt ra khỏi hàng đợi
         setJobs(prev => {
           const next = prev.filter((_, i) => i !== selectedIndex);
           setSelectedIndex(0); // reset về đầu sau khi xử lý
@@ -128,7 +111,7 @@ export function Jobs() {
       }
     } catch {
       toast.error('Không thể kết nối đến máy chủ');
-    } finally {
+    } finally { // <-- Đã sửa lỗi viết sai chính tả 'finaly' tại đây
       setActionLoading(false);
     }
   };
@@ -182,6 +165,12 @@ export function Jobs() {
   const job = jobs[selectedIndex];
   const requirements = parseRequirements(job.requirements);
   const initials = getInitials(job.company_name);
+
+  // Lọc ra danh sách các công việc tiếp theo (bỏ qua công việc hiện tại đang được chọn)
+  const upcomingJobs = jobs.filter((_, idx) => idx !== selectedIndex);
+  // Cắt mảng để chỉ lấy tối đa 3 phần tử tiếp theo hiển thị lên UI
+  const displayedUpcomingJobs = upcomingJobs.slice(0, 3);
+  const remainingCount = upcomingJobs.length - displayedUpcomingJobs.length;
 
   return (
     <div className="p-6 md:p-8 bg-[#F8FAFC] min-h-screen">
@@ -383,28 +372,34 @@ export function Jobs() {
                 </button>
               </div>
 
-              {/* Queue preview */}
-              {jobs.length > 1 && (
+              {/* Up Next: Đã tối ưu chỉ hiển thị tối đa 3 items */}
+              {upcomingJobs.length > 0 && (
                 <div className="pt-4 border-t border-gray-800">
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500 mb-3">Up Next</p>
                   <div className="space-y-2">
-                    {jobs.map((nextJob, idx) => idx !== selectedIndex && (
-                      <button
-                        key={nextJob.id}
-                        onClick={() => { setSelectedIndex(idx); setReason(''); }}
-                        className="w-full flex items-center gap-3 p-3 bg-gray-800/50 hover:bg-gray-700/50 rounded-xl border border-gray-700 transition-colors text-left"
-                      >
-                        <div className="w-8 h-8 rounded-lg bg-gray-700 flex items-center justify-center text-xs font-black text-gray-300 flex-shrink-0">
-                          {getInitials(nextJob.company_name)}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-white truncate">{nextJob.title}</p>
-                          <p className="text-[11px] text-gray-400 truncate">{nextJob.company_name}</p>
-                        </div>
-                      </button>
-                    )).filter(Boolean)}
-                    {jobs.length > 3 && (
-                      <p className="text-xs text-gray-500 text-center pt-1">+{jobs.length - 3} more in queue</p>
+                    {displayedUpcomingJobs.map((nextJob) => {
+                      // Tìm vị trí gốc trong mảng `jobs` ban đầu để setSelectedIndex cho đúng
+                      const originalIndex = jobs.findIndex(j => j.id === nextJob.id);
+                      return (
+                        <button
+                          key={nextJob.id}
+                          onClick={() => { setSelectedIndex(originalIndex); setReason(''); }}
+                          className="w-full flex items-center gap-3 p-3 bg-gray-800/50 hover:bg-gray-700/50 rounded-xl border border-gray-700 transition-colors text-left"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-gray-700 flex items-center justify-center text-xs font-black text-gray-300 flex-shrink-0">
+                            {getInitials(nextJob.company_name)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-white truncate">{nextJob.title}</p>
+                            <p className="text-[11px] text-gray-400 truncate">{nextJob.company_name}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+
+                    {/* Nếu số lượng còn lại lớn hơn 0 thì hiển thị số lượng ẩn bổ sung */}
+                    {remainingCount > 0 && (
+                      <p className="text-xs text-gray-500 text-center pt-1">+{remainingCount} more in queue</p>
                     )}
                   </div>
                 </div>

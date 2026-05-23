@@ -43,7 +43,7 @@ const ProtectedRoute = ({ allowedRole }: { allowedRole: string }) => {
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <App />, 
+    element: <App />,
     errorElement: <ErrorPage />, // BỔ SUNG: Xử lý giao diện lỗi 404 và crash component
     children: [
       { index: true, element: <Home /> },
@@ -53,7 +53,7 @@ export const router = createBrowserRouter([
         path: "job/:id",
         element: <JobDetail />
       },
-      
+
       // --- ROUTES CHO ỨNG VIÊN (CANDIDATE) ---
       {
         element: <ProtectedRoute allowedRole="candidate" />,
@@ -72,6 +72,7 @@ export const router = createBrowserRouter([
           { path: "employer/candidates", element: <CandidateManagement /> }, // BỔ SUNG
           { path: "employer/candidate/:id", element: <CandidateDetail /> },  // BỔ SUNG
           { path: "employer/jobs/new", element: <JobForm /> },
+          { path: "employer/jobs/edit/:id", element: <JobForm /> }, // ← thêm dòng này thôi
         ],
       }
     ],

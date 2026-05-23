@@ -164,7 +164,7 @@ exports.login = async (req, res) => {
 
     // 7. Tạo JWT Token
     const token = jwt.sign(
-      { id: user.id, role: user.role },
+      { id: user.id, role: user.role, company_id: user.company_id }, // ← thêm company_id,
       process.env.JWT_SECRET,
       { expiresIn: "1d" },
     );
@@ -402,9 +402,9 @@ exports.googleLogin = async (req, res) => {
 
     // 3. Tạo Token JWT (Dùng chung cho cả 2 cách đăng nhập)
     const token = jwt.sign(
-      { id: user.id, role: user.role },
+      { id: user.id, role: user.role, company_id: user.company_id },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: "1d" },
     );
 
     res.status(200).json({
@@ -538,7 +538,7 @@ exports.verifyLoginOTP = async (req, res) => {
 
     // Tạo Token Đăng nhập
     const token = jwt.sign(
-      { id: user.id, role: user.role },
+      { id: user.id, role: user.role, company_id: user.company_id },
       process.env.JWT_SECRET,
       { expiresIn: "1d" },
     );

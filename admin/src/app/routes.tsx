@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom" 
+import { createBrowserRouter } from "react-router-dom"
 import { AdminLayout } from "./layouts/AdminLayout"
 import { Login } from "./pages/auth/Login"
 import { Dashboard } from "./pages/admin/Dashboard"
@@ -19,7 +19,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, Component: Dashboard },
       { path: "users", Component: Users },
-      { path: "jobs", Component: Jobs }, 
+      { path: "jobs", Component: Jobs },
       { path: "jobs/management", Component: JobManagement },
       { path: "metadata", Component: Metadata },
       { path: "reports", Component: Reports },
