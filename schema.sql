@@ -250,6 +250,7 @@ CREATE TABLE JobCriteria (
     FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+
 CREATE TABLE Application_Notes (
     id INT PRIMARY KEY AUTO_INCREMENT,
     application_id INT NOT NULL,

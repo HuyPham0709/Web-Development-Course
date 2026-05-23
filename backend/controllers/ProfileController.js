@@ -401,25 +401,54 @@ exports.updateProfile = async (req, res) => {
     }
 };
 
-// ─── 5. POST /api/profile/cv/upload ───────────────────────────────────────────
+// ─── 5. UPLOAD CV (ĐÃ SỬA LỖI) ─────────────────────────────
 exports.uploadCV = async (req, res) => {
   try {
     const userId = req.user.id;
-    if (!req.file) return res.status(400).json({ success: false, message: 'Chưa chọn CV!' });
 
-    // Chuyển tên file gốc thành format an toàn (Bỏ tiếng Việt, khoảng trắng)
-    const originalName = req.file.originalname;
-    
-    // Đẩy lên Cloudinary, mục 'cvs'. Lưu ý file PDF có thể sẽ cần tùy chỉnh thêm nếu Cloudinary chặn dạng raw
-    const result = await uploadToCloudinary(req.file.buffer, 'job_finder/cvs');
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Chưa nhận được file CV (Kiểm tra field name là "cv")'
+      });
+    }
+
+    // Sử dụng helper uploadToCloudinary đã định nghĩa ở đầu file
+    // resource_type: 'auto' bên trong helper sẽ lo phần PDF/DOCX
+    const result = await uploadToCloudinary(
+      req.file.buffer,
+      'job_finder/cvs'
+    );
+
     const secureUrl = result.secure_url;
 
-    await db.query('UPDATE Profiles SET cv_url = ? WHERE user_id = ?', [secureUrl, userId]);
+    // Cập nhật Database
+    const [dbResult] = await db.query(
+      'UPDATE Profiles SET cv_url = ? WHERE user_id = ?',
+      [secureUrl, userId]
+    );
 
-    res.json({ success: true, cv_url: secureUrl, message: 'Upload CV thành công!' });
+    // Kiểm tra nếu chưa có Profile thì báo lỗi (Tránh trường hợp update hụt)
+    if (dbResult.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bạn cần tạo thông tin cá nhân trước khi upload CV!'
+      });
+    }
+
+    res.json({
+      success: true,
+      cv_url: secureUrl,
+      message: 'Upload CV thành công!'
+    });
+
   } catch (error) {
-    console.error("Lỗi upload CV:", error);
-    res.status(500).json({ success: false, message: 'Lỗi server khi upload CV' });
+    console.error('Lỗi chi tiết tại Server:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi upload CV',
+      error: error.message
+    });
   }
 };
 
@@ -463,6 +492,7 @@ exports.deleteCV = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
 
 // ─── 7. POST /api/profile/avatar ──────────────────────────────────────────────
 // [THÊM TỪ CODE MỚI] Upload Avatar
@@ -565,3 +595,4 @@ exports.searchCandidates = async (req, res) => {
     res.status(500).json({ success: false, message: 'Lỗi server khi tìm kiếm CV' });
   }
 };
+
