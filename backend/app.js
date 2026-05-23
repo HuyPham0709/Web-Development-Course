@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const app = express();
 const cors = require('cors');
@@ -14,8 +15,7 @@ const companyRoutes = require('./routes/companyRoutes');
 const skillRoutes = require('./routes/skillRoutes');
 const { verifyToken, authorizeRole } = require('./middlewares/authMiddleware');
 const jobCriteriaRoutes = require('./routes/jobCriteriaRoutes');
-require('dotenv').config();
-
+const notificationRoutes = require('./routes/notificationRoutes');
 // 1. Cấu hình Middlewares cơ bản
 app.use(cors({
     origin: ['http://localhost:5173', 'http://localhost:5174'],
@@ -38,7 +38,7 @@ app.use('/api/auth', authRoutes);
 
 app.use('/api/categories', categoryRoutes);
 app.use('/api/locations', locationRoutes);
-
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/companies', companyRoutes);
@@ -109,6 +109,7 @@ app.use((err, req, res, next) => {
 
 // 4. Khởi động Server
 const PORT = process.env.PORT || 5000;
+const db = require('./config/db');
 app.listen(PORT, () => {
     console.log(`🚀 Server đang chạy tại http://localhost:${PORT}`);
 });
