@@ -115,6 +115,10 @@ export const router = createBrowserRouter([
       {
         element: <RequireAuth />,
         children: [
+           {
+            path: "chat",
+            element: <Chat />,
+          },
           { path: "profile", element: <ProfileDashboard /> }, // BỔ SUNG: Route trang profile
 
           { path: "applications", element: <MyApplications /> },
