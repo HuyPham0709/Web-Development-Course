@@ -63,8 +63,8 @@ export const router = createBrowserRouter([
         children: [
           { path: "profile", element: <ProfileDashboard /> }, // BỔ SUNG: Route trang profile
           
-          // ✅ ĐÃ SỬA DÒNG NÀY: Thêm "profile/" vào trước "applications"
-          { path: "profile/applications", element: <MyApplications /> }, 
+         
+          { path: "applications", element: <MyApplications /> }, 
           
           { path: "settings", element: <Settings /> },        // BỔ SUNG: Route cài đặt chung
         ],
