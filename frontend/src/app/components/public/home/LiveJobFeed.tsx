@@ -3,6 +3,7 @@ import { ShieldCheck, MapPin, Heart, Zap, Clock } from "lucide-react";
 import { motion } from "motion/react";
 import { getJobs } from "../../../../services/jobService";
 import { useNavigate } from "react-router-dom"; // BỔ SUNG: Import useNavigate để điều hướng trang
+import axios from "axios";
 
 const jobTabs = ["All Jobs", "Full-Time", "Contract", "Remote"];
 
@@ -38,7 +39,10 @@ export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter }: Liv
   const [jobs, setJobs] = useState([]);
   const [activeTab, setActiveTab] = useState("All Jobs");
   const [loading, setLoading] = useState(true);
+  const [savedJobs, setSavedJobs] = useState<number[]>([]);
+
   const navigate = useNavigate(); // BỔ SUNG: Khởi tạo hook điều hướng
+
 
   useEffect(() => {
     const fetchFilteredJobs = async () => {
@@ -66,6 +70,69 @@ export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter }: Liv
     fetchFilteredJobs();
   }, [titleFilter, locationFilter, categoryFilter, activeTab]);
 
+  useEffect(() => {
+  const fetchSavedJobs = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await axios.get(
+        "http://127.0.0.1:5000/api/favorites",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const savedIds = res.data.data.map((job: any) => job.id);
+
+      setSavedJobs(savedIds);
+
+    } catch (err) {
+      console.error("Fetch saved jobs error:", err);
+    }
+  };
+
+  fetchSavedJobs();
+}, []);
+const handleSaveJob = async (jobId: number) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const isSaved = savedJobs.includes(jobId);
+
+    if (isSaved) {
+      await axios.delete(
+        `http://127.0.0.1:5000/api/favorites/${jobId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setSavedJobs((prev) =>
+        prev.filter((id) => id !== jobId)
+      );
+
+    } else {
+      await axios.post(
+        `http://127.0.0.1:5000/api/favorites/${jobId}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setSavedJobs((prev) => [...prev, jobId]);
+    }
+
+  } catch (err) {
+    console.error("Save job error:", err);
+  }
+};
   return (
     <section className="w-full bg-white py-20 relative transition-colors duration-300 dark:bg-[#0B0F19]">
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-50 dark:opacity-10 dark:bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)]"></div>
@@ -150,9 +217,21 @@ export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter }: Liv
                         </span>
                       </div>
                     </div>
-                    <button className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-400 transition-colors hover:border-rose-200 hover:text-rose-500 hover:bg-rose-50 dark:border-white/10 dark:bg-white/5 dark:text-gray-400 dark:hover:bg-rose-950/40">
-                      <Heart size={18} />
-                    </button>
+                    <button
+  onClick={() => handleSaveJob(job.id)}
+  className={`flex h-10 w-10 items-center justify-center rounded-full border transition-colors
+    ${
+      savedJobs.includes(job.id)
+        ? "border-rose-200 bg-rose-50 text-rose-500 dark:bg-rose-950/40"
+        : "border-gray-200 bg-gray-50 text-gray-400 hover:border-rose-200 hover:text-rose-500 hover:bg-rose-50 dark:border-white/10 dark:bg-white/5"
+    }
+  `}
+>
+  <Heart
+    size={18}
+    fill={savedJobs.includes(job.id) ? "currentColor" : "none"}
+  />
+</button>
                   </div>
 
                   <div className="mb-6">

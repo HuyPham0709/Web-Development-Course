@@ -1,5 +1,5 @@
 // ==========================================
-// CandidateDetail.tsx (Dark Mode & Staggered Animation)
+// CandidateDetail.tsx (Dark Mode & Staggered Animation) - FIXED LOGIC ONLY
 // ==========================================
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
@@ -15,19 +15,23 @@ export default function CandidateDetail() {
   const [newNote, setNewNote] = useState('');
   const [loading, setLoading] = useState(true);
   
-  // ĐÃ THÊM: State kiểm soát hiệu ứng lướt chào sân mượt mà
+  // State kiểm soát hiệu ứng lướt chào sân mượt mà
   const [animate, setAnimate] = useState(false);
   
   const steps = ['Pending', 'Reviewed', 'Interview', 'Hired'];
+
+  // FIX 1: ĐƯA BIẾN BACKEND URL LÊN ĐẦU ĐỂ TRÁNH LỖI SỬ DỤNG TRƯỚC KHI KHAI BÁO (UNDEFINED)
+  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     if (!id) return;
     
     const fetchData = async () => {
       try {
+        // FIX 2: GIỮ NGUYÊN CHUỖI ID (M_ID CỦA MONGODB), KHÔNG ÉP SANG NUMBER GÂY LỖI URL THÀNH NaN
         const [detailRes, notesRes] = await Promise.all([
           applicationService.getApplicationById(id),
-          applicationService.getNotes(Number(id))
+          applicationService.getNotes(id as any) 
         ]);
         setCandidate(detailRes.data.data);
         setNotes(notesRes.data.data || []);
@@ -41,7 +45,7 @@ export default function CandidateDetail() {
     fetchData();
   }, [id]);
 
-  // ĐÃ THÊM: Kích hoạt animation ngay sau khi tắt loading
+  // Kích hoạt animation ngay sau khi tắt loading
   useEffect(() => {
     if (!loading) {
       const timer = setTimeout(() => setAnimate(true), 60);
@@ -52,7 +56,8 @@ export default function CandidateDetail() {
   const handleAddNote = async () => {
     if (!newNote.trim() || !id) return;
     try {
-      const res = await applicationService.addNote(Number(id), newNote);
+      // FIX 3: BỎ Number(id) ĐỂ TRÁNH GỬI URL DẠNG /NaN/ LÊN BACKEND
+      const res = await applicationService.addNote(id as any, newNote);
       setNotes([...notes, res.data.data]);
       setNewNote('');
     } catch (error) {
@@ -75,7 +80,8 @@ export default function CandidateDetail() {
 
     try {
       if (applicationService.updateStatus) {
-        await applicationService.updateStatus(Number(id), backendStatus);
+        // FIX 4: BỎ Number(id) ĐỂ TƯƠNG THÍCH VỚI ID CHUỖI CỦA MONGODB
+        await applicationService.updateStatus(id as any, backendStatus);
       }
     } catch (error) {
       console.error("Lỗi cập nhật trạng thái:", error);
@@ -112,7 +118,7 @@ export default function CandidateDetail() {
     default: activeStep = 0;
   }
 
-  // ĐÃ CẬP NHẬT: Thêm dải màu hỗ trợ Dark Mode cho các Status Badge
+  // Thêm dải màu hỗ trợ Dark Mode cho các Status Badge
   const getStatusColor = (status?: string) => {
     switch (status?.toLowerCase()) {
       case 'pending': return 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/30';
@@ -127,14 +133,26 @@ export default function CandidateDetail() {
 
   const displayName = candidate.full_name || candidate.candidate_name || 'Ứng viên';
   const cvFile = candidate.cv_url || ''; 
-  const cleanCvFile = cvFile.replace(/^(?:\/?uploads\/)+/, ''); 
-  const cvLink = `http://localhost:5000/uploads/${cleanCvFile}`;
+  const cvLink = cvFile.startsWith('http') 
+    ? cvFile 
+    : `${backendUrl}/uploads/${cvFile.replace(/^(?:\/?uploads\/)+/, '')}`;
+
+  const cleanCvFile = cvFile;
+
+  // LOGIC XỬ LÝ AVATAR ĐỒNG BỘ HOÀN TOÀN TỪ CVSearch.tsx
+  const rawAvatar = candidate.avatar_url || candidate.avatar;
+  
+  const avatarSrc = rawAvatar
+    ? (rawAvatar.startsWith('http') || rawAvatar.startsWith('data:') 
+        ? rawAvatar 
+        : `${backendUrl}/${rawAvatar.replace(/^\//, '')}`)
+    : `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random`;
 
   return (
     <div className="min-h-screen bg-gray-50/50 dark:bg-[#0E1422] py-4 transition-colors duration-300">
       <div className="flex flex-col gap-6 font-sans pb-12 h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* 1. Breadcrumb - Xuất hiện đầu tiên */}
+        {/* 1. Breadcrumb */}
         <div className={`flex items-center text-sm text-gray-500 dark:text-gray-400 mb-2 mt-4 transform transition-all duration-500 ease-out ${
           animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
         }`}>
@@ -146,7 +164,6 @@ export default function CandidateDetail() {
         <div className="flex flex-col lg:flex-row gap-6">
           
           {/* ================= LEFT COLUMN (Profile Box) ================= */}
-          {/* ĐÃ SỬA: Animation delay-75 & tích hợp giao diện tối */}
           <div className={`w-full lg:w-[340px] flex-shrink-0 flex flex-col gap-6 transform transition-all duration-500 ease-out delay-75 ${
             animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
           }`}>
@@ -154,9 +171,19 @@ export default function CandidateDetail() {
               
               <div className="flex flex-col items-center text-center mb-6">
                 <div className="relative mb-4">
-                  <div className="w-24 h-24 rounded-full bg-blue-100 dark:bg-blue-950/40 flex items-center justify-center text-3xl font-bold text-blue-600 dark:text-blue-400 transition-colors">
-                    {displayName.charAt(0).toUpperCase()}
+                  <div className="w-24 h-24 rounded-full bg-gray-100 dark:bg-white/5 overflow-hidden shrink-0 border border-gray-200 dark:border-white/10 transition-colors">
+                    <img 
+                      src={avatarSrc} 
+                      alt="Avatar" 
+                      className="w-full h-full object-cover"
+                      onError={(e) => { 
+                        const target = e.target as HTMLImageElement;
+                        target.onerror = null; 
+                        target.src = "https://placehold.co/150x150/e2e8f0/64748b?text=No+Image"; 
+                      }}
+                    />
                   </div>
+
                   {candidate.experience_level && (
                     <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-blue-600 dark:bg-blue-500 text-white text-[11px] font-bold px-3 py-0.5 rounded-full border-2 border-white dark:border-[#0E1422] whitespace-nowrap shadow-sm">
                       {candidate.experience_level}
@@ -224,7 +251,6 @@ export default function CandidateDetail() {
           <div className="w-full flex-1 flex flex-col gap-6">
             
             {/* 1. Application Status Card */}
-            {/* ĐÃ SỬA: Animation delay-150 & Timeline tối màu */}
             <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-sm transform transition-all duration-500 ease-out delay-150 ${
               animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
             }`}>
@@ -241,7 +267,6 @@ export default function CandidateDetail() {
               
               {/* Timeline Flow */}
               <div className="relative flex items-center justify-between w-full mt-6 px-2 pb-8">
-                {/* Thanh tiến trình nền */}
                 <div className="absolute left-6 right-6 top-3 h-1 bg-gray-200 dark:bg-white/10 z-0 rounded-full">
                   <div 
                     className="absolute left-0 top-0 h-full bg-blue-600 dark:bg-blue-500 z-0 rounded-full transition-all duration-500"
@@ -272,7 +297,6 @@ export default function CandidateDetail() {
             </div>
 
             {/* 2. Cover Letter Card */}
-            {/* ĐÃ SỬA: Animation delay-200 */}
             {candidate.cover_letter && (
               <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-sm transform transition-all duration-500 ease-out delay-200 ${
                 animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
@@ -289,7 +313,6 @@ export default function CandidateDetail() {
             )}
 
             {/* 3. Resume Document Card */}
-            {/* ĐÃ SỬA: Animation delay-300 */}
             <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-sm transform transition-all duration-500 ease-out delay-300 ${
               animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
             }`}>
@@ -318,7 +341,6 @@ export default function CandidateDetail() {
             </div>
 
             {/* 4. HR Internal Notes Card */}
-            {/* ĐÃ SỬA: Animation delay-[400ms] */}
             <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-sm relative overflow-hidden transform transition-all duration-500 ease-out delay-[400ms] ${
               animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
             }`}>
