@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   Briefcase,
   Bell,
+  MessageSquare,
   CheckCircle2,
   LogOut,
   Settings,
@@ -299,6 +300,21 @@ export const Navbar = () => {
             />
           </button>
 
+          {/* BỔ SUNG: CHAT ICON TRÊN DESKTOP */}
+          {isLoggedIn && (
+            <Link
+              to="/chat"
+              className={`relative rounded-full p-2 transition-colors ${
+                location.pathname === '/chat'
+                  ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
+                  : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10"
+              }`}
+              title="Messages"
+            >
+              <MessageSquare size={20} />
+            </Link>
+          )}
+
           {/* NOTIFICATIONS */}
           <div className="relative" ref={dropdownRef}>
             <button
@@ -492,6 +508,21 @@ export const Navbar = () => {
             );
           })}
 
+          {/* BỔ SUNG: LINK CHAT TRÊN MOBILE MENU */}
+          {isLoggedIn && (
+            <Link
+              to="/chat"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`block px-4 py-2.5 text-sm font-semibold rounded-xl transition-all ${
+                location.pathname === '/chat'
+                  ? "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-950/40"
+                  : "text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5"
+              }`}
+            >
+              Messages
+            </Link>
+          )}
+          
           {isLoggedIn && isEmployer && (
             <div className="pt-2 border-t border-gray-100 dark:border-white/5">
               <Link

@@ -14,10 +14,13 @@ import { JobForm } from './pages/employer/JobForm';
 import Settings from "./pages/shared/Settings";
 import ErrorPage from "./pages/shared/ErrorPage";
 
-// BỔ SUNG: Import CVSearch (Dạng named import vì file CVSearch dùng `export function CVSearch`)
+// Import CVSearch (Dạng named import vì file CVSearch dùng `export function CVSearch`)
 import { CVSearch } from "./pages/employer/CVSearch";
 
-// --- PROTECTED ROUTE ---
+// BỔ SUNG: Import component Chat
+import Chat from "./pages/shared/Chat";
+
+// --- PROTECTED ROUTE (GIỮ NGUYÊN 100% CỦA BẠN) ---
 const ProtectedRoute = ({ allowedRole }: { allowedRole: string }) => {
   const userStr = localStorage.getItem('user');
 
@@ -43,11 +46,18 @@ const ProtectedRoute = ({ allowedRole }: { allowedRole: string }) => {
   }
 };
 
+// --- BỔ SUNG: ROUTE CHỈ YÊU CẦU ĐĂNG NHẬP (DÀNH CHO CHAT DÙNG CHUNG) ---
+const RequireAuth = () => {
+  const userStr = localStorage.getItem('user');
+  if (!userStr) return <Navigate to="/auth" replace />;
+  return <Outlet />;
+};
+
 export const router = createBrowserRouter([
   {
     path: "/",
     element: <App />, 
-    errorElement: <ErrorPage />, // BỔ SUNG: Xử lý giao diện lỗi 404 và crash component
+    errorElement: <ErrorPage />, 
     children: [
       { index: true, element: <Home /> },
       { path: "auth", element: <Auth /> },
@@ -57,16 +67,21 @@ export const router = createBrowserRouter([
         element: <JobDetail />
       },
       
+      // --- BỔ SUNG: ROUTE CHAT (Cả Employer và Candidate đều vào được nếu đã đăng nhập) ---
+      {
+        element: <RequireAuth />,
+        children: [
+          { path: "chat", element: <Chat /> }
+        ]
+      },
+
       // --- ROUTES CHO ỨNG VIÊN (CANDIDATE) ---
       {
         element: <ProtectedRoute allowedRole="candidate" />,
         children: [
-          { path: "profile", element: <ProfileDashboard /> }, // BỔ SUNG: Route trang profile
-          
-          
-          { path: "applications", element: <MyApplications /> }, 
-          
-          { path: "settings", element: <Settings /> },        // BỔ SUNG: Route cài đặt chung
+          { path: "profile", element: <ProfileDashboard /> }, 
+          { path: "applications", element: <MyApplications /> },
+          { path: "settings", element: <Settings /> },        
         ],
       },
 
@@ -74,9 +89,9 @@ export const router = createBrowserRouter([
       {
         element: <ProtectedRoute allowedRole="employer" />,
         children: [
-          { path: "employer/dashboard", element: <EmployerDashboard /> }, // BỔ SUNG
-          { path: "employer/candidates", element: <CandidateManagement /> }, // BỔ SUNG
-          { path: "employer/candidate/:id", element: <CandidateDetail /> },  // BỔ SUNG
+          { path: "employer/dashboard", element: <EmployerDashboard /> }, 
+          { path: "employer/candidates", element: <CandidateManagement /> }, 
+          { path: "employer/candidate/:id", element: <CandidateDetail /> },  
           { path: "employer/jobs/new", element: <JobForm /> },
           { path: "employer/cv-search", element: <CVSearch /> },
         ],
