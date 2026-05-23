@@ -13,6 +13,7 @@ import CandidateDetail from "./pages/employer/CandidateDetail";
 import { JobForm } from './pages/employer/JobForm';
 import Settings from "./pages/shared/Settings";
 import ErrorPage from "./pages/shared/ErrorPage";
+import RecommendedJobsPage from '../../src/app/pages/employer/RecommendedJobsPage';
 
 // BỔ SUNG: Import CVSearch (Dạng named import vì file CVSearch dùng `export function CVSearch`)
 import { CVSearch } from "./pages/employer/CVSearch";
@@ -64,6 +65,11 @@ export const router = createBrowserRouter([
           { path: "profile", element: <ProfileDashboard /> }, // BỔ SUNG: Route trang profile
           { path: "applications", element: <MyApplications /> },
           { path: "settings", element: <Settings /> },        // BỔ SUNG: Route cài đặt chung
+
+          { 
+            path: "recommended-jobs", 
+            element: <RecommendedJobsPage /> 
+          },
         ],
       },
 

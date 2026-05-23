@@ -15,6 +15,8 @@ const skillRoutes = require('./routes/skillRoutes');
 const { verifyToken, authorizeRole } = require('./middlewares/authMiddleware');
 const jobCriteriaRoutes = require('./routes/jobCriteriaRoutes');
 const favoriteRoutes = require('./routes/favoriteRoutes');
+const recommendationRoutes = require('./routes/recommendationRoutes');
+
 require('dotenv').config();
 
 // 1. Cấu hình Middlewares cơ bản
@@ -45,6 +47,7 @@ app.use('/api/jobs', jobRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/skills', skillRoutes);
 app.use('/api/job-criteria', jobCriteriaRoutes);
+app.use('/api/recommendations', recommendationRoutes);
 
 
 // Serve file upload tĩnh (ảnh avatar, cover, CV...)

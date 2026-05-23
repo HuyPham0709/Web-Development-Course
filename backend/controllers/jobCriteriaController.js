@@ -1,12 +1,9 @@
-
 const db = require('../config/db');
 
-
-// =============================
+// ========================================
 // GET JOB CRITERIA
-// =============================
+// ========================================
 exports.getJobCriteria = async (req, res) => {
-
   try {
 
     const userId = req.user.id;
@@ -16,12 +13,12 @@ exports.getJobCriteria = async (req, res) => {
       SELECT *
       FROM jobcriteria
       WHERE user_id = ?
+      LIMIT 1
       `,
       [userId]
     );
 
     if (rows.length === 0) {
-
       return res.json({
         success: true,
         data: null
@@ -39,16 +36,16 @@ exports.getJobCriteria = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: error.message
+      message: 'Server error'
     });
   }
 };
 
 
 
-// =============================
+// ========================================
 // CREATE OR UPDATE JOB CRITERIA
-// =============================
+// ========================================
 exports.saveJobCriteria = async (req, res) => {
 
   try {
@@ -63,7 +60,6 @@ exports.saveJobCriteria = async (req, res) => {
       career_level,
       salary_min,
       salary_max,
-      preferred_salary_type,
       preferred_location,
       workplace_type,
       skills,
@@ -75,55 +71,69 @@ exports.saveJobCriteria = async (req, res) => {
     } = req.body;
 
 
-    // =============================
-    // FIX undefined => null
-    // =============================
+    // ========================================
+    // CLEAN DATA
+    // ========================================
 
-    desired_position = desired_position || null;
-    industry = industry || null;
-    job_type = job_type || null;
-    experience_level = experience_level || null;
-    career_level = career_level || null;
+    const cleanValue = (value) => {
+      if (
+        value === undefined ||
+        value === null ||
+        value === ''
+      ) {
+        return null;
+      }
 
-    salary_min = salary_min || null;
-    salary_max = salary_max || null;
+      return value;
+    };
 
-    preferred_salary_type = preferred_salary_type || null;
+    desired_position = cleanValue(desired_position);
+    industry = cleanValue(industry);
+    job_type = cleanValue(job_type);
+    experience_level = cleanValue(experience_level);
+    career_level = cleanValue(career_level);
 
-    preferred_location = preferred_location || null;
+    salary_min = cleanValue(salary_min);
+    salary_max = cleanValue(salary_max);
 
-    workplace_type = workplace_type || null;
 
-    skills = skills || null;
-    languages = languages || null;
-    preferred_companies = preferred_companies || null;
-    benefits = benefits || null;
+    preferred_location = cleanValue(preferred_location);
 
-    available_from = available_from || null;
+    workplace_type = cleanValue(workplace_type);
+
+    skills = cleanValue(skills);
+    languages = cleanValue(languages);
+
+    preferred_companies = cleanValue(preferred_companies);
+
+    benefits = cleanValue(benefits);
+
+    available_from = cleanValue(available_from);
 
     is_open_to_work =
       is_open_to_work !== undefined
-        ? is_open_to_work
+        ? Number(is_open_to_work)
         : 1;
 
 
-    // =============================
+    // ========================================
     // CHECK EXISTING
-    // =============================
+    // ========================================
 
     const [existing] = await db.execute(
       `
       SELECT id
       FROM jobcriteria
       WHERE user_id = ?
+      LIMIT 1
       `,
       [userId]
     );
 
 
-    // =============================
+    // ========================================
     // UPDATE
-    // =============================
+    // ========================================
 
     if (existing.length > 0) {
 
@@ -138,7 +148,6 @@ exports.saveJobCriteria = async (req, res) => {
           career_level = ?,
           salary_min = ?,
           salary_max = ?,
-          preferred_salary_type = ?,
           preferred_location = ?,
           workplace_type = ?,
           skills = ?,
@@ -146,7 +155,8 @@ exports.saveJobCriteria = async (req, res) => {
           preferred_companies = ?,
           benefits = ?,
           available_from = ?,
-          is_open_to_work = ?
+          is_open_to_work = ?,
+          updated_at = NOW()
         WHERE user_id = ?
         `,
         [
@@ -157,7 +167,7 @@ exports.saveJobCriteria = async (req, res) => {
           career_level,
           salary_min,
           salary_max,
-          preferred_salary_type,
+          
           preferred_location,
           workplace_type,
           skills,
@@ -172,9 +182,9 @@ exports.saveJobCriteria = async (req, res) => {
 
     }
 
-    // =============================
+    // ========================================
     // INSERT
-    // =============================
+    // ========================================
 
     else {
 
@@ -189,7 +199,7 @@ exports.saveJobCriteria = async (req, res) => {
           career_level,
           salary_min,
           salary_max,
-          preferred_salary_type,
+          
           preferred_location,
           workplace_type,
           skills,
@@ -197,9 +207,11 @@ exports.saveJobCriteria = async (req, res) => {
           preferred_companies,
           benefits,
           available_from,
-          is_open_to_work
+          is_open_to_work,
+          created_at,
+          updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         `,
         [
           userId,
@@ -210,7 +222,6 @@ exports.saveJobCriteria = async (req, res) => {
           career_level,
           salary_min,
           salary_max,
-          preferred_salary_type,
           preferred_location,
           workplace_type,
           skills,
@@ -224,19 +235,24 @@ exports.saveJobCriteria = async (req, res) => {
     }
 
 
+    // ========================================
+    // SUCCESS RESPONSE
+    // ========================================
+
     res.json({
       success: true,
-      message: 'Saved successfully'
+      message: 'Job criteria saved successfully'
     });
 
   } catch (error) {
 
-    console.error('Save Job Criteria Error:', error);
+    console.error("=== JOB CRITERIA ERROR ===");
+  console.error(error);
+  console.error(error.message);
 
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+  res.status(500).json({
+    success: false,
+    message: error.message
+  });
   }
 };
-
