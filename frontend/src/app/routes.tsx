@@ -30,11 +30,7 @@ import Chat from "./pages/shared/Chat";
 // PROTECTED ROUTE
 // ======================================================
 
-const ProtectedRoute = ({
-  allowedRole,
-}: {
-  allowedRole: string;
-}) => {
+const ProtectedRoute = ({ allowedRole }: { allowedRole: string }) => {
   const userStr = localStorage.getItem("user");
 
   // Chưa login
@@ -46,16 +42,13 @@ const ProtectedRoute = ({
     const user = JSON.parse(userStr);
 
     // Sai role
-    if (
-      user.role?.toLowerCase() !==
-      allowedRole.toLowerCase()
-    ) {
+    if (user.role?.toLowerCase() !== allowedRole.toLowerCase()) {
       console.warn(
         "Sai role!",
         "User role:",
         user.role,
         "Yêu cầu:",
-        allowedRole
+        allowedRole,
       );
 
       return <Navigate to="/" replace />;
@@ -122,15 +115,11 @@ export const router = createBrowserRouter([
       {
         element: <RequireAuth />,
         children: [
-          {
-            path: "chat",
-            element: <Chat />,
-          },
+          { path: "profile", element: <ProfileDashboard /> }, // BỔ SUNG: Route trang profile
 
-          {
-            path: "settings",
-            element: <Settings />,
-          },
+          { path: "applications", element: <MyApplications /> },
+
+          { path: "settings", element: <Settings /> }, // BỔ SUNG: Route cài đặt chung
         ],
       },
 
@@ -139,25 +128,15 @@ export const router = createBrowserRouter([
       // =========================
 
       {
-        element: (
-          <ProtectedRoute allowedRole="candidate" />
-        ),
-
+        element: <ProtectedRoute allowedRole="candidate" />,
         children: [
-          {
-            path: "profile",
-            element: <ProfileDashboard />,
-          },
+          { path: "profile", element: <ProfileDashboard /> },
+          { path: "applications", element: <MyApplications /> },
 
-          {
-            path: "applications",
-            element: <MyApplications />,
-          },
+          // BỔ SUNG DÒNG NÀY: Để hứng cái link thông báo "/profile/applications" bị lệch
+          { path: "profile/applications", element: <MyApplications /> },
 
-          {
-            path: "recommended-jobs",
-            element: <RecommendedJobsPage />,
-          },
+          { path: "settings", element: <Settings /> },
         ],
       },
 
@@ -166,9 +145,7 @@ export const router = createBrowserRouter([
       // =========================
 
       {
-        element: (
-          <ProtectedRoute allowedRole="employer" />
-        ),
+        element: <ProtectedRoute allowedRole="employer" />,
 
         children: [
           {
