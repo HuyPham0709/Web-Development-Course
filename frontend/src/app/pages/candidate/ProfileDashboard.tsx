@@ -473,8 +473,8 @@ export default function ProfileDashboard() {
                         key={filter.id}
                         onClick={() => setTemplateFilter(filter.id)}
                         className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all border flex items-center gap-1.5 ${templateFilter === filter.id
-                            ? 'bg-gray-800 text-white border-gray-800 shadow-sm dark:bg-white dark:text-gray-900 dark:border-white'
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 dark:bg-white/5 dark:text-gray-300 dark:border-white/10 dark:hover:border-white/20'
+                          ? 'bg-gray-800 text-white border-gray-800 shadow-sm dark:bg-white dark:text-gray-900 dark:border-white'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 dark:bg-white/5 dark:text-gray-300 dark:border-white/10 dark:hover:border-white/20'
                           }`}
                       >
                         {templateFilter === filter.id && <Check className="w-3 h-3" />}
@@ -777,60 +777,58 @@ export default function ProfileDashboard() {
                             {/* Content */}
                             <div className="min-w-0 flex-1">
 
-  {/* Title + Badge % */}
-  <div className="flex items-start justify-between gap-2">
-    <h4 className="text-sm font-bold text-gray-800 dark:text-white line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-      {job.title}
-    </h4>
-    {job.match_score > 0 && (
-      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
-        job.match_score >= 60
-          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
-          : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400'
-      }`}>
-        {job.match_score}%  {/* 👈 hiện số % thay vì chữ */}
-      </span>
-    )}
-  </div>
+                              {/* Title + Badge % */}
+                              <div className="flex items-start justify-between gap-2">
+                                <h4 className="text-sm font-bold text-gray-800 dark:text-white line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                  {job.title}
+                                </h4>
+                                {job.match_score > 0 && (
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${job.match_score >= 60
+                                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+                                      : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400'
+                                    }`}>
+                                    {job.match_score}%  {/* 👈 hiện số % thay vì chữ */}
+                                  </span>
+                                )}
+                              </div>
 
-  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
-    {job.company_name} · {job.location_name || 'Remote'}
-  </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+                                {job.company_name} · {job.location_name || 'Remote'}
+                              </p>
 
-  {/* Skills tags */}
-  {job.experience_level && (
-    <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-      <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
-        {job.experience_level}
-      </span>
-      <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 font-medium">
-        {job.job_type}
-      </span>
-    </div>
-  )}
+                              {/* Skills tags */}
+                              {job.experience_level && (
+                                <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
+                                    {job.experience_level}
+                                  </span>
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 font-medium">
+                                    {job.job_type}
+                                  </span>
+                                </div>
+                              )}
 
-  {/* 👇 THÊM: Progress bar + label */}
-  {job.match_score > 0 && (
-    <div className="mt-3">
-      {/* Bar */}
-      <div className="w-full h-1.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-500 ${
-            job.match_score >= 60
-              ? 'bg-emerald-500'
-              : 'bg-yellow-400'
-          }`}
-          style={{ width: `${job.match_score}%` }}
-        />
-      </div>
-      {/* Label */}
-      <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
-        {job.match_score >= 60 ? 'Phù hợp cao' : 'Có thể phù hợp'}
-      </p>
-    </div>
-  )}
+                              {/* 👇 THÊM: Progress bar + label */}
+                              {job.match_score > 0 && (
+                                <div className="mt-3">
+                                  {/* Bar */}
+                                  <div className="w-full h-1.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full transition-all duration-500 ${job.match_score >= 60
+                                          ? 'bg-emerald-500'
+                                          : 'bg-yellow-400'
+                                        }`}
+                                      style={{ width: `${job.match_score}%` }}
+                                    />
+                                  </div>
+                                  {/* Label */}
+                                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+                                    {job.match_score >= 60 ? 'Phù hợp cao' : 'Có thể phù hợp'}
+                                  </p>
+                                </div>
+                              )}
 
-</div>
+                            </div>
                           </div>
                         </Link>
                       ))}

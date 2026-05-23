@@ -4,7 +4,6 @@ const db = require("../config/db");
 // APPLY JOB
 // ======================================================
 exports.applyJob = async (req, res) => {
-    // [GIỮ NGUYÊN TỪ CODE CŨ] Sửa dòng này để nhận cả job_id hoặc jobId -> SỬA LỖI KEY
     const job_id = req.body.job_id || req.body.jobId;
     const { cover_letter } = req.body;
     const candidate_id = req.user.id;
@@ -17,25 +16,21 @@ exports.applyJob = async (req, res) => {
     }
 
     try {
-        // [THÊM TỪ CODE MỚI] CHECK PROFILE & CV
+        // 1. Kiểm tra Profile & CV của Candidate
         const [profiles] = await db.execute(
             'SELECT cv_url FROM Profiles WHERE user_id = ?',
             [candidate_id]
         );
 
-        if (profiles.length === 0) {
-            return res.status(400).json({ success: false, message: "Vui lòng tạo profile trước" });
-        }
-
-        if (!profiles[0].cv_url) {
-            return res.status(400).json({ success: false, message: "Vui lòng upload CV trước" });
+        if (profiles.length === 0 || !profiles[0].cv_url) {
+            return res.status(400).json({ success: false, message: "Vui lòng upload CV trước khi ứng tuyển" });
         }
 
         const cv_url = profiles[0].cv_url;
 
-        // [THÊM TỪ CODE MỚI] CHECK TRẠNG THÁI JOB
+        // 2. KIỂM TRA BẢNG JOBS 
         const [jobs] = await db.execute(
-            'SELECT id, status FROM Jobs WHERE id = ?',
+            'SELECT id, status, posted_by, title FROM Jobs WHERE id = ?',
             [job_id]
         );
 
@@ -47,7 +42,7 @@ exports.applyJob = async (req, res) => {
             return res.status(400).json({ success: false, message: "Công việc chưa khả dụng" });
         }
 
-        // [GIỮ NGUYÊN TỪ CODE CŨ] CHECK DUPLICATE
+        // 3. Kiểm tra ứng tuyển trùng lặp
         const [existing] = await db.execute(
             'SELECT * FROM applications WHERE job_id = ? AND candidate_id = ?',
             [job_id, candidate_id]
@@ -57,19 +52,64 @@ exports.applyJob = async (req, res) => {
             return res.status(400).json({ success: false, message: "Bạn đã ứng tuyển công việc này rồi!" });
         }
 
-        // [THÊM TỪ CODE MỚI] INSERT CÓ THÊM TRƯỜNG cv_snapshot_url
+        // 4. Tiến hành nộp đơn ném vào bảng applications
         await db.execute(
             'INSERT INTO applications (candidate_id, job_id, cover_letter, cv_snapshot_url, status) VALUES (?, ?, ?, ?, ?)',
             [candidate_id, job_id, cover_letter || '', cv_url, 'pending']
         );
 
+        // 5. 🎯 LOGIC MỚI: BẮN THÔNG BÁO CHO TOÀN BỘ NHÂN SỰ CÙNG CÔNG TY
+        const jobPosterId = jobs[0].posted_by; 
+        const jobTitle = jobs[0].title;
+        const notifyTitle = "Có hồ sơ ứng tuyển mới! 📄";
+        const notifyMessage = `Một ứng viên vừa nộp CV ứng tuyển vào vị trí "${jobTitle}".`;
+        
+        // 🎯 ĐÃ SỬA: Đổi linkUrl sang trang cv-search
+        const linkUrl = `/employer/cv-search`; 
+
+        // Lấy thông tin công ty của người đăng bài
+        const [posterInfo] = await db.execute(
+            'SELECT company_id FROM Users WHERE id = ?',
+            [jobPosterId]
+        );
+
+        const companyId = posterInfo[0]?.company_id;
+
+        if (companyId) {
+            // Nếu có company_id: Tìm tất cả tài khoản Employer thuộc công ty này
+            const [coworkers] = await db.execute(
+                'SELECT id FROM Users WHERE company_id = ?',
+                [companyId]
+            );
+
+            // Dùng vòng lặp bắn thông báo cho từng người
+            for (let coworker of coworkers) {
+                await db.execute(
+                    `INSERT INTO Notifications (user_id, title, message, is_read, type, created_at, link_url) 
+                     VALUES (?, ?, ?, 0, 'system', NOW(), ?)`,
+                    [coworker.id, notifyTitle, notifyMessage, linkUrl]
+                );
+            }
+            console.log(`🔔 [Notification] Đã phát thông báo tới ${coworkers.length} nhân sự của Công ty ID: ${companyId}`);
+            
+        } else {
+            // Trường hợp dự phòng: Nếu người đăng bài không thuộc công ty nào, chỉ gửi cho chính họ
+            await db.execute(
+                `INSERT INTO Notifications (user_id, title, message, is_read, type, created_at, link_url) 
+                 VALUES (?, ?, ?, 0, 'system', NOW(), ?)`,
+                [jobPosterId, notifyTitle, notifyMessage, linkUrl]
+            );
+            console.log(`🔔 [Notification] Đã gửi thông báo cho cá nhân Employer ID: ${jobPosterId}`);
+        }
+
+        // Trả phản hồi thành công về cho Frontend Candidate
         res.status(201).json({ success: true, message: "Ứng tuyển thành công!" });
+
     } catch (error) {
-        console.error("Lỗi INSERT DB:", error.message);
+        console.error("🚨 Lỗi tại applyJob:", error.message);
         res.status(500).json({ success: false, message: error.message });
     }
 };
-
 // ======================================================
 // GET EMPLOYER APPLICATIONS
 // ======================================================
@@ -186,34 +226,77 @@ exports.updateApplicationStatus = async (req, res) => {
   const { application_id, status } = req.body;
   const employer_id = req.user.id; 
 
-  // [THÊM TỪ CODE MỚI] Validate allowedStatuses
   const allowedStatuses = ["pending", "reviewed", "interviewing", "accepted", "rejected"];
   if (!allowedStatuses.includes(status)) {
     return res.status(400).json({ success: false, message: "Status không hợp lệ" });
   }
 
   try {
-    // [THÊM TỪ CODE MỚI] Validate người sở hữu job
+    // 🎯 ĐÃ SỬA: Thay 'a.user_id' thành 'a.candidate_id' để khớp với cấu hình Database thực tế của bạn
     const [applications] = await db.execute(
-      `SELECT a.id FROM Applications a JOIN Jobs j ON a.job_id = j.id WHERE a.id = ? AND j.posted_by = ?`,
-      [application_id, employer_id]
+      `SELECT a.candidate_id, j.title as job_title 
+       FROM Applications a 
+       JOIN Jobs j ON a.job_id = j.id 
+       WHERE a.id = ?`,
+      [application_id]
     );
 
+    // In log ra Terminal để theo dõi dữ liệu thực tế
+    console.log("🔍 Đang tìm đơn ứng tuyển ID:", application_id);
+    console.log("📊 Kết quả tìm kiếm đơn ứng tuyển:", applications);
+
     if (applications.length === 0) {
-      return res.status(403).json({ success: false, message: "Không có quyền cập nhật" });
+      return res.status(404).json({ success: false, message: "Không tìm thấy đơn ứng tuyển này!" });
     }
 
-    const [result] = await db.execute(
+    // 1. Cập nhật trạng thái trong database
+    await db.execute(
       "UPDATE Applications SET status = ? WHERE id = ?",
       [status, application_id],
     );
 
-    res.status(200).json({ success: true, message: `Đã chuyển trạng thái sang: ${status}` });
+    // 2. 🎯 ĐÃ SỬA: Lấy từ thuộc tính 'candidate_id' thu được từ câu lệnh SELECT ở trên
+    const candidateId = applications[0].candidate_id;
+    const jobTitle = applications[0].job_title;
+    
+    let notifyTitle = "";
+    let notifyMessage = "";
+    
+    // Khớp với trạng thái 'reviewed' để map với giao diện hiển thị UNDER REVIEW
+    if (status === "reviewed") {
+      notifyTitle = "Hồ sơ đang được xem xét";
+      notifyMessage = `Hồ sơ ứng tuyển vị trí "${jobTitle}" của bạn đã được chuyển sang trạng thái: Xem xét (Under Review).`;
+    } else if (status === "interviewing") {
+      notifyTitle = "Lời mời phỏng vấn";
+      notifyMessage = `Chúc mừng! Bạn có lịch phỏng vấn cho vị trí "${jobTitle}".`;
+    } else if (status === "accepted") {
+      notifyTitle = "Hồ sơ được chấp nhận 🎉";
+      notifyMessage = `Chúc mừng bạn đã trúng tuyển vị trí "${jobTitle}"!`;
+    } else if (status === "rejected") {
+      notifyTitle = "Cập nhật trạng thái hồ sơ";
+      notifyMessage = `Cảm ơn bạn đã ứng tuyển vị trí "${jobTitle}". Hồ sơ của bạn chưa phù hợp lần này.`;
+    }
+
+    if (notifyTitle && notifyMessage) {
+      // Lưu vào bảng Notifications (Cột đích vẫn giữ là user_id vì đại diện cho ID người nhận thông báo)
+      await db.execute(
+        `INSERT INTO Notifications (user_id, title, message, is_read, link_url, created_at) 
+         VALUES (?, ?, ?, 0, '/profile/applications', NOW())`,
+        [candidateId, notifyTitle, notifyMessage]
+      );
+      console.log("🔔 Đã bắn thành công 1 thông báo vào DB cho Candidate ID:", candidateId);
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: `Đã chuyển trạng thái sang: ${status} và tạo thông báo!` 
+    });
+
   } catch (error) {
+    console.error("🚨 Lỗi update status:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 // ======================================================
 // GET EMPLOYER JOBS
 // ======================================================
@@ -221,7 +304,6 @@ exports.getEmployerJobs = async (req, res) => {
   const employer_id = req.user.id;
 
   try {
-    // [GIỮ NGUYÊN TỪ CODE CŨ] Tránh lỗi thiếu stats/location FE
     const [jobs] = await db.execute(
       `
             SELECT 

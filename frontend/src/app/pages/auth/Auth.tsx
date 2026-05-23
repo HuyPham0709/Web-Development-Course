@@ -1,18 +1,48 @@
-import React, { useState, useEffect } from 'react';
-import { Briefcase, Mail, Lock, Eye, EyeOff, User, Building, ArrowLeft, Loader2, Sun, Moon } from 'lucide-react';
-import { motion } from 'motion/react';
-import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import Swal from 'sweetalert2';
-import { useGoogleLogin } from '@react-oauth/google';
+import React, { useState, useEffect } from "react";
+import {
+  Briefcase,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  User,
+  Building,
+  ArrowLeft,
+  Loader2,
+  Sun,
+  Moon,
+} from "lucide-react";
+import { motion } from "motion/react";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+import Swal from "sweetalert2";
+import { useGoogleLogin } from "@react-oauth/google";
 
 // Google SVG Icon Component
 const GoogleIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      fill="#4285F4"
+    />
+    <path
+      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+      fill="#34A853"
+    />
+    <path
+      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+      fill="#FBBC05"
+    />
+    <path
+      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+      fill="#EA4335"
+    />
   </svg>
 );
 
@@ -21,110 +51,125 @@ export default function AuthPage() {
 
   // --- THEME STATE ---
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    // Kiểm tra class dark trên thẻ html (nếu website bạn dùng cơ chế này)
-    return document.documentElement.classList.contains('dark');
+    return document.documentElement.classList.contains("dark");
   });
 
   // Toggle Theme Logic
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
     if (isDarkMode) {
-      document.documentElement.classList.add('dark');
+      document.documentElement.classList.add("dark");
     } else {
-      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.remove("dark");
     }
   }, [isDarkMode]);
 
   // --- STATES & UI CONTROLS ---
-  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
-  const [role, setRole] = useState<'candidate' | 'employer'>('candidate');
+  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  // view điều khiển màn hình hiển thị: "auth" (Đăng nhập/Đăng ký), "forgot" (Quên MK), "reset" (Đặt lại MK)
+  const [view, setView] = useState<"auth" | "forgot" | "reset">("auth");
+  const [role, setRole] = useState<"candidate" | "employer">("candidate");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+
   // --- DATA STATES ---
   const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
+    fullName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    newPassword: "",
   });
-  
-  const [error, setError] = useState('');
+
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showOTP, setShowOTP] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
+  const [otpCode, setOtpCode] = useState("");
 
   // --- HANDLERS ---
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleTabChange = (tab: 'login' | 'register') => {
+  const handleTabChange = (tab: "login" | "register") => {
     setActiveTab(tab);
-    setError('');
-    setFormData({ fullName: '', email: '', password: '', confirmPassword: '' });
+    setError("");
+    setFormData({ fullName: "", email: "", password: "", confirmPassword: "", newPassword: "" });
     setShowOTP(false);
+    setView("auth");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
-    if (activeTab === 'register') {
+    if (activeTab === "register") {
       if (!formData.fullName || !formData.email || !formData.password) {
-        setError('Vui lòng điền đầy đủ các thông tin bắt buộc.');
+        setError("Vui lòng điền đầy đủ các thông tin bắt buộc.");
         return;
       }
       if (formData.password !== formData.confirmPassword) {
-        setError('Mật khẩu xác nhận không khớp.');
+        setError("Mật khẩu xác nhận không khớp.");
         return;
       }
     } else {
       if (!formData.email || !formData.password) {
-        setError('Vui lòng điền Email và Mật khẩu.');
+        setError("Vui lòng điền Email và Mật khẩu.");
         return;
       }
     }
 
     setIsLoading(true);
     try {
-      if (activeTab === 'login') {
-        const response = await axios.post('http://localhost:5000/api/auth/login', {
-          email: formData.email,
-          password: formData.password,
-          role: role
-        });
+      if (activeTab === "login") {
+        const response = await axios.post(
+          "http://localhost:5000/api/auth/login",
+          {
+            email: formData.email,
+            password: formData.password,
+            role: role,
+          },
+        );
 
         if (response.data.token) {
-          localStorage.setItem('token', response.data.token);
-          localStorage.setItem('user', JSON.stringify(response.data.user));
-          
-          await Swal.fire({ title: 'Thành công!', text: 'Chào mừng quay trở lại!', icon: 'success', timer: 1500, showConfirmButton: false });
-          navigate('/');
-          window.location.reload(); 
+          localStorage.setItem("token", response.data.token);
+          localStorage.setItem("user", JSON.stringify(response.data.user));
+
+          await Swal.fire({
+            title: "Thành công!",
+            text: "Chào mừng quay trở lại!",
+            icon: "success",
+            timer: 1500,
+            showConfirmButton: false,
+          });
+          navigate("/");
+          window.location.reload();
         }
       } else {
-        const response = await axios.post('http://localhost:5000/api/auth/register', {
-          username: formData.fullName,
-          name: formData.fullName,
-          email: formData.email,
-          password: formData.password,
-          role: role
-        });
+        const response = await axios.post(
+          "http://localhost:5000/api/auth/register",
+          {
+            username: formData.fullName,
+            name: formData.fullName,
+            email: formData.email,
+            password: formData.password,
+            role: role,
+          },
+        );
 
         if (response.data.success) {
           Swal.fire({
-            title: 'Đăng ký thành công!',
-            text: 'Mã OTP đã được gửi vào Email của bạn!',
-            icon: 'success'
+            title: "Đăng ký thành công!",
+            text: "Mã OTP đã được gửi vào Email của bạn!",
+            icon: "success",
           });
           setShowOTP(true);
         }
       }
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Có lỗi xảy ra!';
+      const msg = err.response?.data?.message || "Có lỗi xảy ra!";
       setError(msg);
-      Swal.fire({ title: 'Lỗi', text: msg, icon: 'error' });
+      Swal.fire({ title: "Lỗi", text: msg, icon: "error" });
     } finally {
       setIsLoading(false);
     }
@@ -132,23 +177,98 @@ export default function AuthPage() {
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    if (otpCode.length < 6) return setError('Vui lòng nhập đầy đủ 6 ký tự số OTP!');
+    setError("");
+    if (otpCode.length < 6)
+      return setError("Vui lòng nhập đầy đủ 6 ký tự số OTP!");
 
     setIsLoading(true);
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/verify-email', {
-        email: formData.email,
-        otp: otpCode
-      });
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/verify-email",
+        {
+          email: formData.email,
+          otp: otpCode,
+        },
+      );
 
       if (response.data.success) {
-        await Swal.fire({ title: 'Xác thực thành công!', text: 'Hãy đăng nhập ngay nhé!', icon: 'success' });
+        await Swal.fire({
+          title: "Xác thực thành công!",
+          text: "Hãy đăng nhập ngay nhé!",
+          icon: "success",
+        });
+        setOtpCode("");
         setShowOTP(false);
-        setActiveTab('login');
+        setActiveTab("login");
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'OTP không hợp lệ!');
+      setError(err.response?.data?.message || "OTP không hợp lệ!");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // --- LUỒNG XỬ LÝ QUÊN MẬT KHẨU ---
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (!formData.email) return setError("Vui lòng nhập Email để nhận mã!");
+
+    setIsLoading(true);
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/forgot-password",
+        { email: formData.email }
+      );
+      if (response.data.success) {
+        Swal.fire({
+          title: "Thành công!",
+          text: response.data.message,
+          icon: "success",
+        });
+        setOtpCode("");
+        setView("reset"); // Chuyển sang màn hình nhập mật khẩu mới và OTP
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Có lỗi xảy ra!";
+      setError(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // --- LUỒNG XỬ LÝ ĐẶT LẠI MẬT KHẨU ---
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (!otpCode || !formData.newPassword) {
+      return setError("Vui lòng nhập đầy đủ OTP và mật khẩu mới!");
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/reset-password",
+        {
+          email: formData.email,
+          otp: otpCode,
+          newPassword: formData.newPassword,
+        }
+      );
+      if (response.data.success) {
+        await Swal.fire({
+          title: "Thành công!",
+          text: response.data.message,
+          icon: "success",
+        });
+        setOtpCode("");
+        setFormData({ ...formData, password: "", newPassword: "" });
+        setView("auth");
+        setActiveTab("login");
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Có lỗi xảy ra!";
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
@@ -158,31 +278,41 @@ export default function AuthPage() {
     onSuccess: async (tokenResponse) => {
       setIsLoading(true);
       try {
-        const response = await axios.post('http://localhost:5000/api/auth/google', {
-          accessToken: tokenResponse.access_token,
-          role: role,
-        });
+        const response = await axios.post(
+          "http://localhost:5000/api/auth/google",
+          {
+            accessToken: tokenResponse.access_token,
+            role: role,
+          },
+        );
 
         if (response.data.token) {
-          localStorage.setItem('token', response.data.token);
-          localStorage.setItem('user', JSON.stringify(response.data.user));
-          
-          await Swal.fire({ title: 'Thành công!', text: 'Đăng nhập Google thành công!', icon: 'success', timer: 1500, showConfirmButton: false });
-          navigate('/');
+          localStorage.setItem("token", response.data.token);
+          localStorage.setItem("user", JSON.stringify(response.data.user));
+
+          await Swal.fire({
+            title: "Thành công!",
+            text: "Đăng nhập Google thành công!",
+            icon: "success",
+            timer: 1500,
+            showConfirmButton: false,
+          });
+          navigate("/");
           window.location.reload();
         }
       } catch (err: any) {
-        setError(err.response?.data?.message || 'Lỗi khi đăng nhập bằng Google!');
+        setError(
+          err.response?.data?.message || "Lỗi khi đăng nhập bằng Google!",
+        );
       } finally {
         setIsLoading(false);
       }
     },
-    onError: () => setError('Đăng nhập Google thất bại!'),
+    onError: () => setError("Đăng nhập Google thất bại!"),
   });
 
   return (
     <div className="flex min-h-screen w-full bg-[#F8FAFC] dark:bg-[#0B0F19] text-gray-900 dark:text-white font-sans transition-colors duration-300 selection:bg-[#8B5CF6]/30 selection:text-white">
-
       {/* Left Column - Branding & Visuals */}
       <div className="relative hidden lg:flex w-1/2 flex-col justify-between overflow-hidden border-r border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0B0F19] p-12 transition-colors duration-300">
         <div className="pointer-events-none absolute inset-0 z-0">
@@ -198,8 +328,8 @@ export default function AuthPage() {
             transition={{ duration: 1 }}
             className="relative h-80 w-80 lg:h-96 lg:w-96 rounded-full border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/5 p-4 backdrop-blur-2xl shadow-xl dark:shadow-[0_0_50px_rgba(139,92,246,0.15)] transition-colors duration-300"
           >
-            <img 
-              src="https://images.unsplash.com/photo-1625014618427-fbc980b974f5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMDNkJTIwdGVjaCUyMHNwaGVyZSUyMG5lb258ZW58MXx8fHwxNzc5MTkxNTMwfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral" 
+            <img
+              src="https://images.unsplash.com/photo-1625014618427-fbc980b974f5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMDNkJTIwdGVjaCUyMHNwaGVyZSUyMG5lb258ZW58MXx8fHwxNzc5MTkxNTMwfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
               alt="3D Tech Sphere"
               className="h-full w-full rounded-full object-cover opacity-90 dark:opacity-80 mix-blend-multiply dark:mix-blend-screen transition-opacity duration-300"
             />
@@ -210,7 +340,13 @@ export default function AuthPage() {
         {/* Quote Text */}
         <div className="relative z-10 max-w-md">
           <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white leading-snug transition-colors duration-300">
-            "Your future starts here. Join thousands of professionals and top tech companies."
+            {view === "forgot" ? (
+              "\"Don't worry. We will help you securely recover your password and secure your job account.\""
+            ) : view === "reset" ? (
+              "\"Create a strong new password to continue accessing our tech job ecosystem smoothly.\""
+            ) : (
+              "\"Your future starts here. Join thousands of professionals and top tech companies.\""
+            )}
           </h2>
         </div>
       </div>
@@ -218,13 +354,17 @@ export default function AuthPage() {
       {/* Right Column - Interactive Auth Module */}
       <div className="relative flex w-full lg:w-1/2 flex-col items-center justify-center overflow-y-auto bg-white dark:bg-[#0a0d14] px-6 py-12 lg:px-12 transition-colors duration-300">
         <div className="w-full max-w-md space-y-8">
-          
           {/* Mobile Logo */}
-          <Link to="/" className="mb-4 flex items-center gap-2 lg:hidden w-max transition-opacity hover:opacity-80">
+          <Link
+            to="/"
+            className="mb-4 flex items-center gap-2 lg:hidden w-max transition-opacity hover:opacity-80"
+          >
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#0052FF] to-[#8B5CF6] text-white">
               <Briefcase size={20} />
             </div>
-            <span className="text-xl font-bold tracking-tight text-gray-900 dark:text-white transition-colors duration-300">JobSpot</span>
+            <span className="text-xl font-bold tracking-tight text-gray-900 dark:text-white transition-colors duration-300">
+              JobSpot
+            </span>
           </Link>
 
           {/* Cảnh báo lỗi */}
@@ -234,33 +374,256 @@ export default function AuthPage() {
             </div>
           )}
 
-          {!showOTP ? (
-            /* CARD 1: Login & Register Form */
-            <motion.div 
+          {/* RENDERING DỰA TRÊN TRẠNG THÁI VIEW VÀ OTP */}
+          {showOTP ? (
+            /* CASE 1: Đăng ký thành công -> Màn hình nhập OTP kích hoạt Mail */
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col overflow-hidden rounded-3xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 p-8 shadow-xl dark:shadow-2xl backdrop-blur-xl transition-colors duration-300"
+            >
+              <div className="mb-8 flex items-start gap-4">
+                <button
+                  type="button"
+                  onClick={() => setShowOTP(false)}
+                  className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0B0F19]/50 text-gray-500 dark:text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
+                >
+                  <ArrowLeft size={18} />
+                </button>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">
+                    Verify Your Identity
+                  </h3>
+                  <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400 leading-relaxed transition-colors duration-300">
+                    We've sent a 6-digit verification code to{" "}
+                    <span className="text-[#0052FF] font-semibold">
+                      {formData.email}
+                    </span>
+                    .
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleVerifyOTP}>
+                <div className="relative mb-8 flex justify-center">
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(e) =>
+                      setOtpCode(e.target.value.replace(/[^0-9]/g, ""))
+                    }
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 tracking-[2em] text-center"
+                    autoFocus
+                  />
+
+                  <div className="flex justify-between gap-2 sm:gap-3 w-full">
+                    {[...Array(6)].map((_, index) => {
+                      const char = otpCode[index];
+                      const isActive = index === otpCode.length;
+                      return (
+                        <div
+                          key={index}
+                          className={`flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-xl border text-xl font-bold backdrop-blur-md transition-all duration-300 ${
+                            char
+                              ? "border-[#8B5CF6] text-gray-900 dark:text-white bg-white dark:bg-[#0B0F19]"
+                              : isActive
+                                ? "border-[#0052FF] bg-blue-50/50 dark:bg-[#0B0F19]/80 shadow-[0_0_15px_rgba(0,82,255,0.1)] dark:shadow-[0_0_15px_rgba(0,82,255,0.3)]"
+                                : "border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0B0F19]/50 text-gray-400 dark:text-gray-500"
+                          }`}
+                        >
+                          {char || "-"}
+                          {isActive && (
+                            <div className="ml-1 h-5 w-0.5 animate-pulse bg-[#0052FF]"></div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="mb-8 text-center">
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400 transition-colors duration-300">
+                    Didn't receive the code?{" "}
+                    <button
+                      type="button"
+                      className="ml-1 text-[#0052FF] hover:text-[#0040CC] dark:hover:text-[#8B5CF6] transition-colors"
+                    >
+                      Resend code
+                    </button>
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading || otpCode.length < 6}
+                  className="flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#0052FF] to-[#8B5CF6] py-4 text-sm font-bold text-white shadow-lg shadow-purple-500/20 dark:shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all hover:shadow-xl hover:shadow-purple-500/30 dark:hover:shadow-[0_0_30px_rgba(139,92,246,0.5)] hover:scale-[1.02] disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  {isLoading ? (
+                    <Loader2 className="animate-spin mx-auto w-5 h-5" />
+                  ) : (
+                    "Verify Code"
+                  )}
+                </button>
+              </form>
+            </motion.div>
+          ) : view === "forgot" ? (
+            /* CASE 2: Màn hình nhập Email yêu cầu gửi mã Quên mật khẩu */
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col overflow-hidden rounded-3xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 p-8 shadow-xl dark:shadow-2xl backdrop-blur-xl transition-colors duration-300"
+            >
+              <div className="mb-6 flex items-start gap-4">
+                <button
+                  type="button"
+                  onClick={() => setView("auth")}
+                  className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0B0F19]/50 text-gray-500 dark:text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
+                >
+                  <ArrowLeft size={18} />
+                </button>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">
+                    Forgot Password
+                  </h3>
+                  <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400 leading-relaxed transition-colors duration-300">
+                    Enter your email address and we'll send you an OTP code to reset your password.
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleForgotPassword} className="space-y-5">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 dark:text-gray-500 transition-colors duration-300">
+                    <Mail size={18} />
+                  </div>
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="Email Address"
+                    className="w-full rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0B0F19]/50 py-3.5 pl-11 pr-4 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all focus:border-[#0052FF] focus:ring-1 focus:ring-[#0052FF]/50"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#0052FF] to-[#8B5CF6] py-4 text-sm font-bold text-white shadow-lg shadow-blue-500/20 dark:shadow-[0_0_20px_rgba(0,82,255,0.3)] transition-all hover:shadow-xl hover:shadow-blue-500/30 dark:hover:shadow-[0_0_30px_rgba(0,82,255,0.5)] hover:scale-[1.02] disabled:opacity-50"
+                >
+                  {isLoading ? (
+                    <Loader2 className="animate-spin mx-auto w-5 h-5" />
+                  ) : (
+                    "Send Verification Code"
+                  )}
+                </button>
+              </form>
+            </motion.div>
+          ) : view === "reset" ? (
+            /* CASE 3: Màn hình Điền mã OTP nhận từ Mail + Điền Mật khẩu mới */
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col overflow-hidden rounded-3xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 p-8 shadow-xl dark:shadow-2xl backdrop-blur-xl transition-colors duration-300"
+            >
+              <div className="mb-6 flex items-start gap-4">
+                <button
+                  type="button"
+                  onClick={() => setView("forgot")}
+                  className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0B0F19]/50 text-gray-500 dark:text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
+                >
+                  <ArrowLeft size={18} />
+                </button>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">
+                    Reset Password
+                  </h3>
+                  <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400 leading-relaxed transition-colors duration-300">
+                    Verify the OTP code from your email and type your new password.
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                {/* Ô Nhập mã OTP Khôi phục mật khẩu */}
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 dark:text-gray-500 transition-colors duration-300">
+                    <User size={18} />
+                  </div>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ""))}
+                    placeholder="Enter 6-digit OTP Code"
+                    className="w-full rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0B0F19]/50 py-3.5 pl-11 pr-4 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all focus:border-[#0052FF] focus:ring-1 focus:ring-[#0052FF]/50"
+                  />
+                </div>
+
+                {/* Ô Nhập mật khẩu mới */}
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 dark:text-gray-500 transition-colors duration-300">
+                    <Lock size={18} />
+                  </div>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="newPassword"
+                    value={formData.newPassword}
+                    onChange={handleChange}
+                    placeholder="New Password"
+                    className="w-full rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0B0F19]/50 py-3.5 pl-11 pr-11 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all focus:border-[#0052FF] focus:ring-1 focus:ring-[#0052FF]/50"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-white transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading || otpCode.length < 6 || !formData.newPassword}
+                  className="flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#0052FF] to-[#8B5CF6] py-4 text-sm font-bold text-white shadow-lg shadow-purple-500/20 dark:shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all hover:shadow-xl hover:shadow-purple-500/30 dark:hover:shadow-[0_0_30px_rgba(139,92,246,0.5)] hover:scale-[1.02] disabled:opacity-50"
+                >
+                  {isLoading ? (
+                    <Loader2 className="animate-spin mx-auto w-5 h-5" />
+                  ) : (
+                    "Reset Password Now"
+                  )}
+                </button>
+              </form>
+            </motion.div>
+          ) : (
+            /* CASE 4: Form Đăng nhập & Đăng ký mặc định */
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="flex flex-col overflow-hidden rounded-3xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 p-8 shadow-xl dark:shadow-2xl backdrop-blur-xl transition-colors duration-300"
             >
               {/* Tabs */}
               <div className="mb-8 flex rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0B0F19]/50 p-1 backdrop-blur-md transition-colors duration-300">
-                <button 
+                <button
                   type="button"
-                  onClick={() => handleTabChange('login')}
+                  onClick={() => handleTabChange("login")}
                   className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-all ${
-                    activeTab === 'login' 
-                      ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' 
-                      : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                    activeTab === "login"
+                      ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm"
+                      : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
                   }`}
                 >
                   Log In
                 </button>
-                <button 
+                <button
                   type="button"
-                  onClick={() => handleTabChange('register')}
+                  onClick={() => handleTabChange("register")}
                   className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-all ${
-                    activeTab === 'register' 
-                      ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' 
-                      : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                    activeTab === "register"
+                      ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm"
+                      : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
                   }`}
                 >
                   Create Account
@@ -268,8 +631,8 @@ export default function AuthPage() {
               </div>
 
               {/* Social Auth */}
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => loginWithGoogle()}
                 disabled={isLoading}
                 className="mb-6 flex w-full items-center justify-center gap-3 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 py-3.5 text-sm font-medium text-gray-700 dark:text-white transition-all hover:bg-gray-50 dark:hover:bg-white/10 hover:border-gray-300 dark:hover:border-white/20 disabled:opacity-50"
@@ -280,51 +643,59 @@ export default function AuthPage() {
 
               <div className="mb-6 flex items-center gap-4">
                 <div className="h-px flex-1 bg-gray-200 dark:bg-white/10 transition-colors duration-300"></div>
-                <span className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest transition-colors duration-300">Or continue with email</span>
+                <span className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest transition-colors duration-300">
+                  Or continue with email
+                </span>
                 <div className="h-px flex-1 bg-gray-200 dark:bg-white/10 transition-colors duration-300"></div>
               </div>
 
               {/* Role Selection */}
               <div className="mb-6 grid grid-cols-2 gap-4">
-                <button 
+                <button
                   type="button"
-                  onClick={() => setRole('candidate')}
+                  onClick={() => setRole("candidate")}
                   className={`flex flex-col items-center gap-3 rounded-2xl border p-4 transition-all ${
-                    role === 'candidate' 
-                    ? 'border-[#0052FF] bg-[#0052FF]/5 dark:bg-[#0052FF]/10 text-[#0052FF] dark:text-white shadow-sm dark:shadow-[0_0_20px_rgba(0,82,255,0.15)]' 
-                    : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/20 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'
+                    role === "candidate"
+                      ? "border-[#0052FF] bg-[#0052FF]/5 dark:bg-[#0052FF]/10 text-[#0052FF] dark:text-white shadow-sm dark:shadow-[0_0_20px_rgba(0,82,255,0.15)]"
+                      : "border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/20 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"
                   }`}
                 >
-                  <User size={24} className={role === 'candidate' ? 'text-[#0052FF]' : ''} />
+                  <User
+                    size={24}
+                    className={role === "candidate" ? "text-[#0052FF]" : ""}
+                  />
                   <span className="text-sm font-semibold">I'm a Candidate</span>
                 </button>
-                <button 
+                <button
                   type="button"
-                  onClick={() => setRole('employer')}
+                  onClick={() => setRole("employer")}
                   className={`flex flex-col items-center gap-3 rounded-2xl border p-4 transition-all ${
-                    role === 'employer' 
-                    ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 dark:bg-[#8B5CF6]/10 text-[#8B5CF6] dark:text-white shadow-sm dark:shadow-[0_0_20px_rgba(139,92,246,0.15)]' 
-                    : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/20 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'
+                    role === "employer"
+                      ? "border-[#8B5CF6] bg-[#8B5CF6]/5 dark:bg-[#8B5CF6]/10 text-[#8B5CF6] dark:text-white shadow-sm dark:shadow-[0_0_20px_rgba(139,92,246,0.15)]"
+                      : "border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/20 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"
                   }`}
                 >
-                  <Building size={24} className={role === 'employer' ? 'text-[#8B5CF6]' : ''} />
+                  <Building
+                    size={24}
+                    className={role === "employer" ? "text-[#8B5CF6]" : ""}
+                  />
                   <span className="text-sm font-semibold">I'm an Employer</span>
                 </button>
               </div>
 
               {/* Main Auth Form */}
               <form onSubmit={handleSubmit} className="space-y-4">
-                {activeTab === 'register' && (
+                {activeTab === "register" && (
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 dark:text-gray-500 transition-colors duration-300">
                       <User size={18} />
                     </div>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       name="fullName"
                       value={formData.fullName}
                       onChange={handleChange}
-                      placeholder="Full Name" 
+                      placeholder="Full Name"
                       className="w-full rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0B0F19]/50 py-3.5 pl-11 pr-4 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all focus:border-[#0052FF] focus:ring-1 focus:ring-[#0052FF]/50"
                     />
                   </div>
@@ -334,12 +705,12 @@ export default function AuthPage() {
                   <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 dark:text-gray-500 transition-colors duration-300">
                     <Mail size={18} />
                   </div>
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="Email Address" 
+                    placeholder="Email Address"
                     className="w-full rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0B0F19]/50 py-3.5 pl-11 pr-4 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all focus:border-[#0052FF] focus:ring-1 focus:ring-[#0052FF]/50"
                   />
                 </div>
@@ -348,15 +719,15 @@ export default function AuthPage() {
                   <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 dark:text-gray-500 transition-colors duration-300">
                     <Lock size={18} />
                   </div>
-                  <input 
-                    type={showPassword ? 'text' : 'password'} 
+                  <input
+                    type={showPassword ? "text" : "password"}
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    placeholder="Password" 
+                    placeholder="Password"
                     className="w-full rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0B0F19]/50 py-3.5 pl-11 pr-11 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all focus:border-[#0052FF] focus:ring-1 focus:ring-[#0052FF]/50"
                   />
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-white transition-colors"
@@ -365,25 +736,31 @@ export default function AuthPage() {
                   </button>
                 </div>
 
-                {activeTab === 'register' && (
+                {activeTab === "register" && (
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 dark:text-gray-500 transition-colors duration-300">
                       <Lock size={18} />
                     </div>
-                    <input 
-                      type={showConfirmPassword ? 'text' : 'password'} 
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
                       name="confirmPassword"
                       value={formData.confirmPassword}
                       onChange={handleChange}
-                      placeholder="Confirm Password" 
+                      placeholder="Confirm Password"
                       className="w-full rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0B0F19]/50 py-3.5 pl-11 pr-11 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all focus:border-[#0052FF] focus:ring-1 focus:ring-[#0052FF]/50"
                     />
-                    <button 
+                    <button
                       type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
                       className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-white transition-colors"
                     >
-                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      {showConfirmPassword ? (
+                        <EyeOff size={18} />
+                      ) : (
+                        <Eye size={18} />
+                      )}
                     </button>
                   </div>
                 )}
@@ -392,103 +769,55 @@ export default function AuthPage() {
                 <div className="mt-5 mb-8 flex items-center justify-between">
                   <label className="flex items-center gap-2 cursor-pointer group">
                     <div className="relative flex items-center justify-center w-4 h-4 rounded border border-gray-300 dark:border-white/20 bg-white dark:bg-[#0B0F19] group-hover:border-[#0052FF] transition-colors">
-                      <input type="checkbox" className="peer sr-opacity absolute opacity-0 w-full h-full cursor-pointer" />
+                      <input
+                        type="checkbox"
+                        className="peer sr-opacity absolute opacity-0 w-full h-full cursor-pointer"
+                      />
                       <div className="pointer-events-none peer-checked:bg-[#0052FF] absolute inset-0 rounded-[3px] transition-colors"></div>
-                      <svg className="pointer-events-none absolute w-3 h-3 text-white opacity-0 peer-checked:opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      <svg
+                        className="pointer-events-none absolute w-3 h-3 text-white opacity-0 peer-checked:opacity-100"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
                     </div>
-                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors duration-300">Remember me</span>
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors duration-300">
+                      Remember me
+                    </span>
                   </label>
-                  
-                  <a href="#" className="text-sm font-medium text-[#0052FF] dark:text-[#8B5CF6] hover:text-[#0040CC] dark:hover:text-[#a78bfa] transition-colors">
+
+                  {/* Thay thế liên kết bằng việc đổi state view thay vì điều hướng Route */}
+                  <button
+                    type="button"
+                    onClick={() => { setView("forgot"); setError(""); }}
+                    className="text-sm font-medium text-[#0052FF] dark:text-[#8B5CF6] hover:text-[#0040CC] dark:hover:text-[#a78bfa] transition-colors"
+                  >
                     Forgot Password?
-                  </a>
+                  </button>
                 </div>
 
                 {/* CTA Button */}
-                <button 
+                <button
                   type="submit"
                   disabled={isLoading}
                   className="flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#0052FF] to-[#8B5CF6] py-4 text-sm font-bold text-white shadow-lg shadow-blue-500/20 dark:shadow-[0_0_20px_rgba(0,82,255,0.3)] transition-all hover:shadow-xl hover:shadow-blue-500/30 dark:hover:shadow-[0_0_30px_rgba(0,82,255,0.5)] hover:scale-[1.02] disabled:opacity-50 disabled:pointer-events-none"
                 >
-                  {isLoading ? <Loader2 className="animate-spin mx-auto w-5 h-5" /> : (activeTab === 'login' ? 'Sign In' : 'Continue')}
-                </button>
-              </form>
-            </motion.div>
-          ) : (
-            /* CARD 2: OTP Verification State */
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col overflow-hidden rounded-3xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 p-8 shadow-xl dark:shadow-2xl backdrop-blur-xl transition-colors duration-300"
-            >
-              {/* Header */}
-              <div className="mb-8 flex items-start gap-4">
-                <button 
-                  type="button"
-                  onClick={() => setShowOTP(false)}
-                  className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0B0F19]/50 text-gray-500 dark:text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
-                >
-                  <ArrowLeft size={18} />
-                </button>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Verify Your Identity</h3>
-                  <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400 leading-relaxed transition-colors duration-300">
-                    We've sent a 6-digit verification code to <span className="text-[#0052FF] font-semibold">{formData.email}</span>.
-                  </p>
-                </div>
-              </div>
-
-              <form onSubmit={handleVerifyOTP}>
-                <div className="relative mb-8 flex justify-center">
-                  <input 
-                    type="text" 
-                    maxLength={6} 
-                    value={otpCode} 
-                    onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 tracking-[2em] text-center"
-                    autoFocus
-                  />
-                  
-                  <div className="flex justify-between gap-2 sm:gap-3 w-full">
-                    {[...Array(6)].map((_, index) => {
-                      const char = otpCode[index];
-                      const isActive = index === otpCode.length;
-                      return (
-                        <div 
-                          key={index} 
-                          className={`flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-xl border text-xl font-bold backdrop-blur-md transition-all duration-300 ${
-                            char 
-                            ? 'border-[#8B5CF6] text-gray-900 dark:text-white bg-white dark:bg-[#0B0F19]' 
-                            : isActive 
-                              ? 'border-[#0052FF] bg-blue-50/50 dark:bg-[#0B0F19]/80 shadow-[0_0_15px_rgba(0,82,255,0.1)] dark:shadow-[0_0_15px_rgba(0,82,255,0.3)]' 
-                              : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0B0F19]/50 text-gray-400 dark:text-gray-500'
-                          }`}
-                        >
-                          {char || '-'}
-                          {isActive && <div className="ml-1 h-5 w-0.5 animate-pulse bg-[#0052FF]"></div>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="mb-8 text-center">
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400 transition-colors duration-300">
-                    Didn't receive the code? <button type="button" className="ml-1 text-[#0052FF] hover:text-[#0040CC] dark:hover:text-[#8B5CF6] transition-colors">Resend code</button>
-                  </p>
-                </div>
-
-                <button 
-                  type="submit"
-                  disabled={isLoading || otpCode.length < 6}
-                  className="flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#0052FF] to-[#8B5CF6] py-4 text-sm font-bold text-white shadow-lg shadow-purple-500/20 dark:shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all hover:shadow-xl hover:shadow-purple-500/30 dark:hover:shadow-[0_0_30px_rgba(139,92,246,0.5)] hover:scale-[1.02] disabled:opacity-50 disabled:pointer-events-none"
-                >
-                  {isLoading ? <Loader2 className="animate-spin mx-auto w-5 h-5" /> : 'Verify Code'}
+                  {isLoading ? (
+                    <Loader2 className="animate-spin mx-auto w-5 h-5" />
+                  ) : activeTab === "login" ? (
+                    "Sign In"
+                  ) : (
+                    "Continue"
+                  )}
                 </button>
               </form>
             </motion.div>
           )}
-
         </div>
       </div>
     </div>
