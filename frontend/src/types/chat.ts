@@ -1,7 +1,8 @@
+// frontend/src/types/chat.ts
 export interface IMessage {
   _id?: string;
   conversationId: string;
-  senderId: number; // Tương ứng ID MySQL
+  senderId: number; 
   text: string;
   fileUrl?: string;
   isRead: boolean;
@@ -13,10 +14,10 @@ export interface IConversation {
   participants: number[];
   lastMessage?: IMessage;
   updatedAt: string;
-  // Bổ sung các property để UI hiển thị (sẽ cần fetch chéo sang bảng MySQL để lấy Tên, Avatar)
   targetUser?: {
     id: number;
     name: string;
     avatar_url: string;
+    isOnline?: boolean; // <-- CHỨC NĂNG MỚI: Thêm cờ nhận diện online
   }
 }

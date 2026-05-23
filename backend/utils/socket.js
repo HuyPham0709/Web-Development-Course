@@ -16,9 +16,11 @@ module.exports = {
         io.on('connection', (socket) => {
             console.log('User connected:', socket.id);
 
-            // Khi user đăng nhập/vào trang, gửi event 'add_user' kèm ID
+            // Khi user đăng nhập/vào trang
             socket.on('add_user', (userId) => {
                 onlineUsers.set(userId, socket.id);
+                // CHỨC NĂNG MỚI: Gửi mảng chứa các userId đang online cho toàn bộ client
+                io.emit('get_online_users', Array.from(onlineUsers.keys()));
             });
 
             // Gửi tin nhắn real-time
@@ -46,6 +48,8 @@ module.exports = {
                         break;
                     }
                 }
+                // CHỨC NĂNG MỚI: Cập nhật lại danh sách online khi có người thoát
+                io.emit('get_online_users', Array.from(onlineUsers.keys()));
                 console.log('User disconnected:', socket.id);
             });
         });
