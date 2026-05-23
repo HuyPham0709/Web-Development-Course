@@ -26,52 +26,6 @@ const recommendationRoutes = require("./routes/recommendationRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 
-<<<<<<< HEAD
-=======
-// ==========================================
-// 1. KẾT NỐI MONGODB (CHO TÍNH NĂNG CHAT)
-// ==========================================
-mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/job_finder_chat_db')
-    .then(() => console.log('✅ [MongoDB] Kết nối thành công vào job_finder_chat_db!'))
-    .catch(err => console.error('❌ [MongoDB] Lỗi kết nối:', err));
-// ==========================================
-// 2. CẤU HÌNH MIDDLEWARES CƠ BẢN
-// ==========================================
-const notificationRoutes = require('./routes/notificationRoutes');
-// 1. Cấu hình Middlewares cơ bản
-app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:5174'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true
-}));
-
-// --- QUAN TRỌNG: SỬA Ở ĐÂY ĐỂ HẾT LỖI PAYLOAD TOO LARGE ---
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
-// -------------------------------------------------------
-
-// (Giữ nguyên các middleware đọc body như bạn đã cấu hình)
-// Lưu ý: không thay đổi logic khác
-
-// Sử dụng routes
-app.use('/api/auth', authRoutes);
-
-app.use('/api/categories', categoryRoutes);
-app.use('/api/locations', locationRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/profile', profileRoutes);
-app.use('/api/jobs', jobRoutes);
-app.use('/api/companies', companyRoutes);
-app.use('/api/skills', skillRoutes);
-app.use('/api/job-criteria', jobCriteriaRoutes);
-
-// Serve file upload tĩnh (ảnh avatar, cover, CV...)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// ==========================================
-// 3. ĐỊNH TUYẾN (ROUTES)
-// ==========================================
->>>>>>> 00e2620 (Thông báo apply cho 2 bên employer và candidate)
 // Admin Routes
 const adminRoutes = require("./routes/admin/adminRoutes");
 const adminUserRoutes = require("./routes/admin/Userroutes");

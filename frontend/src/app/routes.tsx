@@ -18,14 +18,7 @@ import EmployerDashboard from "./pages/employer/EmployerDashboard";
 import CandidateManagement from "./pages/employer/CandidateManagement";
 import CandidateDetail from "./pages/employer/CandidateDetail";
 import { JobForm } from "./pages/employer/JobForm";
-<<<<<<< HEAD
 import RecommendedJobsPage from "./pages/employer/RecommendedJobsPage";
-=======
-import Settings from "./pages/shared/Settings";
-import ErrorPage from "./pages/shared/ErrorPage";
-
-// Import CVSearch (Dạng named import vì file CVSearch dùng `export function CVSearch`)
->>>>>>> 00e2620 (Thông báo apply cho 2 bên employer và candidate)
 import { CVSearch } from "./pages/employer/CVSearch";
 
 // SHARED PAGES
@@ -33,15 +26,9 @@ import Settings from "./pages/shared/Settings";
 import ErrorPage from "./pages/shared/ErrorPage";
 import Chat from "./pages/shared/Chat";
 
-<<<<<<< HEAD
 // ======================================================
 // PROTECTED ROUTE
 // ======================================================
-=======
-// --- PROTECTED ROUTE (GIỮ NGUYÊN 100% CỦA BẠN) ---
-const ProtectedRoute = ({ allowedRole }: { allowedRole: string }) => {
-  const userStr = localStorage.getItem("user");
->>>>>>> 00e2620 (Thông báo apply cho 2 bên employer và candidate)
 
 const ProtectedRoute = ({
   allowedRole,
@@ -91,15 +78,11 @@ const ProtectedRoute = ({
 
 const RequireAuth = () => {
   const userStr = localStorage.getItem("user");
-<<<<<<< HEAD
 
   if (!userStr) {
     return <Navigate to="/auth" replace />;
   }
 
-=======
-  if (!userStr) return <Navigate to="/auth" replace />;
->>>>>>> 00e2620 (Thông báo apply cho 2 bên employer và candidate)
   return <Outlet />;
 };
 
@@ -112,17 +95,12 @@ export const router = createBrowserRouter([
     path: "/",
     element: <App />,
     errorElement: <ErrorPage />,
-<<<<<<< HEAD
-
-=======
->>>>>>> 00e2620 (Thông báo apply cho 2 bên employer và candidate)
     children: [
       // =========================
       // PUBLIC ROUTES
       // =========================
 
       {
-<<<<<<< HEAD
         index: true,
         element: <Home />,
       },
@@ -160,40 +138,12 @@ export const router = createBrowserRouter([
       // CANDIDATE ROUTES
       // =========================
 
-=======
-        // Đảm bảo route chi tiết công việc nằm ở đây
-        path: "job/:id",
-        element: <JobDetail />,
-      },
-
-      // --- BỔ SUNG: ROUTE CHAT (Cả Employer và Candidate đều vào được nếu đã đăng nhập) ---
-      {
-        element: <RequireAuth />,
-        children: [{ path: "chat", element: <Chat /> }],
-      },
-
-      // --- ROUTES CHO ỨNG VIÊN (CANDIDATE) ---
-      {
-        element: <ProtectedRoute allowedRole="candidate" />,
-        children: [
-          { path: "profile", element: <ProfileDashboard /> },
-          { path: "applications", element: <MyApplications /> },
-
-          // BỔ SUNG DÒNG NÀY: Để hứng cái link thông báo "/profile/applications" bị lệch
-          { path: "profile/applications", element: <MyApplications /> },
-
-          { path: "settings", element: <Settings /> },
-        ],
-      },
-      // --- ROUTES CHO NHÀ TUYỂN DỤNG (EMPLOYER) ---
->>>>>>> 00e2620 (Thông báo apply cho 2 bên employer và candidate)
       {
         element: (
           <ProtectedRoute allowedRole="candidate" />
         ),
 
         children: [
-<<<<<<< HEAD
           {
             path: "profile",
             element: <ProfileDashboard />,
@@ -247,15 +197,6 @@ export const router = createBrowserRouter([
           },
         ],
       },
-=======
-          { path: "employer/dashboard", element: <EmployerDashboard /> },
-          { path: "employer/candidates", element: <CandidateManagement /> },
-          { path: "employer/candidate/:id", element: <CandidateDetail /> },
-          { path: "employer/jobs/new", element: <JobForm /> },
-          { path: "employer/cv-search", element: <CVSearch /> },
-        ],
-      },
->>>>>>> 00e2620 (Thông báo apply cho 2 bên employer và candidate)
     ],
   },
 ]);
