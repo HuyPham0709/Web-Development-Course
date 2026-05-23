@@ -1,5 +1,5 @@
 // ==========================================
-// CandidateDetail.tsx (Dark Mode & Staggered Animation)
+// CandidateDetail.tsx (Dark Mode & Staggered Animation) - FIXED LOGIC ONLY
 // ==========================================
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
@@ -15,19 +15,23 @@ export default function CandidateDetail() {
   const [newNote, setNewNote] = useState('');
   const [loading, setLoading] = useState(true);
   
-  // ĐÃ THÊM: State kiểm soát hiệu ứng lướt chào sân mượt mà
+  // State kiểm soát hiệu ứng lướt chào sân mượt mà
   const [animate, setAnimate] = useState(false);
   
   const steps = ['Pending', 'Reviewed', 'Interview', 'Hired'];
+
+  // FIX 1: ĐƯA BIẾN BACKEND URL LÊN ĐẦU ĐỂ TRÁNH LỖI SỬ DỤNG TRƯỚC KHI KHAI BÁO (UNDEFINED)
+  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     if (!id) return;
     
     const fetchData = async () => {
       try {
+        // FIX 2: GIỮ NGUYÊN CHUỖI ID (M_ID CỦA MONGODB), KHÔNG ÉP SANG NUMBER GÂY LỖI URL THÀNH NaN
         const [detailRes, notesRes] = await Promise.all([
           applicationService.getApplicationById(id),
-          applicationService.getNotes(Number(id))
+          applicationService.getNotes(id as any) 
         ]);
         setCandidate(detailRes.data.data);
         setNotes(notesRes.data.data || []);
@@ -41,7 +45,7 @@ export default function CandidateDetail() {
     fetchData();
   }, [id]);
 
-  // ĐÃ THÊM: Kích hoạt animation ngay sau khi tắt loading
+  // Kích hoạt animation ngay sau khi tắt loading
   useEffect(() => {
     if (!loading) {
       const timer = setTimeout(() => setAnimate(true), 60);
@@ -52,7 +56,8 @@ export default function CandidateDetail() {
   const handleAddNote = async () => {
     if (!newNote.trim() || !id) return;
     try {
-      const res = await applicationService.addNote(Number(id), newNote);
+      // FIX 3: BỎ Number(id) ĐỂ TRÁNH GỬI URL DẠNG /NaN/ LÊN BACKEND
+      const res = await applicationService.addNote(id as any, newNote);
       setNotes([...notes, res.data.data]);
       setNewNote('');
     } catch (error) {
@@ -75,7 +80,8 @@ export default function CandidateDetail() {
 
     try {
       if (applicationService.updateStatus) {
-        await applicationService.updateStatus(Number(id), backendStatus);
+        // FIX 4: BỎ Number(id) ĐỂ TƯƠNG THÍCH VỚI ID CHUỖI CỦA MONGODB
+        await applicationService.updateStatus(id as any, backendStatus);
       }
     } catch (error) {
       console.error("Lỗi cập nhật trạng thái:", error);
@@ -112,7 +118,7 @@ export default function CandidateDetail() {
     default: activeStep = 0;
   }
 
-  // ĐÃ CẬP NHẬT: Thêm dải màu hỗ trợ Dark Mode cho các Status Badge
+  // Thêm dải màu hỗ trợ Dark Mode cho các Status Badge
   const getStatusColor = (status?: string) => {
     switch (status?.toLowerCase()) {
       case 'pending': return 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/30';
@@ -127,31 +133,26 @@ export default function CandidateDetail() {
 
   const displayName = candidate.full_name || candidate.candidate_name || 'Ứng viên';
   const cvFile = candidate.cv_url || ''; 
- const cvLink = cvFile.startsWith('http') 
+  const cvLink = cvFile.startsWith('http') 
     ? cvFile 
     : `${backendUrl}/uploads/${cvFile.replace(/^(?:\/?uploads\/)+/, '')}`;
 
-  // Biến này dùng để check xem có file hay không (để render iframe)
   const cleanCvFile = cvFile;
 
-  // =========================================================================
   // LOGIC XỬ LÝ AVATAR ĐỒNG BỘ HOÀN TOÀN TỪ CVSearch.tsx
-  // =========================================================================
   const rawAvatar = candidate.avatar_url || candidate.avatar;
-  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   
   const avatarSrc = rawAvatar
     ? (rawAvatar.startsWith('http') || rawAvatar.startsWith('data:') 
         ? rawAvatar 
         : `${backendUrl}/${rawAvatar.replace(/^\//, '')}`)
     : `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random`;
-  // =========================================================================
 
   return (
     <div className="min-h-screen bg-gray-50/50 dark:bg-[#0E1422] py-4 transition-colors duration-300">
       <div className="flex flex-col gap-6 font-sans pb-12 h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* 1. Breadcrumb - Xuất hiện đầu tiên */}
+        {/* 1. Breadcrumb */}
         <div className={`flex items-center text-sm text-gray-500 dark:text-gray-400 mb-2 mt-4 transform transition-all duration-500 ease-out ${
           animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
         }`}>
@@ -170,8 +171,6 @@ export default function CandidateDetail() {
               
               <div className="flex flex-col items-center text-center mb-6">
                 <div className="relative mb-4">
-                  
-                  {/* THAY THẾ KHỐI CHỮ CŨ BẰNG THẺ KHỐI ẢNH ĐỒNG BỘ VỚI CVSEARCH */}
                   <div className="w-24 h-24 rounded-full bg-gray-100 dark:bg-white/5 overflow-hidden shrink-0 border border-gray-200 dark:border-white/10 transition-colors">
                     <img 
                       src={avatarSrc} 
