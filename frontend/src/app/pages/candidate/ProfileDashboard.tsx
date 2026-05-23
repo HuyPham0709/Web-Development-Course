@@ -1,4 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import {
+  Link,
+  useNavigate,
+  useLocation
+} from 'react-router-dom';
 import {
   Briefcase, Bookmark, Bell, Edit2, MapPin, Phone, Calendar,
   Plus, Trash2, UploadCloud, Loader2, FileText, X, Sparkles,
@@ -21,25 +26,59 @@ import { ProfileSidebar } from '../../components/candidate/profile/ProfileSideba
 import MyApplications from './MyApplications';
 import JobCriteria from '../../components/candidate/profile/JobCriteria';
 import axios from 'axios';
+import SavedJobs from '../../components/candidate/profile/SavedJobs';
+import dayjs from '../../../utils/date';
+import { getRecommendations } from '../../../services/recommendationService';
 
 const CV_TEMPLATES = [
-  { id: '1', name: 'Đào Phú Quý', tags: ['Đơn giản', 'Chuyên nghiệp'], isNew: true,
-    image: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=200&h=280&fit=crop' },
-  { id: '2', name: 'Đào Phú Quốc', tags: ['Đơn giản', 'Chuyên nghiệp'], isNew: false,
-    image: 'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=200&h=280&fit=crop' },
-  { id: '3', name: 'Đào Nam Du', tags: ['Đơn giản', 'Chuyên nghiệp'], isNew: true,
-    image: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=200&h=280&fit=crop' },
-  { id: '4', name: 'Đào Bình Ba', tags: ['Đơn giản', 'Sáng tạo'], isNew: false,
-    image: 'https://images.unsplash.com/photo-1517842645767-c639042777db?w=200&h=280&fit=crop' },
-  { id: '5', name: 'Đào Phú Quý (S)', tags: ['Đơn giản', 'Sáng tạo'], isNew: true,
-    image: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=200&h=280&fit=crop' },
-  { id: '6', name: 'Nguyễn Trúc Quỳnh', tags: ['Hiện đại', 'Sáng tạo'], isNew: true,
-    image: 'https://images.unsplash.com/photo-1512314889357-e157c22f938d?w=200&h=280&fit=crop' },
-  { id: '7', name: 'Nguyễn Trúc Quỳnh (P)', tags: ['Chuyên nghiệp', 'Hiện đại'], isNew: false,
-    image: 'https://images.unsplash.com/photo-1506784365847-bbad939e9335?w=200&h=280&fit=crop' },
-  { id: '8', name: 'Nguyễn Trúc Quỳnh (M)', tags: ['Sáng tạo', 'Đơn giản'], isNew: false,
-    image: 'https://images.unsplash.com/photo-1521898284481-a5ec348cb555?w=200&h=280&fit=crop' },
+  {
+    id: '1', name: 'Đào Phú Quý', tags: ['Đơn giản', 'Chuyên nghiệp'], isNew: true,
+    image: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=200&h=280&fit=crop'
+  },
+  {
+    id: '2', name: 'Đào Phú Quốc', tags: ['Đơn giản', 'Chuyên nghiệp'], isNew: false,
+    image: 'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=200&h=280&fit=crop'
+  },
+  {
+    id: '3', name: 'Đào Nam Du', tags: ['Đơn giản', 'Chuyên nghiệp'], isNew: true,
+    image: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=200&h=280&fit=crop'
+  },
+  {
+    id: '4', name: 'Đào Bình Ba', tags: ['Đơn giản', 'Sáng tạo'], isNew: false,
+    image: 'https://images.unsplash.com/photo-1517842645767-c639042777db?w=200&h=280&fit=crop'
+  },
+  {
+    id: '5', name: 'Đào Phú Quý (S)', tags: ['Đơn giản', 'Sáng tạo'], isNew: true,
+    image: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=200&h=280&fit=crop'
+  },
+  {
+    id: '6', name: 'Nguyễn Trúc Quỳnh', tags: ['Hiện đại', 'Sáng tạo'], isNew: true,
+    image: 'https://images.unsplash.com/photo-1512314889357-e157c22f938d?w=200&h=280&fit=crop'
+  },
+  {
+    id: '7', name: 'Nguyễn Trúc Quỳnh (P)', tags: ['Chuyên nghiệp', 'Hiện đại'], isNew: false,
+    image: 'https://images.unsplash.com/photo-1506784365847-bbad939e9335?w=200&h=280&fit=crop'
+  },
+  {
+    id: '8', name: 'Nguyễn Trúc Quỳnh (M)', tags: ['Sáng tạo', 'Đơn giản'], isNew: false,
+    image: 'https://images.unsplash.com/photo-1521898284481-a5ec348cb555?w=200&h=280&fit=crop'
+  },
 ];
+
+interface RecommendedJob {
+  id: number;
+  title: string;
+  salary_min: number;
+  salary_max: number;
+  job_type: string;
+  experience_level: string;
+  company_logo: string | null;
+  slug: string;
+  created_at: string;
+  company_name: string;
+  location_name: string;
+  match_score: number;
+}
 
 const TEMPLATE_FILTERS = [
   { id: 'all', label: 'Tất cả' },
@@ -62,7 +101,7 @@ export default function ProfileDashboard() {
   const [experiences, setExperiences] = useState<WorkExperience[]>([]);
   const [education, setEducation] = useState<Education[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
-
+  const [recommendedJobs, setRecommendedJobs] = useState<RecommendedJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
@@ -85,37 +124,60 @@ export default function ProfileDashboard() {
 
   const userId = JSON.parse(localStorage.getItem('user') || '{}')?.id;
 
+  // ── Fetch recommendations ─────────────────────────────────────────────────
+  const fetchRecommendations = useCallback(async () => {  // 👈 đổi thành useCallback
+    try {
+      const res = await getRecommendations();
+      setRecommendedJobs(res.data.jobs || []);
+    } catch (error) {
+      console.error('Fetch recommendations error:', error);
+    }
+  }, []); // không phụ thuộc gì → stable reference
+
   // ── Load profile ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!userId) { setLoading(false); return; }
     getProfile(userId)
       .then(data => {
-        setPersonalInfo(data.personalInfo);
-        setExperiences(data.experiences);
-        setEducation(data.education);
-        setSkills(data.skills);
-
-        const baseUrl = 'http://127.0.0.1:5000';
-        const avatar = data.personalInfo.avatar_url;
-        const cover = data.personalInfo.cover_url;
-
-        setAvatarSrc(
-          avatar
-            ? avatar.startsWith('http') ? avatar : `${baseUrl}${avatar}`
-            : DEFAULT_AVATAR
-        );
-        setCoverSrc(
-          cover
-            ? cover.startsWith('http') ? cover : `${baseUrl}${cover}`
-            : DEFAULT_COVER
-        );
+        if (data && data.personalInfo) {
+          setPersonalInfo(data.personalInfo);
+          setExperiences(data.experiences || []);
+          setEducation(data.education || []);
+          setSkills(data.skills || []);
+          setAvatarSrc(data.personalInfo.avatar_url || DEFAULT_AVATAR);
+          setCoverSrc(data.personalInfo.cover_url || DEFAULT_COVER);
+          fetchRecommendations();
+        }
       })
       .catch(() => showToast('error', 'Không thể tải hồ sơ'))
       .finally(() => setLoading(false));
   }, [userId]);
 
+  // ── Lắng nghe criteria-updated ────────────────────────────────────────────
+  useEffect(() => {
+    window.addEventListener('criteria-updated', fetchRecommendations);
+    return () => window.removeEventListener('criteria-updated', fetchRecommendations);
+  }, [fetchRecommendations]); // 👈 thêm fetchRecommendations vào deps
+
   // ── Helpers ───────────────────────────────────────────────────────────────
   const showToast = (type: 'success' | 'error', message: string) => setToast({ type, message });
+
+
+  const formatDate = (date?: string | null) => {
+    if (!date) return 'Chưa cập nhật';
+
+    const pureDate = date.split('T')[0];
+
+    const [year, month, day] = pureDate.split('-');
+
+    return `${day}-${month}-${year}`;
+  };
+
+  const formatDateForInput = (dateString?: string | null) => {
+    if (!dateString) return '';
+
+    return dateString.split('T')[0];
+  };
 
   const openModal = (type: typeof modal) => {
     if (type === 'personalInfo') setEditPI({ ...personalInfo });
@@ -129,13 +191,39 @@ export default function ProfileDashboard() {
     if (!userId) return;
     setSaving(true);
     try {
-      let newPI = personalInfo, newExp = experiences, newEdu = education, newSkills = skills;
+      // 1. Chuẩn bị dữ liệu từ các state chỉnh sửa
+      let newPI = { ...personalInfo };
+      let newExp = [...experiences];
+      let newEdu = [...education];
+      let newSkills = [...skills];
 
-      if (modal === 'personalInfo') newPI = editPI;
-      if (modal === 'experience') newExp = editExp;
-      if (modal === 'education') newEdu = editEdu;
+      // 2. Gán và "LÀM SẠCH" ngày tháng về định dạng YYYY-MM-DD
+      if (modal === 'personalInfo') {
+        newPI = {
+          ...editPI,
+          dob: editPI.dob || null
+        };
+      }
+
+      if (modal === 'experience') {
+        newExp = editExp.map(exp => ({
+          ...exp,
+          start_date: exp.start_date || '',
+          end_date: exp.end_date || null
+        }));
+      }
+
+      if (modal === 'education') {
+        newEdu = editEdu.map(edu => ({
+          ...edu,
+          start_date: edu.start_date || '',
+          end_date: edu.end_date || null
+        }));
+      }
+
       if (modal === 'skills') newSkills = editSkills;
 
+      // 3. Kiểm tra logic (Validation) - Giữ nguyên logic của bạn
       if (modal === 'experience' && newExp.some(e => !e.company_name?.trim() || !e.position?.trim() || !e.start_date)) {
         showToast('error', 'Vui lòng điền đầy đủ thông tin kinh nghiệm làm việc!');
         setSaving(false); return;
@@ -149,11 +237,25 @@ export default function ProfileDashboard() {
         setSaving(false); return;
       }
 
-      await saveProfile(userId, { personalInfo: newPI, experiences: newExp, education: newEdu, skills: newSkills });
-      setPersonalInfo(newPI); setExperiences(newExp); setEducation(newEdu); setSkills(newSkills);
+      // 4. LƯU VÀO DATABASE: Gửi dữ liệu đã được format chuẩn YYYY-MM-DD
+      // Việc này giúp Database nhận đúng chuỗi ngày mà không bị lệch múi giờ.
+      await saveProfile(userId, {
+        personalInfo: newPI,
+        experiences: newExp,
+        education: newEdu,
+        skills: newSkills
+      });
+
+      // 5. Cập nhật lại giao diện (State)
+      setPersonalInfo(newPI);
+      setExperiences(newExp);
+      setEducation(newEdu);
+      setSkills(newSkills);
+
       setModal(null);
       showToast('success', 'Hồ sơ đã được cập nhật!');
 
+      // 6. Cập nhật Local Storage (Cho thông tin cá nhân)
       if (modal === 'personalInfo') {
         const savedUserStr = localStorage.getItem('user');
         if (savedUserStr) {
@@ -210,32 +312,40 @@ export default function ProfileDashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 1. Tạo blob url cục bộ để hiển thị ngay lập tức trên UI (Cực mượt, không tốn tải mạng)
     const localPreviewUrl = URL.createObjectURL(file);
     setAvatarSrc(localPreviewUrl);
 
     try {
       const formData = new FormData();
       formData.append('avatar', file);
+
       const token = localStorage.getItem('token');
 
-      // 2. Gọi API trung chuyển lên thẳng Cloud
       const { data } = await axios.post(
         'http://127.0.0.1:5000/api/profile/upload-avatar',
         formData,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
       if (data.success) {
-        // data.avatar_url lúc này là link Cloud dạng https:// sạch sẽ
         setAvatarSrc(data.avatar_url);
         setPersonalInfo(prev => ({ ...prev, avatar_url: data.avatar_url }));
         showToast('success', 'Cập nhật ảnh đại diện thành công!');
-        
-        // Đồng bộ lại local storage nếu cần
+
         const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
         savedUser.avatar_url = data.avatar_url;
         localStorage.setItem('user', JSON.stringify(savedUser));
+
+        window.dispatchEvent(new CustomEvent('user-profile-updated', {
+          detail: {
+            full_name: savedUser.full_name || null,
+            avatar_url: data.avatar_url,
+          },
+        }));
       }
     } catch (err) {
       showToast('error', 'Upload ảnh thất bại');
@@ -247,25 +357,27 @@ export default function ProfileDashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Instant preview
-    const reader = new FileReader();
-    reader.onloadend = () => setCoverSrc(reader.result as string);
-    reader.readAsDataURL(file);
+    const localPreviewUrl = URL.createObjectURL(file);
+    setCoverSrc(localPreviewUrl);
 
     try {
       const formData = new FormData();
       formData.append('cover', file);
+
       const token = localStorage.getItem('token');
 
       const { data } = await axios.post(
         'http://127.0.0.1:5000/api/profile/upload-cover',
         formData,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
       if (data.success) {
-        const fullUrl = `http://127.0.0.1:5000${data.cover_url}`;
-        setCoverSrc(fullUrl);
+        setCoverSrc(data.cover_url);
         setPersonalInfo(prev => ({ ...prev, cover_url: data.cover_url }));
         showToast('success', 'Cập nhật ảnh bìa thành công!');
 
@@ -276,24 +388,13 @@ export default function ProfileDashboard() {
         window.dispatchEvent(new CustomEvent('user-profile-updated', {
           detail: {
             full_name: savedUser.full_name || null,
-            avatar_url: savedUser.avatar_url || null
-          }
+            avatar_url: savedUser.avatar_url || null,
+          },
         }));
       }
     } catch (err) {
       showToast('error', 'Upload ảnh bìa thất bại');
     }
-  };
-
-  // ── Formatters ────────────────────────────────────────────────────────────
-  const formatDate = (dateString: string | undefined | null) => {
-    if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  };
-
-  const formatDateForInput = (dateString?: string | null) => {
-    if (!dateString) return '';
-    return new Date(dateString).toISOString().split('T')[0];
   };
 
   const getTagColor = (tag: string) => {
@@ -371,11 +472,10 @@ export default function ProfileDashboard() {
                       <button
                         key={filter.id}
                         onClick={() => setTemplateFilter(filter.id)}
-                        className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all border flex items-center gap-1.5 ${
-                          templateFilter === filter.id
-                            ? 'bg-gray-800 text-white border-gray-800 shadow-sm dark:bg-white dark:text-gray-900 dark:border-white'
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 dark:bg-white/5 dark:text-gray-300 dark:border-white/10 dark:hover:border-white/20'
-                        }`}
+                        className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all border flex items-center gap-1.5 ${templateFilter === filter.id
+                          ? 'bg-gray-800 text-white border-gray-800 shadow-sm dark:bg-white dark:text-gray-900 dark:border-white'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 dark:bg-white/5 dark:text-gray-300 dark:border-white/10 dark:hover:border-white/20'
+                          }`}
                       >
                         {templateFilter === filter.id && <Check className="w-3 h-3" />}
                         {filter.label}
@@ -453,7 +553,7 @@ export default function ProfileDashboard() {
                         <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-gray-500 dark:text-gray-400">
                           {personalInfo.location && <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {personalInfo.location}</span>}
                           {personalInfo.phone && <span className="flex items-center gap-1.5"><Phone className="w-4 h-4" /> {personalInfo.phone}</span>}
-                          {personalInfo.dob && <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> {personalInfo.dob}</span>}
+                          {personalInfo.dob && <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> {formatDate(personalInfo.dob)}</span>}
                         </div>
                       </div>
                     )}
@@ -545,29 +645,32 @@ export default function ProfileDashboard() {
                       <span className="px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:border-blue-300 dark:group-hover:border-blue-500/50">Chọn file</span>
                     </label>
 
-                    {loading ? <ProfileSkeleton className="rounded-2xl h-40" /> : personalInfo.cv_url ? (
+                    {/* FIX: Chỉ giữ 1 bộ nút Xem/Xóa dùng resolveFileUrl */}
+                    {loading ? <ProfileSkeleton className="rounded-2xl h-40" /> : personalInfo?.cv_url ? (
                       <div className="bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl p-6 flex flex-col">
                         <div className="flex items-start gap-4 mb-auto">
                           <div className="w-12 h-12 bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-xl flex items-center justify-center flex-shrink-0"><FileText className="w-6 h-6" /></div>
                           <div className="min-w-0">
-                            <h3 className="font-bold text-gray-900 dark:text-white truncate">{personalInfo.cv_url.split('/').pop()}</h3>
+                            <h3 className="font-bold text-gray-900 dark:text-white truncate">{personalInfo?.cv_url?.split('/').pop()}</h3>
                             <p className="text-sm text-gray-500 dark:text-gray-400">CV đã tải lên</p>
                           </div>
                         </div>
                         <div className="flex gap-3 mt-6">
-                          <a 
-                            href={resolveFileUrl(personalInfo.cv_url)} 
-                            target="_blank" 
-                            rel="noreferrer" 
+                          <a
+                            href={resolveFileUrl(personalInfo.cv_url)}
+                            target="_blank"
+                            rel="noreferrer"
                             className="flex-1 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors text-center"
                           >
                             Xem
                           </a>
-                          
-                          <button onClick={handleCVDelete} className="flex-1 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center justify-center gap-2">
+                          <button
+                            onClick={handleCVDelete}
+                            className="flex-1 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center justify-center gap-2"
+                          >
                             <Trash2 className="w-4 h-4" /> Xóa
                           </button>
-                      </div>
+                        </div>
                       </div>
                     ) : (
                       <div className="bg-gray-50 dark:bg-white/5 border border-dashed border-gray-200 dark:border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center text-center text-gray-400 dark:text-gray-500">
@@ -582,11 +685,11 @@ export default function ProfileDashboard() {
 
             {/* APPLICATIONS TAB */}
             {activeTab === 'applications' && <MyApplications />}
-            {activeTab === 'search-criteria' && (
-  <JobCriteria />
-)}
+            {activeTab === 'search-criteria' && (<JobCriteria />)}
+            {activeTab === 'saved' && <SavedJobs />}
+
             {/* FALLBACK for unimplemented tabs */}
-            {!['profile', 'cv-builder', 'recommended', 'applied', 'applications','search-criteria'].includes(activeTab) && (
+            {!['profile', 'cv-builder', 'recommended', 'applied', 'applications', 'search-criteria', 'saved'].includes(activeTab) && (
               <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
                 <div className="w-16 h-16 bg-gray-50 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
                   <FileText className="w-8 h-8 text-gray-400 dark:text-gray-500" />
@@ -600,25 +703,191 @@ export default function ProfileDashboard() {
 
         {/* RIGHT SIDEBAR: Job suggestions */}
         {activeTab !== 'cv-builder' && (
-          <aside className="w-full xl:w-1/5 p-4 md:p-8 xl:pl-0 flex-shrink-0">
-            <div className="sticky top-8 bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-5 animate-fade-in-up">
-              <div className="flex items-center gap-2 mb-5">
-                <Sparkles className="w-5 h-5 text-yellow-500" />
-                <h3 className="font-bold text-gray-900 dark:text-white">Gợi ý cho bạn</h3>
-              </div>
-              <div className="space-y-4">
-                {[1, 2, 3].map((item) => (
-                  <div key={item} className="group cursor-pointer border-b border-gray-50 dark:border-white/5 last:border-0 pb-4 last:pb-0">
-                    <h4 className="font-semibold text-gray-800 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-sm line-clamp-2 leading-snug">Senior ReactJS / VueJS Developer (Upto $2500)</h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 flex items-center gap-1.5"><Briefcase className="w-3 h-3 text-gray-400" /> TechCorp Việt Nam</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1.5"><MapPin className="w-3 h-3 text-gray-400" /> TP. Hồ Chí Minh</p>
+          <aside className="hidden 2xl:block w-[340px] p-6 pl-0 flex-shrink-0">
+            <div className="sticky top-6 space-y-6">
+
+              {/* RECOMMENDED JOBS */}
+              <div className="bg-white dark:bg-[#111827] rounded-3xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+
+                {/* Header */}
+                <div className="px-5 py-4 border-b border-gray-100 dark:border-white/10 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-xl bg-yellow-100 dark:bg-yellow-500/10 flex items-center justify-center">
+                      <Sparkles className="w-4 h-4 text-yellow-500" />
+                    </div>
+
+                    <div>
+                      <h3 className="font-bold text-gray-900 dark:text-white text-sm">
+                        Gợi ý cho bạn
+                      </h3>
+
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Công việc phù hợp hồ sơ
+                      </p>
+                    </div>
                   </div>
-                ))}
+
+                  <Link
+                    to="/recommended-jobs"
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                  >
+                    Xem tất cả
+                  </Link>
+                </div>
+
+                {/* Jobs */}
+                <div className="max-h-[650px] overflow-y-auto custom-scrollbar">
+                  {recommendedJobs.length === 0 ? (
+                    <div className="p-6 text-center">
+                      <div className="w-14 h-14 mx-auto rounded-2xl bg-gray-100 dark:bg-white/5 flex items-center justify-center mb-3">
+                        <Briefcase className="w-6 h-6 text-gray-400" />
+                      </div>
+
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Chưa có công việc phù hợp
+                      </p>
+
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Hãy cập nhật hồ sơ để nhận đề xuất tốt hơn
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-100 dark:divide-white/5">
+                      {recommendedJobs.slice(0, 3).map((job) => (
+                        <Link
+                          key={job.id}
+                          to={`/job/${job.id}`}
+                          className="group block p-5 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors"
+                        >
+                          <div className="flex gap-3">
+
+                            {/* Logo */}
+                            <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-white/5 overflow-hidden flex items-center justify-center flex-shrink-0">
+                              {job.company_logo ? (
+                                <img
+                                  src={job.company_logo}
+                                  alt={job.company_name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <Briefcase className="w-5 h-5 text-gray-400" />
+                              )}
+                            </div>
+
+                            {/* Content */}
+                            <div className="min-w-0 flex-1">
+
+                              {/* Title + Badge % */}
+                              <div className="flex items-start justify-between gap-2">
+                                <h4 className="text-sm font-bold text-gray-800 dark:text-white line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                  {job.title}
+                                </h4>
+                                {job.match_score > 0 && (
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${job.match_score >= 60
+                                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+                                      : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400'
+                                    }`}>
+                                    {job.match_score}%  {/* 👈 hiện số % thay vì chữ */}
+                                  </span>
+                                )}
+                              </div>
+
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+                                {job.company_name} · {job.location_name || 'Remote'}
+                              </p>
+
+                              {/* Skills tags */}
+                              {job.experience_level && (
+                                <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
+                                    {job.experience_level}
+                                  </span>
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 font-medium">
+                                    {job.job_type}
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* 👇 THÊM: Progress bar + label */}
+                              {job.match_score > 0 && (
+                                <div className="mt-3">
+                                  {/* Bar */}
+                                  <div className="w-full h-1.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full transition-all duration-500 ${job.match_score >= 60
+                                          ? 'bg-emerald-500'
+                                          : 'bg-yellow-400'
+                                        }`}
+                                      style={{ width: `${job.match_score}%` }}
+                                    />
+                                  </div>
+                                  {/* Label */}
+                                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+                                    {job.match_score >= 60 ? 'Phù hợp cao' : 'Có thể phù hợp'}
+                                  </p>
+                                </div>
+                              )}
+
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-              <button className="w-full mt-6 py-2.5 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-xl text-sm font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors">Xem tất cả việc làm</button>
+
+              {/* QUICK STATS */}
+              <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-3xl p-5 text-white shadow-lg">
+
+                <h3 className="font-bold text-lg mb-1">
+                  Hồ sơ của bạn
+                </h3>
+
+                <p className="text-sm text-blue-100 mb-5">
+                  Hoàn thiện hồ sơ để tăng cơ hội được tuyển dụng
+                </p>
+
+                <div className="space-y-4">
+
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span>Độ hoàn thiện</span>
+                      <span>80%</span>
+                    </div>
+
+                    <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
+                      <div className="h-full w-[80%] bg-white rounded-full" />
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => openModal('personalInfo')}
+                    className="w-full py-3 rounded-2xl bg-white text-blue-700 font-semibold text-sm hover:bg-blue-50 transition"
+                  >
+                    Cập nhật hồ sơ
+                  </button>
+                </div>
+              </div>
             </div>
           </aside>
         )}
+
+        {/* CUSTOM SCROLLBAR */}
+        <style>{`
+            .custom-scrollbar::-webkit-scrollbar {
+              width: 6px;
+            }
+
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+              background: rgba(100,100,100,0.3);
+              border-radius: 999px;
+            }
+
+            .custom-scrollbar::-webkit-scrollbar-track {
+              background: transparent;
+            }
+          `}</style>
       </div>
 
       {/* MODALS */}

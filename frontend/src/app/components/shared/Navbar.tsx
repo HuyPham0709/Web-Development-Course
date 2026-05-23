@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   Briefcase,
   Bell,
+  MessageSquare,
   CheckCircle2,
   LogOut,
   Settings,
@@ -27,18 +28,21 @@ import {
 const BASE_URL = "http://localhost:5000";
 
 const toFullUrl = (url: string | null | undefined): string => {
+  if (!url) return '';
+  if (url.startsWith('http') || url.startsWith('data:')) return url;
   if (!url) return "";
   if (url.startsWith("http")) return url;
   return `${BASE_URL}${url}`;
 };
 
+// Interface đồng bộ hoàn toàn với Schema thuộc tính của MongoDB 
 interface NotificationItem {
-  id: number;
+  _id: string;        
   title: string;
-  desc: string;
-  time: string;
-  unread: boolean;
-  linkUrl: string | null;
+  message: string;    
+  created_at: string; 
+  is_read: boolean;   
+  link_url: string | null; 
 }
 
 export const Navbar = () => {
@@ -57,7 +61,7 @@ export const Navbar = () => {
   });
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false); // 🔒 Khóa trạng thái chống spam click
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const getNavLinks = () => {
     const baseLinks = [{ name: "Home", path: "/" }];
@@ -68,7 +72,7 @@ export const Navbar = () => {
       return [
         ...baseLinks,
         { name: "Dashboard", path: "/employer/dashboard" },
-        { name: "CV Sreach", path: "/employer/cv-search" },
+        { name: "CV Search", path: "/employer/cv-search" },
       ];
     }
 
@@ -96,31 +100,33 @@ export const Navbar = () => {
         setNotifications(response.data.data);
       }
     } catch (error) {
-      console.error("Lỗi lấy thông báo:", error);
+      console.error("Lỗi lấy thông báo từ API:", error);
     }
   };
 
-  // 🛠️ ĐÃ CẬP NHẬT: Xử lý chống spam, mất chấm lập tức và chuyển hướng trang
-  const handleMarkAsRead = async (id: number, linkUrl: string | null) => {
-    // 1. CHỐNG SPAM: Nếu đang xử lý một click trước đó, chặn không cho chạy tiếp
+  // Gọi lại API lấy thông báo tự động mỗi khi mở bảng thông báo ra xem
+  useEffect(() => {
+    if (showNotifications && isLoggedIn) {
+      fetchNotifications();
+    }
+  }, [showNotifications, isLoggedIn]);
+
+  // Xử lý cập nhật trạng thái đọc và ép tuyến đường cho Employer
+  const handleMarkAsRead = async (id: string, linkUrl: string | null) => {
     if (isProcessing) return;
 
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    const currentNotif = notifications.find((item) => item.id === id);
-    
-    // Tự động đóng menu thông báo lại sau khi click để tối ưu trải nghiệm
+    const currentNotif = notifications.find((item) => item._id === id);
     setShowNotifications(false);
 
-    // Kiểm tra xem thông báo này thực sự CHƯA ĐỌC thì mới gọi API
-    if (currentNotif && currentNotif.unread) {
-      setIsProcessing(true); // Bật khóa chống spam
+    if (currentNotif && !currentNotif.is_read) {
+      setIsProcessing(true);
 
-      // Tối ưu hóa UI: Biến mất chấm tròn xanh lập tức trên giao diện trước khi API phản hồi
       setNotifications((prev) =>
         prev.map((item) =>
-          item.id === id ? { ...item, unread: false } : item
+          item._id === id ? { ...item, is_read: true } : item
         )
       );
 
@@ -133,12 +139,14 @@ export const Navbar = () => {
       } catch (error) {
         console.error("Lỗi cập nhật trạng thái đọc:", error);
       } finally {
-        setIsProcessing(false); // Mở khóa sau khi API thực thi xong
+        setIsProcessing(false);
       }
     }
 
-    // 2. ĐIỀU HƯỚNG TRANG: Nhảy ngay tới đường dẫn được lưu (Post hoặc Profile)
-    if (linkUrl) {
+    // Kiểm tra quyền chuyển hướng
+    if (user.role?.toLowerCase() === "employer") {
+      navigate("/employer/candidates");
+    } else if (linkUrl) {
       navigate(linkUrl);
     }
   };
@@ -154,13 +162,14 @@ export const Navbar = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setNotifications((prev) =>
-        prev.map((item) => ({ ...item, unread: false }))
+        prev.map((item) => ({ ...item, is_read: true }))
       );
     } catch (error) {
       console.error("Lỗi cập nhật đọc tất cả:", error);
     }
   };
 
+  // Tách biệt luồng xử lý và đảm bảo fetch luôn chạy sau khi gán login thành công
   useEffect(() => {
     const loadUserData = () => {
       const token = localStorage.getItem("token");
@@ -175,7 +184,6 @@ export const Navbar = () => {
             avatarUrl: toFullUrl(parsedUser.avatar_url),
             role: parsedUser.role || "",
           });
-          fetchNotifications();
         } catch (e) {
           console.error("Lỗi parse user từ localStorage:", e);
         }
@@ -211,6 +219,13 @@ export const Navbar = () => {
     };
   }, []);
 
+  // Tự động chạy lấy thông báo lần đầu ngay khi login đổi trạng thái thành true
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchNotifications();
+    }
+  }, [isLoggedIn]);
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -235,7 +250,7 @@ export const Navbar = () => {
   };
 
   const isEmployer = user.role?.toLowerCase() === "employer";
-  const hasUnread = notifications.some((n) => n.unread);
+  const hasUnread = notifications.some((n) => !n.is_read);
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/80 backdrop-blur-md transition-colors dark:border-white/10 dark:bg-[#0B0F19]/80">
@@ -299,7 +314,21 @@ export const Navbar = () => {
             />
           </button>
 
-          {/* NOTIFICATIONS */}
+          {isLoggedIn && (
+            <Link
+              to="/chat"
+              className={`relative rounded-full p-2 transition-colors ${
+                location.pathname === "/chat"
+                  ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
+                  : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10"
+              }`}
+              title="Messages"
+            >
+              <MessageSquare size={20} />
+            </Link>
+          )}
+
+          {/* NOTIFICATIONS DROPDOWN */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowNotifications(!showNotifications)}
@@ -307,7 +336,7 @@ export const Navbar = () => {
             >
               <Bell size={20} />
               {isLoggedIn && hasUnread && (
-                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-blue-600"></span>
+                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-blue-600 animate-pulse"></span>
               )}
             </button>
 
@@ -332,23 +361,26 @@ export const Navbar = () => {
                   ) : (
                     notifications.map((notif) => (
                       <div
-                        key={notif.id}
-                        // 🛠️ ĐÃ CẬP NHẬT: Truyền thêm tham số notif.linkUrl vào hàm khi click
-                        onClick={() => handleMarkAsRead(notif.id, notif.linkUrl)}
-                        className={`p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors flex gap-3 items-start ${notif.unread ? "bg-blue-50/40 dark:bg-blue-950/10" : ""}`}
+                        key={notif._id}
+                        onClick={() => handleMarkAsRead(notif._id, notif.link_url)}
+                        className={`p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors flex gap-3 items-start ${
+                          !notif.is_read
+                            ? "bg-blue-50/60 dark:bg-blue-950/20"
+                            : ""
+                        }`}
                       >
-                        {notif.unread && (
-                          <div className="mt-1 flex h-2 w-2 shrink-0 rounded-full bg-blue-600"></div>
+                        {!notif.is_read && (
+                          <div className="mt-1.5 flex h-2 w-2 shrink-0 rounded-full bg-blue-600"></div>
                         )}
                         <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                          <p className={`text-sm text-gray-900 dark:text-white ${notif.is_read ? "font-normal" : "font-semibold"}`}>
                             {notif.title}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
-                            {notif.desc}
+                            {notif.message}
                           </p>
                           <p className="text-[10px] text-gray-400 mt-1">
-                            {notif.time}
+                            {notif.created_at ? new Date(notif.created_at).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) : ""}
                           </p>
                         </div>
                       </div>
@@ -484,13 +516,27 @@ export const Navbar = () => {
                 className={`block px-4 py-2.5 text-sm font-semibold rounded-xl transition-all ${
                   isActive
                     ? "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-950/40"
-                    : "text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5"
+                    : "text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5"
                 }`}
               >
                 {link.name}
               </Link>
             );
           })}
+
+          {isLoggedIn && (
+            <Link
+              to="/chat"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`block px-4 py-2.5 text-sm font-semibold rounded-xl transition-all ${
+                location.pathname === "/chat"
+                  ? "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-950/40"
+                  : "text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5"
+              }`}
+            >
+              Messages
+            </Link>
+          )}
 
           {isLoggedIn && isEmployer && (
             <div className="pt-2 border-t border-gray-100 dark:border-white/5">
