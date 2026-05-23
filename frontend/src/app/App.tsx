@@ -2,7 +2,7 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from 'react-hot-toast';
-
+import MyApplications from './pages/candidate/MyApplications';
 // Import Navbar và Footer từ đúng đường dẫn
 import { Navbar } from './components/shared/Navbar';
 import { Footer } from './components/shared/Footer';

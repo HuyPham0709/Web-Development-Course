@@ -5,27 +5,28 @@ exports.getNotifications = async (req, res) => {
   const userId = req.user.id;
   try {
     const [rows] = await db.execute(
-      "SELECT id, title, description, is_read, link_url, created_at FROM Notifications WHERE user_id = ? ORDER BY created_at DESC",
-      [userId]
+      "SELECT id, title, message, is_read, link_url, created_at FROM Notifications WHERE user_id = ? ORDER BY created_at DESC",
+      [userId],
     );
 
     // Map dữ liệu cẩn thận sang Object mà Frontend (Navbar.tsx) đang chờ
-    const formattedNotifications = rows.map(item => ({
+    const formattedNotifications = rows.map((item) => ({
       id: item.id,
       title: item.title,
-      desc: item.description || "", 
-      unread: item.is_read === 0,    
+      desc: item.description || "",
+      unread: item.is_read === 0,
       linkUrl: item.link_url || null,
-      time: item.created_at ? new Date(item.created_at).toLocaleString() : "" // Convert thời gian cho đẹp
+      time: item.created_at ? new Date(item.created_at).toLocaleString() : "", // Convert thời gian cho đẹp
     }));
 
-    return res.status(200).json({ success: true, data: formattedNotifications });
+    return res
+      .status(200)
+      .json({ success: true, data: formattedNotifications });
   } catch (error) {
-
     console.error("====== LỖI BACKEND CHỨC NĂNG THÔNG BÁO ======");
     console.error(error);
     console.error("=============================================");
-    
+
     return res.status(500).json({ success: false, message: error.message });
   }
 };

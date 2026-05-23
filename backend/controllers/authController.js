@@ -60,9 +60,26 @@ exports.register = async (req, res) => {
   }
 
   try {
-    const [rows] = await db.execute("SELECT * FROM Users WHERE email = ?", [email]);
-    if (rows.length > 0)
-      return res.status(400).json({ success: false, message: "Email đã tồn tại" });
+    // 🎯 ĐÃ SỬA: Bắt lỗi trùng cả Email và Username ngay từ đầu để tránh lỗi 500
+    const [rows] = await db.execute(
+      "SELECT * FROM Users WHERE email = ? OR username = ?", 
+      [email, finalName]
+    );
+    
+    if (rows.length > 0) {
+      const isEmailTaken = rows.some(user => user.email === email);
+      const isUsernameTaken = rows.some(user => user.username === finalName);
+
+      if (isEmailTaken) {
+        return res.status(400).json({ success: false, message: "Email này đã tồn tại!" });
+      }
+      if (isUsernameTaken) {
+        return res.status(400).json({ 
+          success: false, 
+          message: `Tên đăng nhập '${finalName}' đã có người sử dụng. Vui lòng chọn tên khác!` 
+        });
+      }
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -78,9 +95,14 @@ exports.register = async (req, res) => {
     const userId = userResult.insertId;
 
     if (role === "employer") {
-      await db.execute("INSERT INTO Companies (name) VALUES (?)", [`Công ty của ${finalName}`]);
+      await db.execute("INSERT INTO Companies (name) VALUES (?)", [
+        `Công ty của ${finalName}`,
+      ]);
     } else {
-      await db.execute("INSERT INTO Profiles (user_id, full_name) VALUES (?, ?)", [userId, finalName]);
+      await db.execute(
+        "INSERT INTO Profiles (user_id, full_name) VALUES (?, ?)",
+        [userId, finalName],
+      );
     }
 
     await transporter.sendMail({
@@ -94,7 +116,8 @@ exports.register = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Đăng ký thành công! Vui lòng kiểm tra email để lấy mã xác thực.",
+      message:
+        "Đăng ký thành công! Vui lòng kiểm tra email để lấy mã xác thực.",
     });
   } catch (error) {
     console.error("Lỗi Register:", error);
@@ -122,13 +145,18 @@ exports.login = async (req, res) => {
       [email],
     );
     if (users.length === 0) {
-      return res.status(404).json({ success: false, message: "Người dùng không tồn tại!" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Người dùng không tồn tại!" });
     }
 
     const user = users[0];
 
     if (role && user.role !== role) {
-      const roleName = user.role === "employer" ? "Nhà tuyển dụng (Employer)" : "Ứng viên (Candidate)";
+      const roleName =
+        user.role === "employer"
+          ? "Nhà tuyển dụng (Employer)"
+          : "Ứng viên (Candidate)";
       return res.status(403).json({
         success: false,
         message: `Sai cổng đăng nhập! Tài khoản này là của ${roleName}. Vui lòng chuyển tab.`,
@@ -137,17 +165,24 @@ exports.login = async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ success: false, message: "Mật khẩu không chính xác!" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Mật khẩu không chính xác!" });
     }
 
     if (user.is_verified === 0 || user.is_verified === false) {
       return res.status(401).json({
         success: false,
-        message: "Tài khoản của bạn chưa được xác thực email! Vui lòng kiểm tra email để xác thực.",
+        message:
+          "Tài khoản của bạn chưa được xác thực email! Vui lòng kiểm tra email để xác thực.",
       });
     }
 
-    const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1d" });
+    const token = jwt.sign(
+      { id: user.id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" },
+    );
 
     return res.status(200).json({
       success: true,
@@ -179,7 +214,9 @@ exports.getProfile = async (req, res) => {
     );
 
     if (rows.length === 0) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy người dùng" });
     }
 
     return res.status(200).json({ success: true, data: rows[0] });
@@ -192,7 +229,9 @@ exports.getProfile = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
   try {
-    const [users] = await db.execute("SELECT * FROM Users WHERE email = ?", [email]);
+    const [users] = await db.execute("SELECT * FROM Users WHERE email = ?", [
+      email,
+    ]);
     if (users.length === 0) {
       return res.status(404).json({
         success: false,
@@ -313,9 +352,12 @@ exports.googleLogin = async (req, res) => {
   const { accessToken, role } = req.body;
 
   try {
-    const googleResponse = await axios.get("https://www.googleapis.com/oauth2/v3/userinfo", {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+    const googleResponse = await axios.get(
+      "https://www.googleapis.com/oauth2/v3/userinfo",
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    );
 
     const { email, name, picture } = googleResponse.data;
 
@@ -331,21 +373,34 @@ exports.googleLogin = async (req, res) => {
     if (!user) {
       let autoUsername = email.split("@")[0];
 
-      const [checkUser] = await db.execute("SELECT id FROM Users WHERE username = ?", [autoUsername]);
+      const [checkUser] = await db.execute(
+        "SELECT id FROM Users WHERE username = ?",
+        [autoUsername],
+      );
       if (checkUser.length > 0) {
         autoUsername = `${autoUsername}_${Math.floor(1000 + Math.random() * 9000)}`;
       }
 
       const [result] = await db.execute(
         "INSERT INTO Users (username, email, password, role, is_verified, avatar_url, display_name) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [autoUsername, email, "LOGIN_BY_GOOGLE", role || "candidate", 1, picture, name],
+        [
+          autoUsername,
+          email,
+          "LOGIN_BY_GOOGLE",
+          role || "candidate",
+          1,
+          picture,
+          name,
+        ],
       );
 
       const userId = result.insertId;
 
       try {
         if (role === "employer") {
-          await db.execute("INSERT INTO Companies (name) VALUES (?)", [`Công ty của ${name}`]);
+          await db.execute("INSERT INTO Companies (name) VALUES (?)", [
+            `Công ty của ${name}`,
+          ]);
         } else {
           await db.execute(
             "INSERT INTO Profiles (user_id, full_name, avatar_url) VALUES (?, ?, ?)",
@@ -353,7 +408,10 @@ exports.googleLogin = async (req, res) => {
           );
         }
       } catch (subError) {
-        console.error("Lỗi tạo Profile phụ (Tài khoản gốc vẫn an toàn):", subError.message);
+        console.error(
+          "Lỗi tạo Profile phụ (Tài khoản gốc vẫn an toàn):",
+          subError.message,
+        );
       }
 
       user = {
@@ -388,8 +446,8 @@ exports.googleLogin = async (req, res) => {
 
     const token = jwt.sign(
       { id: user.id, role: user.role },
-      process.env.JWT_SECRET || "JobFinder_Team7_SecretKey_Moi",
-      { expiresIn: "7d" },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" },
     );
 
     return res.status(200).json({
@@ -424,20 +482,28 @@ exports.adminLogin = async (req, res) => {
   }
 
   try {
-    const [users] = await db.execute("SELECT * FROM Users WHERE email = ?", [email]);
+    const [users] = await db.execute("SELECT * FROM Users WHERE email = ?", [
+      email,
+    ]);
     if (users.length === 0) {
-      return res.status(404).json({ success: false, message: "Người dùng không tồn tại!" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Người dùng không tồn tại!" });
     }
 
     const user = users[0];
 
     if (user.role !== "admin") {
-      return res.status(403).json({ success: false, message: "Khu vực này chỉ dành cho Admin!" });
+      return res
+        .status(403)
+        .json({ success: false, message: "Khu vực này chỉ dành cho Admin!" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ success: false, message: "Mật khẩu không chính xác!" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Mật khẩu không chính xác!" });
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -496,7 +562,11 @@ exports.verifyLoginOTP = async (req, res) => {
       [email],
     );
 
-    const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1d" });
+    const token = jwt.sign(
+      { id: user.id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" },
+    );
 
     return res.status(200).json({
       success: true,

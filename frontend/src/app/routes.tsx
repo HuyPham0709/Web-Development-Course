@@ -62,7 +62,10 @@ export const router = createBrowserRouter([
         element: <ProtectedRoute allowedRole="candidate" />,
         children: [
           { path: "profile", element: <ProfileDashboard /> }, // BỔ SUNG: Route trang profile
-          { path: "applications", element: <MyApplications /> },
+          
+          // ✅ ĐÃ SỬA DÒNG NÀY: Thêm "profile/" vào trước "applications"
+          { path: "profile/applications", element: <MyApplications /> }, 
+          
           { path: "settings", element: <Settings /> },        // BỔ SUNG: Route cài đặt chung
         ],
       },

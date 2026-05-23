@@ -12,27 +12,38 @@ export function useProfile(userId: string) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // Lấy dữ liệu profile khi userId thay đổi
   useEffect(() => {
     if (!userId) return;
     setLoading(true);
     getProfile(userId)
       .then(data => {
-        setPersonalInfo(data.personalInfo);
-        setExperiences(data.experiences);
-        setEducation(data.education);
-        setSkills(data.skills);
+        if (data) {
+          setPersonalInfo(data.personalInfo || {});
+          setExperiences(data.experiences || []);
+          setEducation(data.education || []);
+          setSkills(data.skills || []);
+        }
       })
-      .catch(err => console.error(err))
+      .catch(err => console.error("Lỗi lấy Profile:", err))
       .finally(() => setLoading(false));
   }, [userId]);
 
+  // Cập nhật thông tin Profile (Tránh bug ghi đè state cũ)
   const updateProfileData = async (type: 'personalInfo' | 'experiences' | 'education' | 'skills', newData: any) => {
     setSaving(true);
     try {
-      const payload = { personalInfo, experiences, education, skills, [type]: newData };
+      // Chuẩn bị payload động chính xác bằng cách lấy data mới nhất găm vào đúng vị trí
+      const payload = {
+        personalInfo: type === 'personalInfo' ? newData : personalInfo,
+        experiences: type === 'experiences' ? newData : experiences,
+        education: type === 'education' ? newData : education,
+        skills: type === 'skills' ? newData : skills,
+      };
+
       await saveProfile(userId, payload);
       
-      // Cập nhật local state
+      // Cập nhật local state sau khi API đã trả về thành công
       if (type === 'personalInfo') setPersonalInfo(newData);
       if (type === 'experiences') setExperiences(newData);
       if (type === 'education') setEducation(newData);
@@ -40,29 +51,40 @@ export function useProfile(userId: string) {
       
       return { success: true };
     } catch (error: any) {
-      return { success: false, message: error.message };
+      console.error("Lỗi cập nhật Profile:", error);
+      return { success: false, message: error.response?.data?.message || error.message };
     } finally {
       setSaving(false);
     }
   };
 
+  // 🎯 ĐÃ SỬA: Truyền thêm userId vào hàm upload và delete để service gửi lên Backend
   const handleUploadCV = async (file: File) => {
+    if (!userId) return { success: false, message: "Không tìm thấy thông tin User!" };
     try {
-      const result = await uploadCV(file);
-      setPersonalInfo(prev => ({ ...prev, cv_url: result.cv_url }));
-      return { success: true };
+      const result = await uploadCV(userId, file); // Thêm userId ở đây
+      
+      // Cập nhật URL mới vào local state cá nhân
+      const updatedPersonalInfo = { ...personalInfo, cv_url: result.cv_url };
+      setPersonalInfo(updatedPersonalInfo);
+      
+      return { success: true, cv_url: result.cv_url };
     } catch (error: any) {
-      return { success: false, message: error.message };
+      console.error("Lỗi upload CV:", error);
+      return { success: false, message: error.response?.data?.message || error.message };
     }
   };
 
   const handleDeleteCV = async () => {
+    if (!userId) return { success: false, message: "Không tìm thấy thông tin User!" };
     try {
-      await deleteCV();
+      await deleteCV(userId); // Thêm userId ở đây
+      
       setPersonalInfo(prev => ({ ...prev, cv_url: null }));
       return { success: true };
     } catch (error: any) {
-      return { success: false, message: error.message };
+      console.error("Lỗi xóa CV:", error);
+      return { success: false, message: error.response?.data?.message || error.message };
     }
   };
 
