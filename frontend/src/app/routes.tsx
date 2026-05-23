@@ -13,32 +13,21 @@ import CandidateDetail from "./pages/employer/CandidateDetail";
 import { JobForm } from './pages/employer/JobForm';
 import Settings from "./pages/shared/Settings";
 import ErrorPage from "./pages/shared/ErrorPage";
-
-// Import CVSearch (Dạng named import vì file CVSearch dùng `export function CVSearch`)
+import CompanyProfile from './pages/employer/CompanyProfile'; // Import vẫn giữ nguyên
 import { CVSearch } from "./pages/employer/CVSearch";
-
-// BỔ SUNG: Import component Chat
 import Chat from "./pages/shared/Chat";
 
-// --- PROTECTED ROUTE (GIỮ NGUYÊN 100% CỦA BẠN) ---
+// --- PROTECTED ROUTE ---
 const ProtectedRoute = ({ allowedRole }: { allowedRole: string }) => {
   const userStr = localStorage.getItem('user');
-
-  if (!userStr) {
-    // Nếu chưa đăng nhập, đá về trang auth
-    return <Navigate to="/auth" replace />;
-  }
+  if (!userStr) return <Navigate to="/auth" replace />;
 
   try {
     const user = JSON.parse(userStr);
-
-    // Kiểm tra kỹ giá trị role. Lưu ý: 'candidate' !== 'Candidate'
-    // Ép kiểu về lowercase để so sánh cho chắc chắn
     if (user.role?.toLowerCase() !== allowedRole.toLowerCase()) {
       console.warn("Sai role! User role:", user.role, "Yêu cầu:", allowedRole);
-      return <Navigate to="/" replace />; // Đây chính là dòng khiến bạn bị văng về trang chủ
+      return <Navigate to="/" replace />; 
     }
-
     return <Outlet />;
   } catch (error) {
     console.error("Lỗi parse user:", error);
@@ -46,7 +35,7 @@ const ProtectedRoute = ({ allowedRole }: { allowedRole: string }) => {
   }
 };
 
-// --- BỔ SUNG: ROUTE CHỈ YÊU CẦU ĐĂNG NHẬP (DÀNH CHO CHAT DÙNG CHUNG) ---
+// --- REQUIRE AUTH ---
 const RequireAuth = () => {
   const userStr = localStorage.getItem('user');
   if (!userStr) return <Navigate to="/auth" replace />;
@@ -61,13 +50,11 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Home /> },
       { path: "auth", element: <Auth /> },
-      {
-        // Đảm bảo route chi tiết công việc nằm ở đây
-        path: "job/:id",
-        element: <JobDetail />
-      },
+      { path: "job/:id", element: <JobDetail /> },
       
-      // --- BỔ SUNG: ROUTE CHAT (Cả Employer và Candidate đều vào được nếu đã đăng nhập) ---
+      // ✅ BỔ SUNG Ở ĐÂY: Bất kỳ ai (Kể cả Candidate) click vào xem công ty đều dùng route này
+      { path: "companies/:id", element: <CompanyProfile /> }, 
+      
       {
         element: <RequireAuth />,
         children: [
@@ -94,6 +81,9 @@ export const router = createBrowserRouter([
           { path: "employer/candidate/:id", element: <CandidateDetail /> },  
           { path: "employer/jobs/new", element: <JobForm /> },
           { path: "employer/cv-search", element: <CVSearch /> },
+          
+          // ✅ SỬA LẠI Ở ĐÂY: Dành riêng cho Employer khi họ muốn tự sửa Profile của công ty họ
+          { path: "employer/profile", element: <CompanyProfile /> }
         ],
       }
     ],
