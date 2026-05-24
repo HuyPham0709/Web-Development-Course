@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react"
 import { AlertOctagon, MessageSquare, Trash2, MailWarning, CheckSquare, Search, Loader2, RefreshCw, Clock, CheckCircle2, XCircle } from "lucide-react"
 import { Card } from "../../components/ui/card"
 import { Button } from "../../components/ui/button"
-import { Badge } from "../../components/ui/Badge"
+import { Badge } from "../../components/ui/badge"
 import { toast } from "sonner"
 
 const API_URL = 'http://localhost:5000/api/admin'

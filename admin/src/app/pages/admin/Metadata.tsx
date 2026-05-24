@@ -3,7 +3,7 @@ import { Search, Plus, Edit2, Trash2, FolderTree, MapPin, Tag, Loader2, X, Check
 import { Card } from "../../components/ui/card"
 import { Input } from "../../components/ui/input"
 import { Button } from "../../components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/Table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table"
 import { toast } from "sonner"
 import axios from "axios"
 
@@ -90,14 +90,22 @@ export function Metadata() {
     setShowModal(true)
   }
 
-  // Auto-generate slug từ name
+  // Auto-generate slug từ name (Hỗ trợ tiếng Việt không dấu chuẩn SEO)
   const handleNameChange = (value: string) => {
+    const generatedSlug = value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
     setForm(prev => ({
       name: value,
-      slug: prev.slug || value.toLowerCase()
-        .replace(/\s+/g, '-')
-        .replace(/[^a-z0-9-]/g, '')
-    }))
+      slug: generatedSlug
+    }));
   }
 
   // Submit form thêm/sửa
@@ -130,7 +138,7 @@ export function Metadata() {
       setShowModal(false)
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Lỗi khi lưu')
-    } finally {
+    } finally { // <-- Đã sửa 'filly' thành từ khóa 'finally' chuẩn tại đây
       setSubmitting(false)
     }
   }

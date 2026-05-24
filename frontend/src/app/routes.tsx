@@ -94,9 +94,9 @@ export const router = createBrowserRouter([
       { index: true, element: <Home /> },
       { path: "auth", element: <Auth /> },
       { path: "job/:id", element: <JobDetail /> },
-      
+
       // Bất kỳ ai (Kể cả Candidate) click vào xem công ty đều dùng route này
-      { path: "companies/:id", element: <CompanyProfile /> }, 
+      { path: "companies/:id", element: <CompanyProfile /> },
 
       // ==========================================
       // LOGIN REQUIRED (Cứ Đăng nhập là vào được - Chat, Settings...)
@@ -117,7 +117,7 @@ export const router = createBrowserRouter([
         children: [
           { path: "profile", element: <ProfileDashboard /> },
           { path: "applications", element: <MyApplications /> },
-          
+
           // Hứng cái link thông báo "/profile/applications" bị lệch
           { path: "profile/applications", element: <MyApplications /> },
         ],
@@ -129,14 +129,35 @@ export const router = createBrowserRouter([
       {
         element: <ProtectedRoute allowedRole="employer" />,
         children: [
-          { path: "employer/dashboard", element: <EmployerDashboard /> },
-          { path: "employer/candidates", element: <CandidateManagement /> },
-          { path: "employer/candidate/:id", element: <CandidateDetail /> },
-          { path: "employer/jobs/new", element: <JobForm /> },
-          { path: "employer/cv-search", element: <CVSearch /> },
-          
-          // Dành riêng cho Employer khi họ muốn tự sửa Profile của công ty họ
-          { path: "employer/profile", element: <CompanyProfile /> },
+          {
+            path: "employer/dashboard",
+            element: <EmployerDashboard />,
+          },
+
+          {
+            path: "employer/candidates",
+            element: <CandidateManagement />,
+          },
+
+          {
+            path: "employer/candidate/:id",
+            element: <CandidateDetail />,
+          },
+
+          {
+            path: "employer/jobs/new",
+            element: <JobForm />,
+          },
+
+          {
+            path: "employer/jobs/edit/:id",
+            element: <JobForm />,
+          },
+
+          {
+            path: "employer/cv-search",
+            element: <CVSearch />,
+          },
         ],
       },
     ],

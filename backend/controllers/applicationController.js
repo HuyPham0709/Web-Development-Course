@@ -5,7 +5,7 @@ const Notification = require("../models/Notification"); // ✅ ĐA MANG LÊN Đ�
 // APPLY JOB (BẢN ĐÃ CHỮA LỖI KIỂU DỮ LIỆU MONGODB)
 // ======================================================
 exports.applyJob = async (req, res) => {
-  const { job_id, cover_letter } = req.body; 
+  const { job_id, cover_letter } = req.body;
   const candidate_id = req.user.id; // Lấy ID của ứng viên đăng nhập
 
   try {
@@ -49,14 +49,14 @@ exports.applyJob = async (req, res) => {
 
       // SỬA TẠI ĐÂY: Ép kiểu thành String thay vì Number để đồng bộ với MongoDB Schema
       const targetEmployerId = String(job.posted_by);
-      
+
       const newNotify = await Notification.create({
-        user_id: targetEmployerId, 
+        user_id: targetEmployerId,
         title: "Đơn ứng tuyển mới 📄",
         message: `Ứng viên ${candidateName} đã nộp đơn vào vị trí "${job.title}"`,
         is_read: false,
         type: "apply",
-        link_url: "/employer/dashboard", 
+        link_url: "/employer/dashboard",
         created_at: new Date()
       });
 
@@ -82,18 +82,17 @@ exports.applyJob = async (req, res) => {
 // ======================================================
 exports.getEmployerApplications = async (req, res) => {
   const employer_id = req.user.id;
-
   try {
     const [rows] = await db.execute(
       `
-            SELECT 
+            SELECT
                 a.id AS application_id,
                 u.id AS candidate_id,
                 u.username AS candidate_name,
                 u.email AS candidate_email,
                 p.full_name,
                 p.phone,
-                p.cv_url, 
+                p.cv_url,
                 p.avatar_url,
                 j.title AS job_title,
                 j.id AS job_id,
@@ -123,11 +122,10 @@ exports.getEmployerApplications = async (req, res) => {
 exports.getApplicationById = async (req, res) => {
   const { id } = req.params;
   const employer_id = req.user.id;
-
   try {
     const [rows] = await db.execute(
       `
-            SELECT 
+            SELECT
                 a.id AS application_id,
                 u.id AS candidate_id,
                 u.username AS candidate_name,
@@ -137,7 +135,7 @@ exports.getApplicationById = async (req, res) => {
                 p.bio,
                 p.cv_url,
                 p.avatar_url,
-                a.cv_snapshot_url, 
+                a.cv_snapshot_url,
                 j.title AS job_title,
                 j.id AS job_id,
                 a.cover_letter,
@@ -162,12 +160,10 @@ exports.getApplicationById = async (req, res) => {
       `SELECT company_name, position, start_date, end_date, description FROM Work_Experience WHERE profile_id = (SELECT id FROM Profiles WHERE user_id = ?) ORDER BY start_date DESC`,
       [rows[0].candidate_id],
     );
-
     const [education] = await db.execute(
       `SELECT school_name, major, start_date, end_date FROM Education WHERE profile_id = (SELECT id FROM Profiles WHERE user_id = ?) ORDER BY start_date DESC`,
       [rows[0].candidate_id],
     );
-
     const [skills] = await db.execute(
       `SELECT s.name FROM User_Skills us JOIN Skills s ON us.skill_id = s.id WHERE us.profile_id = (SELECT id FROM Profiles WHERE user_id = ?)`,
       [rows[0].candidate_id],
@@ -175,12 +171,7 @@ exports.getApplicationById = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: {
-        ...rows[0],
-        work_experience: workExp,
-        education: education,
-        skills: skills.map((s) => s.name),
-      },
+      data: { ...rows[0], work_experience: workExp, education, skills: skills.map(s => s.name) }
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -215,7 +206,6 @@ exports.updateApplicationStatus = async (req, res) => {
        WHERE a.id = ?`,
       [application_id],
     );
-
     if (applications.length === 0) {
       return res
         .status(404)
@@ -279,37 +269,34 @@ exports.updateApplicationStatus = async (req, res) => {
 // ======================================================
 exports.getEmployerJobs = async (req, res) => {
   const employer_id = req.user.id;
-
   try {
-    const [jobs] = await db.execute(
-      `
-            SELECT 
-                j.id, j.title, j.job_type, j.status, j.created_at,
-                l.name AS location_name,
-                COUNT(a.id) AS application_count
-            FROM Jobs j
-            LEFT JOIN Locations l ON j.location_id = l.id
-            LEFT JOIN Applications a ON j.id = a.job_id
-            WHERE j.posted_by = ? AND j.deleted_at IS NULL
-            GROUP BY j.id
-            ORDER BY j.created_at DESC
-        `,
-      [employer_id],
-    );
+    const [jobs] = await db.execute(`
+      SELECT
+        j.id, j.title, j.job_type, j.status, j.created_at,
+        j.salary_min, j.salary_max, j.rejection_reason,
+        l.name AS location_name,
+        COUNT(a.id) AS application_count
+      FROM Jobs j
+      LEFT JOIN Locations l ON j.location_id = l.id
+      LEFT JOIN Applications a ON j.id = a.job_id
+      WHERE j.posted_by = ? AND j.deleted_at IS NULL
+      GROUP BY j.id
+      ORDER BY j.created_at DESC
+    `, [employer_id]);
 
-    const [stats] = await db.execute(
-      `
-            SELECT
-                COUNT(DISTINCT j.id) AS total_jobs,
-                COUNT(a.id) AS total_applications
-            FROM Jobs j
-            LEFT JOIN Applications a ON j.id = a.job_id
-            WHERE j.posted_by = ?
-        `,
-      [employer_id],
-    );
+    const total_jobs = jobs.length;
+    // Chỉ đếm applications của jobs approved
+    const total_applications = jobs.reduce((sum, job) => {
+      return job.status === 'approved'
+        ? sum + (parseInt(job.application_count) || 0)
+        : sum;
+    }, 0);
 
-    res.status(200).json({ success: true, data: jobs, stats: stats[0] });
+    res.status(200).json({
+      success: true,
+      data: jobs,
+      stats: { total_jobs, total_applications }
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -324,20 +311,20 @@ exports.getMyApplications = async (req, res) => {
 
     const [rows] = await db.execute(
       `
-            SELECT 
-                a.id AS application_id, 
-                j.id AS job_id, 
-                j.title AS job_title, 
-                c.name AS company_name, 
-                l.name AS location, 
-                j.job_type, 
-                a.status, 
+            SELECT
+                a.id AS application_id,
+                j.id AS job_id,
+                j.title AS job_title,
+                c.name AS company_name,
+                l.name AS location,
+                j.job_type,
+                a.status,
                 a.applied_at,
                 c.logo_url
             FROM applications a
             LEFT JOIN jobs j ON a.job_id = j.id
             LEFT JOIN locations l ON j.location_id = l.id
-            LEFT JOIN companies c ON j.company_id = c.id 
+            LEFT JOIN companies c ON j.company_id = c.id
             WHERE a.candidate_id = ?
             ORDER BY a.applied_at DESC
         `,
@@ -360,25 +347,21 @@ exports.getMyApplications = async (req, res) => {
 exports.withdrawApplication = async (req, res) => {
   const candidate_id = req.user.id;
   const application_id = req.params.id;
-
   try {
     const [applications] = await db.execute(
       `SELECT id, status FROM Applications WHERE id = ? AND candidate_id = ?`,
       [application_id, candidate_id],
     );
-
     if (applications.length === 0) {
       return res
         .status(404)
         .json({ success: false, message: "Không tìm thấy đơn ứng tuyển" });
     }
-
     if (applications[0].status !== "pending") {
       return res
         .status(400)
         .json({ success: false, message: "Chỉ có thể rút hồ sơ đang pending" });
     }
-
     await db.execute(`DELETE FROM Applications WHERE id = ?`, [application_id]);
     res.json({ success: true, message: "Đã rút hồ sơ ứng tuyển" });
   } catch (error) {
