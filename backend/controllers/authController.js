@@ -1,11 +1,19 @@
+const path = require("path");
+
+require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
+
 const db = require("../config/db");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-require("dotenv").config();
 const { validationResult } = require("express-validator");
 const nodemailer = require("nodemailer");
 const rateLimit = require("express-rate-limit");
 const axios = require("axios");
+
+// 🔴 CHỐT CHẶN 1: Bảo mật JWT Token dự phòng nếu file .env bị nuốt biến
+if (!process.env.JWT_SECRET) {
+  process.env.JWT_SECRET = "JobFinder_Team7_SecretKey_Moi";
+}
 
 const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 phút
@@ -13,6 +21,22 @@ const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   validate: { xForwardedForHeader: false },
+});
+
+const formatToMySQLDateTime = (date) => {
+  return date.toISOString().slice(0, 19).replace("T", " ");
+};
+
+// Cấu hình Mail cố định chống nạp chồng biến môi trường
+const emailUser = "txxh1004@gmail.com";
+const emailPass = "wrwvarvgrqlkhjwq";
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: emailUser,
+    pass: emailPass,
+  },
 });
 
 // --- ĐĂNG KÝ (REGISTER) ---
@@ -26,8 +50,6 @@ exports.register = async (req, res) => {
   }
 
   const { name, username, email, password, role } = req.body;
-
-  // Bây giờ máy tính đã biết 'name' là gì rồi, nó sẽ không báo lỗi nữa
   const finalName = name || username;
 
   if (!finalName) {
@@ -38,17 +60,32 @@ exports.register = async (req, res) => {
   }
 
   try {
-    const [rows] = await db.execute("SELECT * FROM Users WHERE email = ?", [
-      email,
-    ]);
-    if (rows.length > 0)
-      return res
-        .status(400)
-        .json({ success: false, message: "Email đã tồn tại" });
+    // 🎯 ĐÃ SỬA: Bắt lỗi trùng cả Email và Username ngay từ đầu để tránh lỗi 500
+    const [rows] = await db.execute(
+      "SELECT * FROM Users WHERE email = ? OR username = ?", 
+      [email, finalName]
+    );
+    
+    if (rows.length > 0) {
+      const isEmailTaken = rows.some(user => user.email === email);
+      const isUsernameTaken = rows.some(user => user.username === finalName);
+
+      if (isEmailTaken) {
+        return res.status(400).json({ success: false, message: "Email này đã tồn tại!" });
+      }
+      if (isUsernameTaken) {
+        return res.status(400).json({ 
+          success: false, 
+          message: `Tên đăng nhập '${finalName}' đã có người sử dụng. Vui lòng chọn tên khác!` 
+        });
+      }
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+
+    const otpExpiresRaw = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+    const otpExpires = formatToMySQLDateTime(otpExpiresRaw);
 
     const [userResult] = await db.execute(
       "INSERT INTO Users (username, email, password, role, otp_code, otp_expires, is_verified) VALUES (?, ?, ?, ?, ?, ?, 0)",
@@ -68,25 +105,15 @@ exports.register = async (req, res) => {
       );
     }
 
-    // 5. Gửi mail xác thực
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
     await transporter.sendMail({
-      from: `"JobSpot" <${process.env.EMAIL_USER}>`,
+      from: `"JobSpot" <${emailUser}>`,
       to: email,
       subject: "Xác thực tài khoản mới",
       text: `Chào ${finalName}, mã xác thực của bạn là: ${otp}`,
     });
 
-    console.log("=== Đã gửi mail cho: ", email);
+    console.log("=== Đã gửi mail đăng ký cho: ", email);
 
-    // 6. Phản hồi duy nhất
     return res.status(201).json({
       success: true,
       message:
@@ -100,10 +127,8 @@ exports.register = async (req, res) => {
 
 // --- ĐĂNG NHẬP (LOGIN) ---
 exports.login = async (req, res) => {
-  // 1. Nhận dữ liệu từ React gửi lên
   const { email, password, role } = req.body;
 
-  // Kiểm tra xem frontend có gửi đủ email và password không
   if (!email || !password) {
     return res.status(400).json({
       success: false,
@@ -112,14 +137,13 @@ exports.login = async (req, res) => {
   }
 
   try {
-    // 2. Tìm user theo email trong Database
     const [users] = await db.execute(
-  `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name 
-   FROM Users u 
-   LEFT JOIN Profiles p ON p.user_id = u.id 
-   WHERE u.email = ?`,
-  [email]
-);
+      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name 
+       FROM Users u 
+       LEFT JOIN Profiles p ON p.user_id = u.id 
+       WHERE u.email = ?`,
+      [email],
+    );
     if (users.length === 0) {
       return res
         .status(404)
@@ -128,7 +152,6 @@ exports.login = async (req, res) => {
 
     const user = users[0];
 
-    // 3. CHẶN ĐĂNG NHẬP SAI CỔNG (Kiểm tra Role)
     if (role && user.role !== role) {
       const roleName =
         user.role === "employer"
@@ -140,7 +163,6 @@ exports.login = async (req, res) => {
       });
     }
 
-    // 4. So sánh mật khẩu đã mã hóa
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res
@@ -148,7 +170,6 @@ exports.login = async (req, res) => {
         .json({ success: false, message: "Mật khẩu không chính xác!" });
     }
 
-    // 5. Kiểm tra tài khoản đã xác thực email chưa
     if (user.is_verified === 0 || user.is_verified === false) {
       return res.status(401).json({
         success: false,
@@ -157,35 +178,27 @@ exports.login = async (req, res) => {
       });
     }
 
-    // 6. Kiểm tra cấu hình JWT
-    if (!process.env.JWT_SECRET) {
-      throw new Error("LỖI HỆ THỐNG: Thiếu biến JWT_SECRET trong file .env");
-    }
-
-    // 7. Tạo JWT Token
     const token = jwt.sign(
       { id: user.id, role: user.role, company_id: user.company_id }, // ← thêm company_id,
       process.env.JWT_SECRET,
       { expiresIn: "1d" },
     );
 
-    // 8. Trả về thông tin thành công cho React
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Đăng nhập thành công!",
       token,
       user: {
-  id: user.id,
-  username: user.username,
-  full_name: user.full_name || user.username,
-  role: user.role,
-  avatar_url: user.profile_avatar || user.avatar_url || null,
-},
+        id: user.id,
+        username: user.username,
+        full_name: user.full_name || user.username,
+        role: user.role,
+        avatar_url: user.profile_avatar || user.avatar_url || null,
+      },
     });
   } catch (error) {
     console.error("=== LỖI TẠI HÀM LOGIN ===", error);
-
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Lỗi máy chủ: " + error.message,
     });
@@ -195,7 +208,6 @@ exports.login = async (req, res) => {
 // --- Lấy thông tin cá nhân ---
 exports.getProfile = async (req, res) => {
   try {
-    // req.user.id lấy từ Middleware verifyToken
     const [rows] = await db.execute(
       "SELECT id, username, email, role, avatar_url, created_at FROM Users WHERE id = ?",
       [req.user.id],
@@ -207,9 +219,9 @@ exports.getProfile = async (req, res) => {
         .json({ success: false, message: "Không tìm thấy người dùng" });
     }
 
-    res.status(200).json({ success: true, data: rows[0] });
+    return res.status(200).json({ success: true, data: rows[0] });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -221,75 +233,64 @@ exports.forgotPassword = async (req, res) => {
       email,
     ]);
     if (users.length === 0) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "Email không tồn tại trong hệ thống!",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "Email không tồn tại trong hệ thống!",
+      });
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = new Date(Date.now() + 10 * 60 * 1000);
+    const expiresRaw = new Date(Date.now() + 10 * 60 * 1000); // 10 phút
+    const otpExpires = formatToMySQLDateTime(expiresRaw);
 
     await db.execute(
       "UPDATE Users SET otp_code = ?, otp_expires = ? WHERE email = ?",
-      [otp, expires, email],
+      [otp, otpExpires, email],
     );
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
     await transporter.sendMail({
-      from: `"JobFinder" <${process.env.EMAIL_USER}>`,
+      from: `"JobFinder" <${emailUser}>`,
       to: email,
       subject: "Mã xác thực khôi phục mật khẩu",
       text: `Mã OTP của bạn là: ${otp}. Mã này sẽ hết hạn sau 10 phút.`,
     });
 
-    // 6. Phản hồi cho Client
-    res.status(200).json({
+    console.log("=== Đã gửi mail khôi phục mật khẩu cho: ", email);
+
+    return res.status(200).json({
       success: true,
       message: "Mã OTP đã được gửi về email của bạn!",
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Có lỗi xảy ra, vui lòng thử lại sau!",
-      });
+    console.error("Lỗi ForgotPassword:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Có lỗi xảy ra khi gửi mail: " + error.message,
+    });
   }
 };
 
-// --- Đặt lại mật khẩu ---
+// --- Đặt lại mật khẩu (ĐÃ FIX LỖI HẾT HẠN OTP SỚM) ---
 exports.resetPassword = async (req, res) => {
   const { email, otp, newPassword } = req.body;
 
   try {
+    // 💡 GIẢI PHÁP: Sử dụng thời gian thực từ Node.js thay vì NOW() của MySQL
+    const currentTime = formatToMySQLDateTime(new Date());
+
     const [users] = await db.execute(
-  "SELECT * FROM Users WHERE email = ? AND otp_code = ?",
-  [email, otp]
-);
+      "SELECT * FROM Users WHERE email = ? AND otp_code = ? AND otp_expires > ?",
+      [email, otp, currentTime],
+    );
 
     if (users.length === 0) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Mã OTP không chính xác!" });
+      return res.status(400).json({
+        success: false,
+        message: "Mã OTP không chính xác hoặc đã hết hạn!",
+      });
     }
 
     const user = users[0];
-    const now = new Date();
-    if (now > new Date(user.otp_expires)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Mã OTP đã hết hạn!" });
-    }
 
     const isSamePassword = await bcrypt.compare(newPassword, user.password);
     if (isSamePassword) {
@@ -307,15 +308,12 @@ exports.resetPassword = async (req, res) => {
       [hashedPassword, email],
     );
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message:
-          "Đặt lại mật khẩu thành công! Hãy đăng nhập bằng mật khẩu mới.",
-      });
+    return res.status(200).json({
+      success: true,
+      message: "Đặt lại mật khẩu thành công! Hãy đăng nhập bằng mật khẩu mới.",
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -324,12 +322,12 @@ exports.verifyEmail = async (req, res) => {
   const { email, otp } = req.body;
   try {
     const [users] = await db.execute(
-  `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name
-   FROM Users u
-   LEFT JOIN Profiles p ON p.user_id = u.id
-   WHERE u.email = ? AND u.otp_code = ?`,
-  [email, otp]
-);
+      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name
+       FROM Users u
+       LEFT JOIN Profiles p ON p.user_id = u.id
+       WHERE u.email = ? AND u.otp_code = ?`,
+      [email, otp],
+    );
 
     if (users.length === 0) {
       return res.status(400).json({ message: "Mã xác thực không đúng!" });
@@ -340,106 +338,147 @@ exports.verifyEmail = async (req, res) => {
       [email],
     );
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Xác thực tài khoản thành công! Giờ bạn có thể đăng nhập.",
-      });
+    return res.status(200).json({
+      success: true,
+      message: "Xác thực tài khoản thành công! Giờ bạn có thể đăng nhập.",
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
+
 // --- ĐĂNG NHẬP BẰNG GOOGLE ---
 exports.googleLogin = async (req, res) => {
   const { accessToken, role } = req.body;
 
   try {
-    // 1. Lấy thông tin từ Google
-    const googleResponse = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
+    const googleResponse = await axios.get(
+      "https://www.googleapis.com/oauth2/v3/userinfo",
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    );
 
     const { email, name, picture } = googleResponse.data;
 
-    // 2. Kiểm tra xem Email này đã có trong hệ thống chưa
     const [users] = await db.execute(
-  `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name
-   FROM Users u
-   LEFT JOIN Profiles p ON p.user_id = u.id
-   WHERE u.email = ?`,
-  [email]
-);
+      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name
+       FROM Users u
+       LEFT JOIN Profiles p ON p.user_id = u.id
+       WHERE u.email = ?`,
+      [email],
+    );
     let user = users[0];
 
     if (!user) {
-      // TRƯỜNG HỢP 1: Email chưa tồn tại -> Tạo tài khoản mới hoàn toàn
-      const autoUsername = email.split('@')[0];
+      let autoUsername = email.split("@")[0];
+
+      const [checkUser] = await db.execute(
+        "SELECT id FROM Users WHERE username = ?",
+        [autoUsername],
+      );
+      if (checkUser.length > 0) {
+        autoUsername = `${autoUsername}_${Math.floor(1000 + Math.random() * 9000)}`;
+      }
+
       const [result] = await db.execute(
-        'INSERT INTO Users (username, email, password, role, is_verified, avatar_url, display_name) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [autoUsername, email, 'LOGIN_BY_GOOGLE', role || 'candidate', 1, picture, name]
+        "INSERT INTO Users (username, email, password, role, is_verified, avatar_url, display_name) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [
+          autoUsername,
+          email,
+          "LOGIN_BY_GOOGLE",
+          role || "candidate",
+          1,
+          picture,
+          name,
+        ],
       );
 
       const userId = result.insertId;
-      // Tạo Profile đi kèm
-      if (role === 'employer') {
-        await db.execute('INSERT INTO Companies (name) VALUES (?)', [`Công ty của ${name}`]);
-      } else {
-        await db.execute('INSERT INTO Profiles (user_id, full_name) VALUES (?, ?)', [userId, name]);
+
+      try {
+        if (role === "employer") {
+          await db.execute("INSERT INTO Companies (name) VALUES (?)", [
+            `Công ty của ${name}`,
+          ]);
+        } else {
+          await db.execute(
+            "INSERT INTO Profiles (user_id, full_name, avatar_url) VALUES (?, ?, ?)",
+            [userId, name, picture],
+          );
+        }
+      } catch (subError) {
+        console.error(
+          "Lỗi tạo Profile phụ (Tài khoản gốc vẫn an toàn):",
+          subError.message,
+        );
       }
 
-      user = { id: userId, email, role: role || 'candidate', username: autoUsername, profile_avatar: null, full_name: name, avatar_url: picture };
+      user = {
+        id: userId,
+        email,
+        role: role || "candidate",
+        username: autoUsername,
+        avatar_url: picture,
+        full_name: name,
+        profile_avatar: picture,
+      };
     } else {
-      // TRƯỜNG HỢP 2: Email đã tồn tại (Họ từng đăng ký bằng mật khẩu hoặc Google trước đó)
-      // Cập nhật Avatar và Display Name mới nhất từ Google (nếu cần)
       await db.execute(
-        'UPDATE Users SET avatar_url = ?, is_verified = 1 WHERE id = ?',
-        [picture || user.avatar_url, user.id]
+        "UPDATE Users SET avatar_url = ?, display_name = ?, is_verified = 1 WHERE id = ?",
+        [picture || user.avatar_url, name || user.display_name, user.id],
       );
-      // Cập nhật lại đối tượng user để trả về frontend
+
+      try {
+        if (user.role !== "employer") {
+          await db.execute(
+            "UPDATE Profiles SET avatar_url = ?, full_name = ? WHERE user_id = ?",
+            [picture || user.profile_avatar, name || user.full_name, user.id],
+          );
+        }
+      } catch (subError) {
+        console.error("Lỗi đồng bộ bảng Profiles phụ:", subError.message);
+      }
+
       user.avatar_url = picture || user.avatar_url;
+      user.full_name = name || user.full_name;
     }
 
-    // 3. Tạo Token JWT (Dùng chung cho cả 2 cách đăng nhập)
     const token = jwt.sign(
       { id: user.id, role: user.role, company_id: user.company_id },
       process.env.JWT_SECRET,
       { expiresIn: "1d" },
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       token: token,
       user: {
-  id: user.id,
-  username: user.username,
-  full_name: user.full_name || user.username,
-  role: user.role,
-  avatar_url: user.profile_avatar || user.avatar_url || null,
-}
+        id: user.id,
+        username: user.username,
+        full_name: user.full_name || user.username,
+        role: user.role,
+        avatar_url: user.avatar_url || user.profile_avatar || null,
+      },
     });
-
   } catch (error) {
-    console.error("Lỗi Google Login:", error);
-    res.status(500).json({ success: false, message: "Lỗi kết nối Google: " + error.message });
+    console.error("LỖI GOOGLE LOGIN CHI TIẾT TẠI BACKEND:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi kết nối Google hoặc DB: " + error.message,
+    });
   }
 };
 
-// =========================================================================
-// CÁC CHỨC NĂNG MỚI THÊM: ĐĂNG NHẬP 2 LỚP (2FA) DÀNH RIÊNG CHO ADMIN
-// =========================================================================
-
-// --- BƯỚC 1: KIỂM TRA MẬT KHẨU VÀ GỬI OTP (Thay thế API Login cũ ở trang Admin) ---
+// --- BƯỚC 1: KIỂM TRA MẬT KHẨU VÀ GỬI OTP (ADMIN) ---
 exports.adminLogin = async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res
-      .status(400)
-      .json({
-        success: false,
-        message: "Vui lòng nhập đầy đủ email và mật khẩu!",
-      });
+    return res.status(400).json({
+      success: false,
+      message: "Vui lòng nhập đầy đủ email và mật khẩu!",
+    });
   }
 
   try {
@@ -454,7 +493,6 @@ exports.adminLogin = async (req, res) => {
 
     const user = users[0];
 
-    // Chặn cứng: Chỉ cho phép tài khoản Admin
     if (user.role !== "admin") {
       return res
         .status(403)
@@ -468,100 +506,85 @@ exports.adminLogin = async (req, res) => {
         .json({ success: false, message: "Mật khẩu không chính xác!" });
     }
 
-    // Tạo mã OTP 6 số và thời gian hết hạn (5 phút)
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = new Date(Date.now() + 5 * 60 * 1000);
+    const expiresRaw = new Date(Date.now() + 5 * 60 * 1000); // 5 phút
+    const otpExpires = formatToMySQLDateTime(expiresRaw);
 
-    // Lưu OTP vào Database
     await db.execute(
       "UPDATE Users SET otp_code = ?, otp_expires = ? WHERE email = ?",
-      [otp, expires, email],
+      [otp, otpExpires, email],
     );
 
-    // Gửi OTP qua Email
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-    });
-
     await transporter.sendMail({
-      from: `"JobFinder Admin" <${process.env.EMAIL_USER}>`,
+      from: `"JobFinder Admin" <${emailUser}>`,
       to: email,
       subject: "Mã OTP Đăng nhập Quản trị",
       text: `Mã OTP xác thực đăng nhập Admin của bạn là: ${otp}. Mã này sẽ hết hạn sau 5 phút.`,
     });
 
-    // Trả về Frontend để nó chuyển sang màn hình nhập OTP
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Mật khẩu hợp lệ. Vui lòng kiểm tra email để lấy mã OTP!",
     });
   } catch (error) {
     console.error("Lỗi tại adminLogin:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Lỗi máy chủ: " + error.message });
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi máy chủ gửi OTP Admin: " + error.message,
+    });
   }
 };
 
-// --- BƯỚC 2: XÁC THỰC OTP VÀ CẤP TOKEN ---
+// --- BƯỚC 2: XÁC THỰC OTP VÀ CẤP TOKEN (ADMIN - ĐÃ FIX LỖI HẾT HẠN OTP SỚM) ---
 exports.verifyLoginOTP = async (req, res) => {
   const { email, otp } = req.body;
 
   try {
+    // 💡 GIẢI PHÁP: Sử dụng thời gian thực từ Node.js thay vì NOW() của MySQL
+    const currentTime = formatToMySQLDateTime(new Date());
+
     const [users] = await db.execute(
-      "SELECT * FROM Users WHERE email = ? AND otp_code = ?",
-      [email, otp],
+      "SELECT * FROM Users WHERE email = ? AND otp_code = ? AND otp_expires > ?",
+      [email, otp, currentTime],
     );
 
     if (users.length === 0) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Mã OTP không chính xác!" });
+      return res.status(400).json({
+        success: false,
+        message: "Mã OTP không chính xác hoặc đã hết hạn!",
+      });
     }
 
     const user = users[0];
 
-    // Kiểm tra xem OTP đã hết hạn chưa
-    const now = new Date();
-    if (now > new Date(user.otp_expires)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Mã OTP đã hết hạn!" });
-    }
-
-    // OTP đúng -> Xóa OTP khỏi Database để bảo mật
     await db.execute(
       "UPDATE Users SET otp_code = NULL, otp_expires = NULL WHERE email = ?",
       [email],
     );
 
-    // Tạo Token Đăng nhập
     const token = jwt.sign(
       { id: user.id, role: user.role, company_id: user.company_id },
       process.env.JWT_SECRET,
       { expiresIn: "1d" },
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Đăng nhập thành công!",
       token,
       user: {
-  id: user.id,
-  username: user.username,
-  full_name: user.full_name || user.username,
-  role: user.role,
-  avatar_url: user.profile_avatar || user.avatar_url || null,
-},
+        id: user.id,
+        username: user.username,
+        full_name: user.full_name || user.username,
+        role: user.role,
+        avatar_url: user.profile_avatar || user.avatar_url || null,
+      },
     });
   } catch (error) {
     console.error("Lỗi tại verifyLoginOTP:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Lỗi server khi xác thực OTP: " + error.message,
-      });
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi server khi xác thực OTP: " + error.message,
+    });
   }
 };

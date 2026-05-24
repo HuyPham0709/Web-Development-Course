@@ -12,26 +12,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../components/ui/dropdown-menu"
 import { toast } from "sonner"
 import { ADMIN_JOBS_API, getHeaders } from "../../../constants"
-import { formatDate } from "../../../utils"
+import { formatDate, formatSalary } from "../../../utils"
 import { AdminJob, JobStats, PaginationMeta } from '../../../types'
 import { jobService } from "../../../services/jobService"
 
-function formatSalary(min: number | string, max: number | string, currency = "VND") {
-  const numMin = Number(min) || 0;
-  const numMax = Number(max) || 0;
-
-  if (numMin === 0 && numMax === 0) return 'Thỏa thuận';
-
-  if (currency === "VND" && numMax >= 1000000) {
-    return `${(numMin / 1_000_000).toFixed(0)}M – ${(numMax / 1_000_000).toFixed(0)}M`;
-  }
-
-  if (currency === "VND") {
-    return `${numMin}M – ${numMax}M`;
-  }
-
-  return `${numMin.toLocaleString()} – ${numMax.toLocaleString()} ${currency}`;
-}
 
 const STATUS_BADGE: Record<string, React.ReactElement> = {
   approved: <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-50">Approved</Badge>,

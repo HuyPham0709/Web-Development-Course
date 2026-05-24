@@ -34,7 +34,7 @@ export const applicationService = {
     ),
 
   getEmployerJobs: () =>
-    axios.get(`${API_URL}/applications/employer/jobs`, {
+    axios.get(`${API_URL}/jobs/my-jobs`, {
       headers: getHeaders(),
     }),
 

@@ -3,7 +3,7 @@ import { Briefcase, Users, MessageSquare, Eye, Plus, MoreVertical, MapPin, Clock
 import { Link, useNavigate } from 'react-router-dom';
 import { applicationService } from '../../../services/applicationService';
 import { Job, Stats } from '../../../types/application';
-import { timeAgo } from '../../../utils/format';
+import { timeAgo, formatSalary } from '../../../utils/format';
 
 // ── Modal xem lý do từ chối ──────────────────────────────────────────────────
 function RejectionModal({ reason, onClose }: { reason: string; onClose: () => void }) {
@@ -37,24 +37,7 @@ function RejectionModal({ reason, onClose }: { reason: string; onClose: () => vo
   );
 }
 
-const formatSalary = (min: number | string, max: number | string, currency = "VND") => {
-  const numMin = Number(min) || 0;
-  const numMax = Number(max) || 0;
 
-  if (numMin === 0 && numMax === 0) return "Thỏa thuận";
-
-  // Nếu là VND và lưu số đầy đủ (Ví dụ: 10000000)
-  if (currency === "VND" && numMax >= 1000000) {
-    return `${(numMin / 1000000).toFixed(0)}M – ${(numMax / 1000000).toFixed(0)}M`;
-  }
-
-  // Nếu lưu số rút gọn (Ví dụ: 10) hoặc hệ USD
-  if (currency === "VND") {
-    return `${numMin}M – ${numMax}M`;
-  }
-
-  return `${numMin.toLocaleString()} – ${numMax.toLocaleString()} ${currency}`;
-};
 
 export default function EmployerDashboard() {
   const navigate = useNavigate();
@@ -280,20 +263,23 @@ export default function EmployerDashboard() {
                           </div>
                         </td>
 
-                        {/* ← Cột lương */}
-                        <td className="px-6 py-4">
-                          {salary ? (
-                            <div className="flex items-center gap-1 text-sm font-medium text-gray-700 dark:text-gray-300">
-                              <DollarSign className="w-3.5 h-3.5 text-gray-400" />
-                              {salary}M
-                            </div>
-                          ) : (
-                            <span className="text-xs text-gray-400 italic">Thỏa thuận</span>
-                          )}
+                        {/* 🛠️ CHỈNH LƯƠNG: Trả về {salary} trực tiếp, không cộng đuôi "M" thủ công */}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                          {formatSalary(job.salary_min, job.salary_max, job.currency)}
                         </td>
 
+                        {/* 🛠️ CHỈNH XEM LÝ DO: Click trực tiếp nhãn "Rejected" để xem lý do từ chối nhanh */}
                         <td className="px-6 py-4">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${cfg.badgeClass}`}>
+                          <span
+                            onClick={() => {
+                              if (job.status === 'rejected') {
+                                setRejectionModal(job.rejection_reason || '');
+                              }
+                            }}
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border transition-colors 
+                              ${cfg.badgeClass} ${job.status === 'rejected' ? 'cursor-pointer hover:brightness-95 dark:hover:brightness-110' : ''}`}
+                            title={job.status === 'rejected' ? 'Bấm để xem lý do từ chối' : undefined}
+                          >
                             <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${cfg.dotColor}`} />
                             {cfg.label}
                           </span>
@@ -301,8 +287,8 @@ export default function EmployerDashboard() {
 
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-gray-900 dark:text-white">{job.application_count}</span>
-                            {job.application_count > 0 && job.status === 'approved' && (
+                            <span className="font-medium text-gray-900 dark:text-white">{job.application_count || 0}</span>
+                            {Number(job.application_count) > 0 && job.status === 'approved' && (
                               <span className="text-xs text-blue-600 dark:text-blue-400 font-medium bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded">New</span>
                             )}
                           </div>

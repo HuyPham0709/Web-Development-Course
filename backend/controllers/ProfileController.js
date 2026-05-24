@@ -3,11 +3,20 @@ const db = require('../config/db');
 const path = require('path');
 const fs = require('fs');
 
+// Import hàm upload từ file config mới tách
+const { uploadToCloudinary } = require('../config/cloudinary');
+
 const formatDate = (date) => {
     if (!date) return null;
     return new Date(date).toISOString().split("T")[0];
 };
-
+const getCloudinaryPublicId = (url) => {
+    const splitUrl = url.split('/');
+    const filenameWithExt = splitUrl[splitUrl.length - 1];
+    const folder = splitUrl[splitUrl.length - 2];
+    const filename = filenameWithExt.split('.')[0];
+    return `job_finder/${folder}/${filename}`; 
+};
 // ─── 1. GET /api/profile ───────────────────────────────────────────────────────
 // Lấy profile của user đang đăng nhập (qua JWT token)
 exports.getMyProfile = async (req, res) => {
@@ -392,36 +401,55 @@ exports.updateProfile = async (req, res) => {
     }
 };
 
-// ─── 5. POST /api/profile/cv/upload ───────────────────────────────────────────
-// Upload file CV (multer đã xử lý req.file trước khi vào đây)
+// ─── 5. UPLOAD CV (ĐÃ SỬA LỖI) ─────────────────────────────
 exports.uploadCV = async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ success: false, message: "Không có file nào được upload" });
-        }
+  try {
+    const userId = req.user.id;
 
-        const userId = req.user.id;
-        const cvUrl = `/uploads/${req.file.filename}`;
-
-        await db.query(
-            `UPDATE Profiles SET cv_url = ?, updated_at = NOW() WHERE user_id = ?`,
-            [cvUrl, userId]
-        );
-
-        res.status(200).json({
-            success: true,
-            message: "CV đã được upload thành công",
-            data: {
-                cv_url:        cvUrl,
-                original_name: req.file.originalname,
-                size:          req.file.size,
-            },
-        });
-
-    } catch (error) {
-        console.error("[uploadCV]", error.message);
-        res.status(500).json({ success: false, message: error.message });
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Chưa nhận được file CV (Kiểm tra field name là "cv")'
+      });
     }
+
+    // Sử dụng helper uploadToCloudinary đã định nghĩa ở đầu file
+    // resource_type: 'auto' bên trong helper sẽ lo phần PDF/DOCX
+    const result = await uploadToCloudinary(
+      req.file.buffer,
+      'job_finder/cvs'
+    );
+
+    const secureUrl = result.secure_url;
+
+    // Cập nhật Database
+    const [dbResult] = await db.query(
+      'UPDATE Profiles SET cv_url = ? WHERE user_id = ?',
+      [secureUrl, userId]
+    );
+
+    // Kiểm tra nếu chưa có Profile thì báo lỗi (Tránh trường hợp update hụt)
+    if (dbResult.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bạn cần tạo thông tin cá nhân trước khi upload CV!'
+      });
+    }
+
+    res.json({
+      success: true,
+      cv_url: secureUrl,
+      message: 'Upload CV thành công!'
+    });
+
+  } catch (error) {
+    console.error('Lỗi chi tiết tại Server:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi upload CV',
+      error: error.message
+    });
+  }
 };
 
 // ─── 6. DELETE /api/profile/cv ────────────────────────────────────────────────
@@ -434,12 +462,23 @@ exports.deleteCV = async (req, res) => {
             `SELECT cv_url FROM Profiles WHERE user_id = ?`,
             [userId]
         );
+        
         if (rows.length === 0 || !rows[0].cv_url) {
             return res.status(404).json({ success: false, message: "Không tìm thấy CV" });
         }
 
-        const filePath = path.join(__dirname, '..', rows[0].cv_url);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        const cvUrl = rows[0].cv_url;
+
+        // Nếu là link Cloudinary thì gọi API Cloudinary để xóa
+        if (cvUrl.includes('cloudinary.com')) {
+            const publicId = getCloudinaryPublicId(cvUrl);
+            const { cloudinary } = require('../config/cloudinary');
+            await cloudinary.uploader.destroy(publicId);
+        } else {
+            // Logic cũ xóa file local (giữ lại phòng trường hợp DB còn link cũ)
+            const filePath = path.join(__dirname, '..', cvUrl);
+            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        }
 
         await db.query(
             `UPDATE Profiles SET cv_url = NULL, updated_at = NOW() WHERE user_id = ?`,
@@ -454,58 +493,106 @@ exports.deleteCV = async (req, res) => {
     }
 };
 
+
 // ─── 7. POST /api/profile/avatar ──────────────────────────────────────────────
 // [THÊM TỪ CODE MỚI] Upload Avatar
 exports.uploadAvatar = async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ success: false, message: "Không có file nào" });
-        }
+  try {
+    const userId = req.user.id;
+    if (!req.file) return res.status(400).json({ success: false, message: 'Chưa chọn file!' });
 
-        const userId = req.user.id;
-        const avatarUrl = `/uploads/${req.file.filename}`;
+    // Đẩy lên Cloudinary vào thư mục 'avatars'
+    const result = await uploadToCloudinary(req.file.buffer, 'job_finder/avatars');
+    const secureUrl = result.secure_url;
 
-        await db.query(
-            `UPDATE Profiles SET avatar_url = ? WHERE user_id = ?`,
-            [avatarUrl, userId]
-        );
+    // Lưu link vào bảng Profiles
+    await db.query('UPDATE Profiles SET avatar_url = ? WHERE user_id = ?', [secureUrl, userId]);
 
-        res.json({
-            success: true,
-            message: "Cập nhật ảnh đại diện thành công",
-            avatar_url: avatarUrl
-        });
-
-    } catch (error) {
-        console.error("[uploadAvatar]", error.message);
-        res.status(500).json({ success: false, message: error.message });
-    }
+    res.json({ success: true, avatar_url: secureUrl, message: 'Cập nhật avatar thành công!' });
+  } catch (error) {
+    console.error("Lỗi upload avatar:", error);
+    res.status(500).json({ success: false, message: 'Lỗi server khi upload ảnh' });
+  }
 };
 
 // ─── 8. POST /api/profile/cover ───────────────────────────────────────────────
-// [THÊM TỪ CODE MỚI] Upload Cover
 exports.uploadCover = async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ success: false, message: "Không có file nào" });
-        }
+  try {
+    const userId = req.user.id;
+    if (!req.file) return res.status(400).json({ success: false, message: 'Chưa chọn file!' });
 
-        const userId = req.user.id;
-        const coverUrl = `/uploads/${req.file.filename}`;
+    const result = await uploadToCloudinary(req.file.buffer, 'job_finder/covers');
+    const secureUrl = result.secure_url;
 
-        await db.query(
-            `UPDATE Profiles SET cover_url = ? WHERE user_id = ?`,
-            [coverUrl, userId]
-        );
+    await db.query('UPDATE Profiles SET cover_url = ? WHERE user_id = ?', [secureUrl, userId]);
 
-        res.json({
-            success: true,
-            message: "Cập nhật ảnh bìa thành công",
-            cover_url: coverUrl
-        });
-
-    } catch (error) {
-        console.error("[uploadCover]", error.message);
-        res.status(500).json({ success: false, message: error.message });
-    }
+    res.json({ success: true, cover_url: secureUrl, message: 'Cập nhật ảnh bìa thành công!' });
+  } catch (error) {
+    console.error("Lỗi upload cover:", error);
+    res.status(500).json({ success: false, message: 'Lỗi server khi upload ảnh' });
+  }
 };
+
+exports.searchCandidates = async (req, res) => {
+  try {
+    const { keyword, location } = req.query;
+
+    // Base query kết hợp lấy kĩ năng và tính số năm kinh nghiệm
+    let query = `
+      SELECT 
+        p.id, 
+        p.full_name AS name, 
+        p.title, 
+        p.location, 
+        p.avatar_url AS avatar,
+        (
+          SELECT GROUP_CONCAT(s.name) 
+          FROM User_Skills us 
+          JOIN Skills s ON us.skill_id = s.id 
+          WHERE us.profile_id = p.id
+        ) AS skills,
+        (
+          SELECT SUM(TIMESTAMPDIFF(YEAR, start_date, IFNULL(end_date, CURRENT_DATE))) 
+          FROM Work_Experience we 
+          WHERE we.profile_id = p.id
+        ) AS years_of_exp
+      FROM Profiles p
+      JOIN Users u ON p.user_id = u.id
+      WHERE u.role = 'candidate' AND u.is_active = 1
+    `;
+    
+    const queryParams = [];
+
+    // Tối ưu dynamic filters
+    if (keyword) {
+      query += ` AND (p.title LIKE ? OR p.full_name LIKE ?)`;
+      queryParams.push(`%${keyword}%`, `%${keyword}%`);
+    }
+    
+    if (location) {
+      query += ` AND p.location LIKE ?`;
+      queryParams.push(`%${location}%`);
+    }
+
+    query += ` ORDER BY p.updated_at DESC`;
+
+    const [rows] = await db.query(query, queryParams);
+
+    // Format data trả về chuẩn với Frontend Interface
+    const candidates = rows.map(row => ({
+      id: row.id,
+      name: row.name || 'Ứng viên ẩn danh', // Có thể ẩn tên nếu logic yêu cầu
+      title: row.title || 'Chưa cập nhật',
+      exp: row.years_of_exp ? `${row.years_of_exp} years` : 'Chưa có KN',
+      location: row.location || 'Chưa cập nhật',
+      skills: row.skills ? row.skills.split(',') : [],
+      avatar: row.avatar || 'https://placehold.co/150'
+    }));
+
+    res.status(200).json({ success: true, data: candidates });
+  } catch (error) {
+    console.error('Search CV Error:', error);
+    res.status(500).json({ success: false, message: 'Lỗi server khi tìm kiếm CV' });
+  }
+};
+

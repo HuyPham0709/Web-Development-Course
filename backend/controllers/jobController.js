@@ -199,20 +199,43 @@ exports.deleteJob = async (req, res) => {
     }
 };
 
-// Get jobs by employer (dashboard)
 exports.getJobsByEmployer = async (req, res) => {
     try {
         const company_id = req.user.company_id;
+
         const [rows] = await db.execute(`
-            SELECT j.*, l.name as location_name, cat.name as category_name
+            SELECT 
+                j.id, j.title, j.job_type, j.status, j.created_at,
+                j.salary_min, j.salary_max, j.rejection_reason,
+                l.name AS location_name,
+                cat.name AS category_name,
+                COUNT(a.id) AS application_count
             FROM Jobs j
             LEFT JOIN Locations l ON j.location_id = l.id
             LEFT JOIN Categories cat ON j.category_id = cat.id
+            LEFT JOIN Applications a ON j.id = a.job_id
             WHERE j.company_id = ? AND j.deleted_at IS NULL
+            GROUP BY j.id
             ORDER BY j.created_at DESC
         `, [company_id]);
-        res.status(200).json({ success: true, data: rows });
+
+        const total_jobs = rows.length;
+
+        // Chỉ đếm applications của jobs đang approved
+        const total_applications = rows.reduce((sum, row) => {
+            if (row.status === 'approved') {
+                return sum + (parseInt(row.application_count) || 0);
+            }
+            return sum;
+        }, 0);
+
+        res.status(200).json({
+            success: true,
+            data: rows,
+            stats: { total_jobs, total_applications }
+        });
     } catch (error) {
+        console.error('Lỗi getJobsByEmployer:', error);
         res.status(500).json({ success: false, message: error.message });
     }
-};  
+};

@@ -1,6 +1,3 @@
-// ==========================================
-// CandidateManagement.tsx  (Đã thêm Entrance Animation)
-// ==========================================
 import React, { useState, useEffect } from 'react';
 import { LayoutGrid, List, MoreVertical, Calendar, Briefcase, ChevronDown, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -8,6 +5,18 @@ import { applicationService } from '../../../services/applicationService';
 import { Candidate } from '../../../types/application';
 import { STATUSES, STATUS_LABEL, STATUS_COLORS } from '../../../constants/status';
 import { getInitials, formatDateVN } from '../../../utils/format';
+import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
+
+// BỔ SUNG: Cấu hình URL Backend để xử lý ảnh ứng viên
+const BASE_URL = 'http://localhost:5000';
+
+const toFullUrl = (url: string | null | undefined): string => {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  
+  const cleanUrl = url.replace(/\\/g, '/');
+  return `${BASE_URL}${cleanUrl.startsWith('/') ? '' : '/'}${cleanUrl}`;
+};
 
 export default function CandidateManagement() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -17,7 +26,7 @@ export default function CandidateManagement() {
   const [filterJob, setFilterJob] = useState('Tất cả');
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   
-  // ĐA THÊM: State kiểm soát hiệu ứng lướt lên khi load trang
+  // ĐÃ THÊM: State kiểm soát hiệu ứng lướt lên khi load trang
   const [animate, setAnimate] = useState(false);
 
   useEffect(() => {
@@ -113,7 +122,6 @@ export default function CandidateManagement() {
               const delayClass = delays[index] || 'delay-300';
 
               return (
-                /* ĐÃ SỬA: Thêm hiệu ứng nâng mượt mà và so le (stagger) giữa các cột */
                 <div 
                   key={status} 
                   className={`flex flex-col transform transition-all duration-700 ease-out ${delayClass} ${
@@ -143,9 +151,17 @@ export default function CandidateManagement() {
                         <div key={candidate.application_id} className="bg-white dark:bg-[#0E1422] p-4 rounded-xl border border-gray-200 dark:border-white/10 dark:hover:border-white/20 shadow-sm hover:shadow-md transition-all group">
                           <div className="flex justify-between items-start mb-3">
                             <Link to={`/employer/candidate/${candidate.application_id}`} className="flex items-center gap-3 hover:opacity-80">
-                              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400 rounded-full flex items-center justify-center font-bold text-sm shrink-0">
-                                {getInitials(candidate.full_name || candidate.candidate_name)}
-                              </div>
+                              {/* ĐÃ SỬA: Thay thế khối div cũ bằng component Avatar đồng bộ với Navbar */}
+                              <Avatar className="w-10 h-10 border border-gray-200 dark:border-white/10 shrink-0">
+                                <AvatarImage 
+                                  src={toFullUrl(candidate.avatar_url || candidate.avatar)} 
+                                  alt={candidate.full_name || candidate.candidate_name} 
+                                  className="object-cover"
+                                />
+                                <AvatarFallback className="bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400 font-bold text-sm">
+                                  {getInitials(candidate.full_name || candidate.candidate_name)}
+                                </AvatarFallback>
+                              </Avatar>
                               <div>
                                 <h4 className="font-bold text-gray-900 dark:text-white text-sm hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                                   {candidate.full_name || candidate.candidate_name}
@@ -200,7 +216,7 @@ export default function CandidateManagement() {
             })}
           </div>
         ) : (
-          /* Table View - Được bọc hiệu ứng lướt lên đồng bộ */
+          /* Table View */
           <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden transform transition-all duration-700 ease-out delay-150 ${
             animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
@@ -219,9 +235,17 @@ export default function CandidateManagement() {
                     <tr key={candidate.application_id} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
                       <td className="px-6 py-4">
                         <Link to={`/employer/candidate/${candidate.application_id}`} className="flex items-center gap-3 hover:opacity-80 group">
-                          <div className="w-9 h-9 bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400 rounded-full flex items-center justify-center font-bold text-xs shrink-0 transition-colors">
-                            {getInitials(candidate.full_name || candidate.candidate_name)}
-                          </div>
+                          {/* ĐÃ SỬA: Thay thế khối div cũ bằng component Avatar đồng bộ với Navbar */}
+                          <Avatar className="w-9 h-9 border border-gray-200 dark:border-white/10 shrink-0">
+                            <AvatarImage 
+                              src={toFullUrl(candidate.avatar_url || candidate.avatar)} 
+                              alt={candidate.full_name || candidate.candidate_name} 
+                              className="object-cover"
+                            />
+                            <AvatarFallback className="bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400 font-bold text-xs">
+                              {getInitials(candidate.full_name || candidate.candidate_name)}
+                            </AvatarFallback>
+                          </Avatar>
                           <div>
                             <div className="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                               {candidate.full_name || candidate.candidate_name}

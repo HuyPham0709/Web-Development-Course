@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, Save, Send, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom"; // Thêm useParams để lấy ID bài viết
+import { formatSalary } from "../../../utils/format";
 
 // Đảm bảo URL gọi đúng đến cổng Backend 5000 của bạn
 const BACKEND_URL = "http://localhost:5000/api";
@@ -329,8 +330,8 @@ export function JobForm() {
                   </select>
                 </div>
                 {form.salary_min.length > 0 && form.salary_max.length > 0 && (
-                  <p className="text-xs text-slate-400 mt-1">
-                    Hiển thị: {form.currency === "VND" ? `${(Number(form.salary_min) / 1_000_000).toFixed(0)}M – ${(Number(form.salary_max) / 1_000_000).toFixed(0)}M` : `${Number(form.salary_min).toLocaleString()} – ${Number(form.salary_max).toLocaleString()}`} {form.currency}
+                  <p className="text-xs text-slate-400 dark:text-gray-500 mt-1 font-medium">
+                    Hiển thị thực tế: <span className="text-blue-600 dark:text-blue-400 font-semibold">{formatSalary(form.salary_min, form.salary_max, form.currency)}</span>
                   </p>
                 )}
               </Field>
