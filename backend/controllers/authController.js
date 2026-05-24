@@ -95,9 +95,14 @@ exports.register = async (req, res) => {
     const userId = userResult.insertId;
 
     if (role === "employer") {
-      await db.execute("INSERT INTO Companies (name) VALUES (?)", [
+      // Tạo công ty mới cho Nhà tuyển dụng
+      const [companyResult] = await db.execute("INSERT INTO Companies (name) VALUES (?)", [
         `Công ty của ${finalName}`,
       ]);
+      const companyId = companyResult.insertId;
+      
+      // FIX LỖI: Cập nhật ngược lại trường company_id vào bảng Users để liên kết dữ liệu
+      await db.execute("UPDATE Users SET company_id = ? WHERE id = ?", [companyId, userId]);
     } else {
       await db.execute(
         "INSERT INTO Profiles (user_id, full_name) VALUES (?, ?)",
@@ -193,6 +198,7 @@ exports.login = async (req, res) => {
         username: user.username,
         full_name: user.full_name || user.username,
         role: user.role,
+        company_id: user.company_id, // FIX LỖI: Trả về company_id lấy từ bảng Users để lưu vào localStorage
         avatar_url: user.profile_avatar || user.avatar_url || null,
       },
     });
@@ -209,7 +215,7 @@ exports.login = async (req, res) => {
 exports.getProfile = async (req, res) => {
   try {
     const [rows] = await db.execute(
-      "SELECT id, username, email, role, avatar_url, created_at FROM Users WHERE id = ?",
+      "SELECT id, username, email, role, company_id, avatar_url, created_at FROM Users WHERE id = ?",
       [req.user.id],
     );
 
@@ -395,12 +401,17 @@ exports.googleLogin = async (req, res) => {
       );
 
       const userId = result.insertId;
+      let companyId = null;
 
       try {
         if (role === "employer") {
-          await db.execute("INSERT INTO Companies (name) VALUES (?)", [
+          const [companyResult] = await db.execute("INSERT INTO Companies (name) VALUES (?)", [
             `Công ty của ${name}`,
           ]);
+          companyId = companyResult.insertId;
+          
+          // FIX LỖI: Cập nhật ngược company_id cho tài khoản Employer tạo qua Google
+          await db.execute("UPDATE Users SET company_id = ? WHERE id = ?", [companyId, userId]);
         } else {
           await db.execute(
             "INSERT INTO Profiles (user_id, full_name, avatar_url) VALUES (?, ?, ?)",
@@ -419,6 +430,7 @@ exports.googleLogin = async (req, res) => {
         email,
         role: role || "candidate",
         username: autoUsername,
+        company_id: companyId,
         avatar_url: picture,
         full_name: name,
         profile_avatar: picture,
@@ -458,6 +470,7 @@ exports.googleLogin = async (req, res) => {
         username: user.username,
         full_name: user.full_name || user.username,
         role: user.role,
+        company_id: user.company_id, // FIX LỖI: Trả về company_id của tài khoản Google đăng nhập
         avatar_url: user.avatar_url || user.profile_avatar || null,
       },
     });
@@ -577,6 +590,7 @@ exports.verifyLoginOTP = async (req, res) => {
         username: user.username,
         full_name: user.full_name || user.username,
         role: user.role,
+        company_id: user.company_id,
         avatar_url: user.profile_avatar || user.avatar_url || null,
       },
     });

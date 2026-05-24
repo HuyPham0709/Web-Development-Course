@@ -283,3 +283,4 @@ CREATE INDEX idx_jobcriteria_open_to_work ON JobCriteria(is_open_to_work);
 
 ALTER TABLE Notifications ADD COLUMN link_url VARCHAR(255) DEFAULT NULL;
 ALTER TABLE Notifications ADD COLUMN title VARCHAR(255) NOT NULL AFTER user_id;
+ALTER TABLE Jobs ADD COLUMN rejection_reason TEXT NULL DEFAULT NULL;

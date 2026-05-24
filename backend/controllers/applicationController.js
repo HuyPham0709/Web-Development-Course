@@ -53,7 +53,7 @@ exports.applyJob = async (req, res) => {
       const newNotify = await Notification.create({
         user_id: targetEmployerId,
         title: "Đơn ứng tuyển mới 📄",
-        message: `Ứng viên ${req.user.username || "Nguyễn Hiếu"} đã nộp đơn vào vị trí "${job.title}"`,
+        message: `Ứng viên ${candidateName} đã nộp đơn vào vị trí "${job.title}"`,
         is_read: false,
         type: "apply",
         link_url: "/employer/dashboard",
