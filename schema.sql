@@ -134,7 +134,7 @@ CREATE TABLE Jobs (
     salary_max BIGINT DEFAULT 0,
     thumbnail_url VARCHAR(255) NULL,
     job_type ENUM('full-time', 'part-time', 'contract', 'freelance') DEFAULT 'full-time',
-    experience_level ENUM('Thực tập sinh', 'Mới tốt nghiệp/ Chưa có kinh nghiệm', 'Nhân viên', 'Trưởng nhóm', 'Quản lý cấp cao') NULL,
+    experience_level ENUM('intern', 'fresher', 'junior', 'senior', 'manager') NULL,
     description TEXT NOT NULL,
     requirements TEXT NULL,
     benefit TEXT NULL,                

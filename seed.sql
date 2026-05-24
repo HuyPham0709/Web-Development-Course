@@ -94,17 +94,16 @@ INSERT IGNORE INTO Profiles (user_id, full_name, phone, gender, title, location,
 
 -- ==========================================
 -- 5. DANH SÁCH VIỆC LÀM ĐĂNG TUYỂN
---    (Đã sửa: Khớp hoàn toàn với ENUM 'internship', 'entry', 'middle', 'senior' trong DB của bạn)
 -- ==========================================
 INSERT INTO Jobs (id, company_id, posted_by, category_id, location_id, title, slug, salary_min, salary_max, job_type, experience_level, description, requirements, benefit, status) VALUES
-(200, 200, 200, 1, 2, 'AI Engineer (Python, TensorFlow)', 'ai-engineer-200', 30000000, 50000000, 'full-time', 'Trưởng nhóm', 'Nghiên cứu và phát triển các mô hình học máy phục vụ lõi AI.', '• Kinh nghiệm làm việc thực tế với Python, TensorFlow\n• Am hiểu Deep Learning', '• Bảo hiểm cao cấp riêng biệt\n• Lương tháng 14', 'approved'),
-(201, 200, 200, 1, 2, 'Blockchain Developer', 'blockchain-dev-201', 40000000, 80000000, 'full-time', 'Quản lý cấp cao', 'Phát triển Smart Contract và kiến trúc ứng dụng phi tập trung DeFi.', '• Kinh nghiệm vững chắc với lập trình Solidity, Rust\n• Đã làm qua ứng dụng DApp', '• Thưởng lớn theo tiến độ dự án\n• Giờ làm việc linh động', 'approved'),
-(202, 201, 201, 6, 1, 'B2B Sales Executive', 'b2b-sales-202', 15000000, 30000000, 'full-time', 'Nhân viên', 'Tìm kiếm doanh nghiệp đối tác, khai thác tệp thị trường thương mại lớn.', '• Kinh nghiệm làm Sales B2B trên 2 năm\n• Kỹ năng thuyết phục tốt', '• Tỷ lệ % hoa hồng cao đột phá\n• Cấp laptop riêng', 'approved'),
-(203, 202, 201, 1, 1, 'Senior Frontend Engineer', 'senior-frontend-engineer', 35000000, 55000000, 'full-time', 'Trưởng nhóm', 'Xây dựng giao diện ứng dụng web lớn, tối ưu hiển thị tải trang mượt mà bằng React.', '• Trên 5 năm chinh chiến với React, Webpack\n• Kỹ năng quản lý nhóm nhỏ', '• Thưởng hiệu suất cuối năm xuất sắc\n• Trà bánh free hàng ngày', 'approved'),
-(204, 203, 200, 2, 2, 'Product Manager', 'product-manager', 40000000, 65000000, 'full-time', 'Nhân viên', 'Quản trị lộ trình và định hình tính năng phát triển của nền tảng sản phẩm ứng dụng.', '• Hơn 3 năm kinh nghiệm trong vai trò PM mảng phần mềm\n• Giao tiếp Tiếng Anh tốt', '• Hỗ trợ môi trường làm việc Remote hoàn toàn\n• Du lịch 2 lần/năm', 'approved'),
-(205, 204, 200, 4, 4, 'UX/UI Designer', 'uxui-designer', 20000000, 35000000, 'contract', 'Nhân viên', 'Thiết kế Wireframe, xây dựng trải nghiệm mạch lạc cho người dùng trên Mobile App.', '• Thành thạo Figma, Adobe XD\n• Có portfolio sản phẩm thực tế tốt', '• Giờ giấc làm việc vô cùng linh hoạt\n• Thưởng ngày lễ Tết', 'approved'),
-(206, 205, 200, 1, 5, 'Data Scientist', 'data-scientist', 45000000, 75000000, 'full-time', 'Quản lý cấp cao', 'Xây dựng các mô hình thống kê học thuật phức tạp, khai phá insights dữ liệu người dùng.', '• Thành thạo các kỹ năng Python, R, SQL nâng cao\n• Có tư duy giải quyết bài toán', '• Thưởng tháng may mắn lộc phát\n• Khám sức khỏe định kỳ VIP', 'approved'),
-(207, 206, 200, 1, 5, 'Backend Developer (Node.js)', 'backend-developer', 25000000, 45000000, 'full-time', 'Nhân viên', 'Xây dựng và tối ưu hệ thống Microservices xử lý dữ liệu lớn đồng thời.', '• Kinh nghiệm nền tảng Node.js / Express chuyên sâu\n• Thiết kế DB tối ưu tốt', '• Xét đánh giá tăng lương định kỳ 2 lần/năm\n• Cấp Macbook Pro mới', 'approved');
+(200, 200, 200, 1, 2, 'AI Engineer (Python, TensorFlow)', 'ai-engineer-200', 30000000, 50000000, 'full-time', 'senior', 'Nghiên cứu và phát triển các mô hình học máy phục vụ lõi AI.', '• Kinh nghiệm làm việc thực tế với Python, TensorFlow\n• Am hiểu Deep Learning', '• Bảo hiểm cao cấp riêng biệt\n• Lương tháng 14', 'approved'),
+(201, 200, 200, 1, 2, 'Blockchain Developer', 'blockchain-dev-201', 40000000, 80000000, 'full-time', 'manager', 'Phát triển Smart Contract và kiến trúc ứng dụng phi tập trung DeFi.', '• Kinh nghiệm vững chắc với lập trình Solidity, Rust\n• Đã làm qua ứng dụng DApp', '• Thưởng lớn theo tiến độ dự án\n• Giờ làm việc linh động', 'approved'),
+(202, 201, 201, 6, 1, 'B2B Sales Executive', 'b2b-sales-202', 15000000, 30000000, 'full-time', 'junior', 'Tìm kiếm doanh nghiệp đối tác, khai thác tệp thị trường thương mại lớn.', '• Kinh nghiệm làm Sales B2B trên 2 năm\n• Kỹ năng thuyết phục tốt', '• Tỷ lệ % hoa hồng cao đột phá\n• Cấp laptop riêng', 'approved'),
+(203, 202, 201, 1, 1, 'Senior Frontend Engineer', 'senior-frontend-engineer', 35000000, 55000000, 'full-time', 'senior', 'Xây dựng giao diện ứng dụng web lớn, tối ưu hiển thị tải trang mượt mà bằng React.', '• Trên 5 năm chinh chiến với React, Webpack\n• Kỹ năng quản lý nhóm nhỏ', '• Thưởng hiệu suất cuối năm xuất sắc\n• Trà bánh free hàng ngày', 'approved'),
+(204, 203, 200, 2, 2, 'Product Manager', 'product-manager', 40000000, 65000000, 'full-time', 'manager', 'Quản trị lộ trình và định hình tính năng phát triển của nền tảng sản phẩm ứng dụng.', '• Hơn 3 năm kinh nghiệm trong vai trò PM mảng phần mềm\n• Giao tiếp Tiếng Anh tốt', '• Hỗ trợ môi trường làm việc Remote hoàn toàn\n• Du lịch 2 lần/năm', 'approved'),
+(205, 204, 200, 4, 4, 'UX/UI Designer', 'uxui-designer', 20000000, 35000000, 'contract', 'junior', 'Thiết kế Wireframe, xây dựng trải nghiệm mạch lạc cho người dùng trên Mobile App.', '• Thành thạo Figma, Adobe XD\n• Có portfolio sản phẩm thực tế tốt', '• Giờ giấc làm việc vô cùng linh hoạt\n• Thưởng ngày lễ Tết', 'approved'),
+(206, 205, 200, 1, 5, 'Data Scientist', 'data-scientist', 45000000, 75000000, 'full-time', 'senior', 'Xây dựng các mô hình thống kê học thuật phức tạp, khai phá insights dữ liệu người dùng.', '• Thành thạo các kỹ năng Python, R, SQL nâng cao\n• Có tư duy giải quyết bài toán', '• Thưởng tháng may mắn lộc phát\n• Khám sức khỏe định kỳ VIP', 'approved'),
+(207, 206, 200, 1, 5, 'Backend Developer (Node.js)', 'backend-developer', 25000000, 45000000, 'full-time', 'junior', 'Xây dựng và tối ưu hệ thống Microservices xử lý dữ liệu lớn đồng thời.', '• Kinh nghiệm nền tảng Node.js / Express chuyên sâu\n• Thiết kế DB tối ưu tốt', '• Xét đánh giá tăng lương định kỳ 2 lần/năm\n• Cấp Macbook Pro mới', 'approved');
 
 -- ==========================================
 -- 6. KỸ NĂNG CÔNG VIỆC & ĐƠN ỨNG TUYỂN MẪU
@@ -119,7 +118,6 @@ INSERT IGNORE INTO Applications (candidate_id, job_id, cover_letter, status) VAL
 
 -- =========================================================================
 -- 7. DỮ LIỆU MẪU CHO BẢNG JOBCRITERIA 
---    (Khớp 100% với ENUM Tiếng Việt có dấu bạn yêu cầu)
 -- =========================================================================
 INSERT IGNORE INTO JobCriteria (
     user_id, 
@@ -145,7 +143,7 @@ VALUES
     'Trưởng phòng Quản lý Dự án', 
     'Công nghệ thông tin',
     'full-time', 
-    'Trưởng nhóm', 
+    'senior', 
     'Senior / Lead',
     35000000, 
     60000000, 
@@ -163,7 +161,7 @@ VALUES
     'Thực tập sinh Lập trình Web Frontend', 
     'Công nghệ thông tin',
     'internship', 
-    'Thực tập sinh', 
+    'intern', 
     'Intern',
     4000000, 
     8000000, 
@@ -181,7 +179,7 @@ VALUES
     'Chuyên viên Phân tích Dữ liệu Kinh doanh', 
     'Phân tích / Thống kê',
     'full-time', 
-    'Mới tốt nghiệp/ Chưa có kinh nghiệm', 
+    'fresher', 
     'Fresher / Entry',
     12000000, 18000000, 
     'VND',

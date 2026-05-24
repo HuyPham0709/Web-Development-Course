@@ -1,6 +1,7 @@
 const db = require('../../config/db');
 
 // 1. Lấy tất cả jobs (cho trang Job Management)
+// 1. Lấy tất cả jobs (cho trang Job Management)
 exports.getAllJobs = async (req, res) => {
     const { status, job_type, experience_level, search } = req.query;
     const page = parseInt(req.query.page) || 1;
@@ -30,6 +31,7 @@ exports.getAllJobs = async (req, res) => {
 
         const whereClause = 'WHERE ' + where.join(' AND ');
 
+        // PHẦN ĐÃ SỬA: Đưa trực tiếp ${limit} và ${offset} vào câu lệnh SQL và xóa khỏi mảng params phía dưới
         const [jobs] = await db.execute(`
             SELECT
                 j.id, j.title, j.job_type, j.experience_level,
@@ -43,8 +45,8 @@ exports.getAllJobs = async (req, res) => {
             JOIN Categories cat ON j.category_id = cat.id
             ${whereClause}
             ORDER BY j.created_at DESC
-            LIMIT ? OFFSET ?
-        `, [...params, limit, offset]);
+            LIMIT ${limit} OFFSET ${offset}
+        `, params); 
 
         const [countResult] = await db.execute(`
             SELECT COUNT(*) AS total
@@ -80,7 +82,6 @@ exports.getAllJobs = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
-
 // 2. Xóa job (soft delete)
 exports.deleteJob = async (req, res) => {
     const { job_id } = req.params;

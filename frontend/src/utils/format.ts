@@ -71,3 +71,24 @@ export function formatSalary(
   // Fallback định dạng chuẩn cho ngoại tệ khác (USD...)
   return `${numMin.toLocaleString()} - ${numMax.toLocaleString()} ${currentCurrency}`;
 }
+export function formatRelativeTime(dateString?: string) {
+  if (!dateString) return "Recently posted";
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInMs = now.getTime() - date.getTime();
+  
+  const diffInMins = Math.floor(diffInMs / (1000 * 60));
+  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+  if (diffInMins < 60) {
+    return diffInMins <= 1 ? "Just now" : `${diffInMins} mins ago`;
+  }
+  if (diffInHours < 24) {
+    return `${diffInHours} hours ago`;
+  }
+  if (diffInDays < 30) {
+    return `${diffInDays} days ago`;
+  }
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
