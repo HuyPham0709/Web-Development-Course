@@ -22,12 +22,24 @@ const Chat = () => {
   const [activeConversation, setActiveConversation] = useState<IConversation | null>(null);
   const [messages, setMessages] = useState<IMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [onlineUsers, setOnlineUsers] = useState<number[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+  const notificationSound = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/2357/2357-84.wav'));
 
-  // 0. Lấy thông tin user hiện tại từ localStorage
+  const activeConvRef = useRef(activeConversation);
+  const convsRef = useRef(conversations);
+
+  useEffect(() => {
+    activeConvRef.current = activeConversation;
+  }, [activeConversation]);
+
+  useEffect(() => {
+    convsRef.current = conversations;
+  }, [conversations]);
+
+  // 0. Lấy thông tin user hiện tại & Xin quyền thông báo trình duyệt
   useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
@@ -36,6 +48,10 @@ const Chat = () => {
       } catch (e) {
         console.error("Lỗi parse user:", e);
       }
+    }
+
+    if ("Notification" in window && Notification.permission === 'default') {
+      Notification.requestPermission();
     }
   }, []);
 
@@ -62,7 +78,7 @@ const Chat = () => {
     };
   }, [user]);
 
-  // 2. Xử lý điều hướng từ trang JobDetail (Tạo phòng chat mới nếu cần)
+  // 2. Xử lý điều hướng từ trang JobDetail
   useEffect(() => {
     if (!user || !isLoaded) return;
 
@@ -70,7 +86,7 @@ const Chat = () => {
     if (!incomingUser) return;
 
     if (incomingUser.id === user.id) {
-       window.history.replaceState({}, document.title);
+       window.history.replaceState({}, '', location.pathname);
        return;
     }
 
@@ -96,56 +112,122 @@ const Chat = () => {
       }
     }
 
-    window.history.replaceState({}, document.title);
-  }, [location.state, conversations, user, isLoaded]);
+    window.history.replaceState({}, '', location.pathname);
+  }, [location.state, conversations, user, isLoaded, location.pathname]);
 
-  // 3. Lắng nghe tin nhắn Real-time & Trạng thái Online
+  // 3. Lắng nghe tin nhắn Real-time & Trạng thái Online & Bắn thông báo
   useEffect(() => {
-    if (socket) {
-      socket.on('receive_message', (msg: IMessage) => {
-        if (activeConversation && msg.conversationId === activeConversation._id) {
-          setMessages(prev => [...prev, msg]);
-        }
+    if (!socket || !user) return;
+
+    const handleReceiveMessage = (msg: IMessage) => {
+      const isCurrentTabActive = document.visibilityState === 'visible';
+      const currentActiveConv = activeConvRef.current;
+      const isThisChatActive = currentActiveConv && msg.conversationId === currentActiveConv._id;
+
+      // Xử lý logic trạng thái đọc tin nhắn mới đến
+      if (isThisChatActive && isCurrentTabActive) {
+        msg.isRead = true; 
         
-        setConversations(prev => 
-          prev.map(conv => conv._id === msg.conversationId 
+        // Loại bỏ khả năng trùng lặp tin nhắn thời gian thực khi nhận
+        setMessages(prev => {
+          if (prev.some(m => m._id === msg._id)) return prev;
+          return [...prev, msg];
+        });
+        
+        socket.emit('mark_messages_as_read', {
+          conversationId: currentActiveConv._id,
+          userId: user.id
+        });
+      } else {
+        msg.isRead = false; 
+      }
+      
+      // LOGIC PHÁT THÔNG BÁO
+      if (!isThisChatActive || !isCurrentTabActive) {
+        notificationSound.current.play().catch(err => console.log("Chờ tương tác để phát nhạc:", err));
+
+        if (Notification.permission === 'granted') {
+          const currentConv = convsRef.current.find(c => c._id === msg.conversationId);
+          const senderName = currentConv?.targetUser?.name || "Người dùng mới";
+          
+          const notification = new Notification(`Tin nhắn mới từ ${senderName}`, {
+            body: msg.text,
+            icon: currentConv?.targetUser?.avatar_url || '/default-avatar.png',
+            tag: msg.conversationId, 
+            renotify: true
+          });
+
+          setTimeout(() => notification.close(), 4000);
+          notification.onclick = () => { window.focus(); };
+        }
+      }
+
+      // Cập nhật lại tin nhắn mới nhất lên danh sách Sidebar
+      setConversations(prev => {
+        const updatedConvs = prev.map(conv => 
+          conv._id === msg.conversationId 
             ? { ...conv, lastMessage: msg, updatedAt: new Date().toISOString() } 
-            : conv)
+            : conv
         );
+        return [...updatedConvs].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
       });
+    };
 
-      socket.on('get_online_users', (users: number[]) => {
-        setOnlineUsers(users);
-      });
-    }
+    const handleGetOnlineUsers = (users: string[]) => {
+      setOnlineUsers(users);
+    };
+
+    socket.on('receive_message', handleReceiveMessage);
+    socket.on('get_online_users', handleGetOnlineUsers);
+
     return () => {
-      socket?.off('receive_message');
-      socket?.off('get_online_users');
+      socket.off('receive_message', handleReceiveMessage);
+      socket.off('get_online_users', handleGetOnlineUsers);
     }
-  }, [socket, activeConversation]);
+  }, [socket, user]);
 
-  // 4. Load tin nhắn khi chọn 1 phòng chat
+  // 4. Load tin nhắn khi chọn 1 phòng chat & cập nhật trạng thái hết in đậm cục bộ tức thì
   useEffect(() => {
-    if (activeConversation) {
+    if (activeConversation && user?.id) {
       if (activeConversation._id === 'new_chat') {
         setMessages([]);
         return;
       }
 
+      // CẬP NHẬT TRẠNG THÁI LOGIC: Đổi trạng thái tin nhắn thành đã đọc ngay khi click để hết in đậm mượt mà
+      setConversations(prev => prev.map(conv => 
+        conv._id === activeConversation._id && conv.lastMessage
+          ? { ...conv, lastMessage: { ...conv.lastMessage, isRead: true } }
+          : conv
+      ));
+
       chatService.getMessages(activeConversation._id)
         .then(data => {
           setMessages(data || []);
+          
+          if (socket) {
+            socket.emit('mark_messages_as_read', {
+              conversationId: activeConversation._id,
+              userId: user.id
+            });
+          }
         })
         .catch(err => console.error("Lỗi lấy tin nhắn:", err));
     }
-  }, [activeConversation]);
+
+    return () => {
+      if (socket && user?.id) {
+        socket.emit('leave_room', user.id);
+      }
+    };
+  }, [activeConversation?._id, socket, user]);
 
   // 5. Tự động cuộn xuống tin nhắn mới nhất
   useEffect(() => {
       if (scrollRef.current) {
           scrollRef.current.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'nearest' 
+            behavior: 'smooth', 
+            block: 'nearest' 
           });
       }
   }, [messages]);
@@ -160,13 +242,19 @@ const Chat = () => {
 
     try {
       const savedMsg = await chatService.sendMessage(targetUserId, newMessage);
-      
+      savedMsg.isRead = true; 
+
       socket?.emit('send_message', {
         ...savedMsg,
         receiverId: targetUserId
       });
 
-      setMessages(prev => [...prev, savedMsg]);
+      // Tránh trùng lặp tin nhắn lúc vừa nhấn nút Send
+      setMessages(prev => {
+        if (prev.some(m => m._id === savedMsg._id)) return prev;
+        return [...prev, savedMsg];
+      });
+      
       setNewMessage("");
 
       setConversations(prev => {
@@ -182,16 +270,15 @@ const Chat = () => {
             return updatedConv;
           }
           return conv;
-        });
+        }).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
       });
     } catch (error) {
       console.error("Lỗi gửi tin nhắn", error);
     }
   };
 
-  // Xác định xem user trong phòng chat hiện tại có đang online không
-  const isTargetActiveOnline = activeConversation 
-    ? onlineUsers.includes(activeConversation.targetUser?.id || -1) 
+  const isTargetActiveOnline = activeConversation && activeConversation.targetUser?.id
+    ? onlineUsers.includes(String(activeConversation.targetUser.id)) 
     : false;
 
   return (
@@ -218,7 +305,13 @@ const Chat = () => {
             conversations.map((conv, index) => {
               const targetUser = conv.targetUser;
               const isActive = activeConversation?._id === conv._id;
-              const isOnline = onlineUsers.includes(targetUser?.id || -1); // Kiểm tra trạng thái online
+              const isOnline = targetUser?.id ? onlineUsers.includes(String(targetUser.id)) : false;
+              
+              // Điều kiện xác định tin nhắn cuối cùng chưa đọc
+              const isUnread = conv.lastMessage && 
+                               conv.lastMessage.senderId !== user?.id && 
+                               !conv.lastMessage.isRead && 
+                               !isActive;
               
               return (
                 <div 
@@ -232,28 +325,38 @@ const Chat = () => {
                   style={{ animationDelay: `${index * 60}ms` }}
                 >
                   <div className="relative">
-                    <Avatar className="ring-2 ring-transparent group-hover:ring-blue-500/30 transition-all">
+                    <Avatar className="ring-2 ring-transparent group-hover:ring-blue-500/3# transition-all">
                       <AvatarImage src={targetUser?.avatar_url || ''} />
                       <AvatarFallback className="bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400 font-bold">
                         {targetUser?.name?.charAt(0) || 'U'}
                       </AvatarFallback>
                     </Avatar>
-                    {/* CHẤM XANH Ở SIDEBAR */}
                     {isOnline && (
                       <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-[#0E1422] rounded-full"></span>
                     )}
                   </div>
 
+                  {/* ✅ SỬA TẠI ĐÂY: Làm cho chữ sáng hơn khi chưa đọc */}
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-sm truncate text-slate-800 dark:text-white dark:group-hover:text-blue-400 transition-colors">
+                    {/* Tên người dùng */}
+                    <h4 className={`text-sm truncate dark:group-hover:text-blue-400 transition-colors 
+                      ${isUnread 
+                        ? 'font-bold text-slate-950 dark:text-gray-50' // Sáng hơn: Slate 950 (Light) / Gray 50 (Dark)
+                        : 'font-semibold text-slate-800 dark:text-white' // Mặc định cũ
+                      }`}>
                       {targetUser?.name || 'Người dùng ẩn danh'}
                     </h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                    {/* Nội dung tin nhắn cuối */}
+                    <p className={`text-xs truncate mt-0.5 
+                      ${isUnread 
+                        ? 'font-bold text-slate-900 dark:text-gray-100' // Sáng hơn: Slate 900 (Light) / Gray 100 (Dark)
+                        : 'text-gray-500 dark:text-gray-400' // Mặc định cũ
+                      }`}>
                       {conv.lastMessage?.text || 'Bắt đầu trò chuyện...'}
                     </p>
                   </div>
                 </div>
-              )
+              );
             })
           )}
         </ScrollArea>
@@ -271,18 +374,16 @@ const Chat = () => {
                     <AvatarFallback className="bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400 font-bold">
                       {activeConversation.targetUser?.name?.charAt(0) || 'U'}
                     </AvatarFallback>
-                  </Avatar>
-                  {/* CHẤM XANH Ở HEADER */}
-                  {isTargetActiveOnline && (
-                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-[#0E1422] rounded-full"></span>
-                  )}
+                 </Avatar>
+                 {isTargetActiveOnline && (
+                   <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-[#0E1422] rounded-full"></span>
+                 )}
                </div>
                
                <div className="flex flex-col">
                  <h3 className="font-semibold text-slate-800 dark:text-white leading-tight">
                    {activeConversation.targetUser?.name || 'Đang trò chuyện...'}
                  </h3>
-                 {/* TRẠNG THÁI TEXT Ở HEADER */}
                  {isTargetActiveOnline && (
                    <span className="text-xs text-green-500 font-medium mt-0.5">Đang hoạt động</span>
                  )}
@@ -305,7 +406,7 @@ const Chat = () => {
                         {msg.text}
                       </div>
                     </div>
-                  )
+                  );
                 })}
                 <div ref={scrollRef} />
               </div>
@@ -328,7 +429,6 @@ const Chat = () => {
             </form>
           </>
         ) : (
-          /* Trạng thái trống */
           <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500 flex-col gap-4 bg-gray-50/30 dark:bg-[#0E1422]/40">
             <div className="w-20 h-20 bg-blue-50 dark:bg-blue-950/40 rounded-full flex items-center justify-center border border-transparent dark:border-blue-500/10">
                <Send className="w-8 h-8 text-blue-300 dark:text-blue-500/70 ml-1" />

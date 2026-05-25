@@ -1,8 +1,9 @@
 const db = require("../config/db");
-const Notification = require("../models/Notification"); // ✅ ĐA MANG LÊN ĐẦU FILE ĐỂ DÙNG CHUNG
+const Notification = require("../models/Notification"); 
+const socketUtils = require("../utils/socket");
 
 // ======================================================
-// APPLY JOB (BẢN ĐÃ CHỮA LỖI KIỂU DỮ LIỆU MONGODB)
+// APPLY JOB (BẢN ĐÃ CHỮA LỖI NAME & TÍCH HỢP REAL-TIME)
 // ======================================================
 exports.applyJob = async (req, res) => {
   const { job_id, cover_letter } = req.body;
@@ -11,64 +12,88 @@ exports.applyJob = async (req, res) => {
   try {
     console.log("🚀 [Backend] Nhận yêu cầu ứng tuyển công việc ID:", job_id);
 
-    // 1. CHỮA LỖI: Truy vấn MySQL để lấy thông tin Job (bao gồm tiêu đề và ID người đăng)
+    // 1. Truy vấn MySQL để lấy thông tin Job (bao gồm tiêu đề và ID người đăng)
     const [jobs] = await db.execute(
       "SELECT id, title, posted_by FROM Jobs WHERE id = ? AND deleted_at IS NULL",
-      [job_id]
+      [job_id],
     );
 
     // Kiểm tra nếu không tìm thấy công việc trong Database
     if (jobs.length === 0) {
       console.log(`❌ Thất bại: Không tìm thấy Job ID ${job_id} trong MySQL`);
-      return res.status(404).json({ success: false, message: "Không tìm thấy công việc này hoặc tin tuyển dụng đã bị xóa!" });
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "Không tìm thấy công việc này hoặc tin tuyển dụng đã bị xóa!",
+        });
     }
 
     const job = jobs[0]; // Định nghĩa biến job hợp lệ từ kết quả truy vấn
 
-    // 2. BỔ SUNG: Kiểm tra xem ứng viên đã nộp đơn vào công việc này chưa (Tránh nộp trùng)
+    // 2. Kiểm tra xem ứng viên đã nộp đơn vào công việc này chưa (Tránh nộp trùng)
     const [existingApp] = await db.execute(
       "SELECT id FROM Applications WHERE job_id = ? AND candidate_id = ?",
-      [job_id, candidate_id]
+      [job_id, candidate_id],
     );
 
     if (existingApp.length > 0) {
       console.log("⚠️ Cảnh báo: Ứng viên này đã nộp đơn trùng lặp trước đó.");
-      return res.status(400).json({ success: false, message: "Bạn đã nộp đơn ứng tuyển cho công việc này rồi!" });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Bạn đã nộp đơn ứng tuyển cho công việc này rồi!",
+        });
     }
 
     // 3. THỰC HIỆN: Lưu bản ghi ứng tuyển vào bảng Applications (MySQL)
     await db.execute(
       "INSERT INTO Applications (job_id, candidate_id, cover_letter, status, applied_at) VALUES (?, ?, ?, 'pending', NOW())",
-      [job_id, candidate_id, cover_letter || null]
+      [job_id, candidate_id, cover_letter || null],
     );
     console.log("⚙️ [MySQL] Đã lưu thành công đơn ứng tuyển mới!");
 
-    // 4. TIẾN HÀNH BẮN THÔNG BÁO SANG MONGODB (BỌC CÔ LẬP ĐỂ TRÁNH SẬP LUỒNG)
+    // 4. TIẾN HÀNH BẮN THÔNG BÁO SANG MONGODB & SOCKET REAL-TIME
     try {
-      console.log("⏳ [MongoDB] Đang chuẩn bị bắn thông báo cho Employer ID gốc:", job.posted_by);
+      console.log(
+        "⏳ [MongoDB] Đang chuẩn bị bắn thông báo cho Employer ID gốc:",
+        job.posted_by,
+      );
 
-      // SỬA TẠI ĐÂY: Ép kiểu thành String thay vì Number để đồng bộ với MongoDB Schema
       const targetEmployerId = String(job.posted_by);
 
+      // ✅ FIX LỖI: Lấy thông tin Tên đầy đủ của Ứng viên đang đăng nhập gửi đơn
+      const candidateName = req.user.full_name || req.user.name || req.user.username || "Ứng viên ẩn danh";
+
+      // Lưu vào cơ sở dữ liệu MongoDB thông báo
       const newNotify = await Notification.create({
         user_id: targetEmployerId,
         title: "Đơn ứng tuyển mới 📄",
         message: `Ứng viên ${candidateName} đã nộp đơn vào vị trí "${job.title}"`,
         is_read: false,
         type: "apply",
-        link_url: "/employer/dashboard",
-        created_at: new Date()
+        link_url: "/employer/candidates", 
+        created_at: new Date(),
       });
 
-      console.log("🍃 [MongoDB] Đã lưu thành công thông báo mới! Bản ghi:", newNotify);
+      console.log("🍃 [MongoDB] Đã lưu thành công thông báo mới!");
+
+      // 🔥 REAL-TIME: Bắn trực tiếp qua socket cho Nhà tuyển dụng nhận ngay lập tức
+      socketUtils.sendNotification(targetEmployerId, newNotify);
+
     } catch (mongoError) {
-      console.error("❌ LỖI RIÊNG TẠI LUỒNG MONGODB (MySQL vẫn chạy ổn):");
+      console.error("❌ LỖI TẠI LUỒNG MONGODB/SOCKET (MySQL vẫn chạy ổn):");
       console.error(mongoError.message);
     }
 
     // Luôn trả về thành công vì MySQL đã xử lý xong hồ sơ ứng tuyển
-    return res.status(201).json({ success: true, message: "Ứng tuyển thành công và đang cập nhật thông báo!" });
-
+    return res
+      .status(201)
+      .json({
+        success: true,
+        message: "Ứng tuyển thành công và đang cập nhật thông báo!",
+      });
   } catch (error) {
     console.error("====== LỖI SẬP LUỒNG ỨNG TUYỂN CHÍNH ======");
     console.error(error);
@@ -179,7 +204,7 @@ exports.getApplicationById = async (req, res) => {
 };
 
 // ======================================================
-// UPDATE APPLICATION STATUS
+// UPDATE APPLICATION STATUS (THAY ĐỔI TRẠNG THÁI & REAL-TIME)
 // ======================================================
 exports.updateApplicationStatus = async (req, res) => {
   const { application_id, status } = req.body;
@@ -217,7 +242,7 @@ exports.updateApplicationStatus = async (req, res) => {
       application_id,
     ]);
 
-    // SỬA TẠI ĐÂY: Ép kiểu candidateId về dạng String cho đồng bộ MongoDB
+    // Ép kiểu candidateId về dạng String cho đồng bộ MongoDB
     const candidateId = String(applications[0].candidate_id);
     const jobTitle = applications[0].job_title;
 
@@ -228,35 +253,36 @@ exports.updateApplicationStatus = async (req, res) => {
       notifyTitle = "Hồ sơ đang được xem xét";
       notifyMessage = `Hồ sơ ứng tuyển vị trí "${jobTitle}" của bạn đã được chuyển sang trạng thái: Xem xét (Under Review).`;
     } else if (status === "interviewing") {
-      notifyTitle = "Lời mời phỏng vấn";
-      notifyMessage = `Chúc mừng! Bạn có lịch phỏng vấn cho vị trí "${jobTitle}".`;
+      notifyTitle = "Lời mời phỏng vấn 📅";
+      notifyMessage = `Chúc mừng! Bạn có lịch phỏng vấn cho vị trí "${jobTitle}". Hãy chuẩn bị thật tốt nhé.`;
     } else if (status === "accepted") {
       notifyTitle = "Hồ sơ được chấp nhận 🎉";
-      notifyMessage = `Chúc mừng bạn đã trúng tuyển vị trí "${jobTitle}"!`;
+      notifyMessage = `Chúc mừng bạn đã xuất sắc trúng tuyển vị trí "${jobTitle}"!`;
     } else if (status === "rejected") {
       notifyTitle = "Cập nhật trạng thái hồ sơ";
-      notifyMessage = `Cảm ơn bạn đã ứng tuyển vị trí "${jobTitle}". Hồ sơ của bạn chưa phù hợp lần này.`;
+      notifyMessage = `Cảm ơn bạn đã ứng tuyển vị trí "${jobTitle}". Hồ sơ của bạn chưa phù hợp tiêu chí lần này.`;
     }
 
     if (notifyTitle && notifyMessage) {
-      await Notification.create({
-        user_id: candidateId, // Sử dụng chuỗi string an toàn
+      // 1. Tạo thông báo lưu vào MongoDB cho ứng viên
+      const newCandidateNotify = await Notification.create({
+        user_id: candidateId, 
         title: notifyTitle,
         message: notifyMessage,
         is_read: false,
         type: "system",
-        link_url: "/profile/applications",
-        created_at: new Date() // Đảm bảo thêm mốc thời gian
+        link_url: "/profile/applications", // Trùng khớp với route alias đã fix lỗi 404
+        created_at: new Date(), 
       });
-      console.log(
-        "🍃 [MongoDB] Đã bắn thành công 1 thông báo xét duyệt cho Candidate ID:",
-        candidateId,
-      );
+      console.log("🍃 [MongoDB] Đã tạo thành công 1 thông báo xét duyệt.");
+
+      // 🔥 2. REAL-TIME: Bắn trực tiếp qua socket về cho Ứng viên (Candidate) thấy ngay lập tức
+      socketUtils.sendNotification(candidateId, newCandidateNotify);
     }
 
     res.status(200).json({
       success: true,
-      message: `Đã chuyển trạng thái sang: ${status} và tạo thông báo!`,
+      message: `Đã chuyển trạng thái sang: ${status} và thông báo tới ứng viên thành công!`,
     });
   } catch (error) {
     console.error("🚨 Lỗi update status:", error);

@@ -3,7 +3,6 @@ import {
   Briefcase,
   Bell,
   MessageSquare,
-  CheckCircle2,
   LogOut,
   Settings,
   ChevronDown,
@@ -16,6 +15,7 @@ import {
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "next-themes";
 import axios from "axios";
+import { io, Socket } from "socket.io-client";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import {
   DropdownMenu,
@@ -25,17 +25,17 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 
+// Import chatService để lấy số tin nhắn chưa đọc chuẩn từ Database
+import { chatService } from '../../../services/chatService'; 
+
 const BASE_URL = "http://localhost:5000";
 
 const toFullUrl = (url: string | null | undefined): string => {
   if (!url) return '';
   if (url.startsWith('http') || url.startsWith('data:')) return url;
-  if (!url) return "";
-  if (url.startsWith("http")) return url;
   return `${BASE_URL}${url}`;
 };
 
-// Interface đồng bộ hoàn toàn với Schema thuộc tính của MongoDB 
 interface NotificationItem {
   _id: string;        
   title: string;
@@ -49,6 +49,7 @@ export const Navbar = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const socketRef = useRef<Socket | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { theme, setTheme } = useTheme();
@@ -58,10 +59,15 @@ export const Navbar = () => {
     name: "",
     avatarUrl: "",
     role: "",
+    id: "",
   });
 
+  // State thông báo của Cái chuông
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // State quản lý số đếm tin nhắn chưa đọc độc lập của nút Chat
+  const [chatUnreadCount, setChatUnreadCount] = useState<number>(0);
 
   const getNavLinks = () => {
     const baseLinks = [{ name: "Home", path: "/" }];
@@ -88,33 +94,114 @@ export const Navbar = () => {
 
   const navLinks = getNavLinks();
 
+  // Lấy thông báo hệ thống cho Cái chuông (đã lọc bỏ chat từ API backend nếu có)
   const fetchNotifications = async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
-
     try {
       const response = await axios.get(`${BASE_URL}/api/notifications`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.data.success) {
-        setNotifications(response.data.data);
+        // Chỉ lấy những thông báo không phải là chat để cho vào chuông
+        const systemNotifs = response.data.data.filter((n: any) => n.link_url !== "/chat");
+        setNotifications(systemNotifs);
       }
     } catch (error) {
       console.error("Lỗi lấy thông báo từ API:", error);
     }
   };
 
-  // Gọi lại API lấy thông báo tự động mỗi khi mở bảng thông báo ra xem
+  // Hàm lấy số lượng tin nhắn chưa đọc từ api chatService (dùng lúc tải trang ban đầu)
+  const fetchUnreadChatCount = async () => {
+    if (window.location.pathname === "/chat") {
+      setChatUnreadCount(0);
+      return;
+    }
+    try {
+      const data = await chatService.getConversations();
+      if (data) {
+        const total = data.reduce((sum: number, conv: any) => {
+          const count = conv.unreadCount !== undefined ? conv.unreadCount : (conv.unread_count || 0);
+          return sum + count;
+        }, 0);
+        setChatUnreadCount(total);
+      }
+    } catch (error) {
+      console.error("Lỗi lấy số tin nhắn chưa đọc:", error);
+    }
+  };
+
+  // ======================================================================
+  // ✅ 1. LẮNG NGHE SỰ KIỆN TIN NHẮN TỪ TRANG CHAT.TSX HOẶC WINDOW EVENT BẮN RA
+  // ======================================================================
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const handleChatTrigger = () => {
+      if (window.location.pathname !== "/chat") {
+        fetchUnreadChatCount();
+      }
+    };
+
+    window.addEventListener("incoming-chat-msg", handleChatTrigger);
+    
+    return () => {
+      window.removeEventListener("incoming-chat-msg", handleChatTrigger);
+    };
+  }, [isLoggedIn]);
+
+  // ======================================================================
+  // ✅ 2. XỬ LÝ SOCKET TOÀN CỤC: NHẬN REALTIME CẢ CHUÔNG & CHẤM ĐỎ TIN NHẮN
+  // ======================================================================
+  useEffect(() => {
+    if (isLoggedIn && user.id) {
+      const socket = io(BASE_URL);
+      socketRef.current = socket;
+
+      // Đăng ký định danh Client với Socket Server
+      socket.emit("add_user", user.id);
+
+      // Lắng nghe thông báo chung của quả chuông (chỉ cho vào chuông nếu KHÔNG PHẢI chat)
+      socket.on("receive_notification", (newNotify: NotificationItem) => {
+        if (newNotify.link_url !== "/chat") {
+          setNotifications((prev) => [newNotify, ...prev]);
+        }
+      });
+
+      // 🚨 ĐÃ ĐỔI TÊN SỰ KIỆN: Khớp 100% với event 'update_unread_total' của Backend phát ra
+      socket.on("update_unread_total", (data: any) => {
+        console.log("📩 [SOCKET] Nhận tín hiệu update_unread_total thành công:", data);
+        
+        // Chỉ tiến hành cộng số lượng hiển thị unread nếu user không mở trang /chat
+        if (window.location.pathname !== "/chat") {
+          setChatUnreadCount((prevCount) => prevCount + 1);
+        }
+      });
+
+      return () => {
+        socket.off("receive_notification");
+        socket.off("update_unread_total");
+        socket.disconnect();
+      };
+    }
+  }, [isLoggedIn, user.id]);
+
   useEffect(() => {
     if (showNotifications && isLoggedIn) {
       fetchNotifications();
     }
   }, [showNotifications, isLoggedIn]);
 
-  // Xử lý cập nhật trạng thái đọc và ép tuyến đường cho Employer
+  // Khi người dùng bấm trực tiếp vào trang /chat, reset số thông báo chat về 0 ngay lập tức
+  useEffect(() => {
+    if (location.pathname === "/chat") {
+      setChatUnreadCount(0);
+    }
+  }, [location.pathname]);
+
   const handleMarkAsRead = async (id: string, linkUrl: string | null) => {
     if (isProcessing) return;
-
     const token = localStorage.getItem("token");
     if (!token) return;
 
@@ -123,13 +210,11 @@ export const Navbar = () => {
 
     if (currentNotif && !currentNotif.is_read) {
       setIsProcessing(true);
-
       setNotifications((prev) =>
         prev.map((item) =>
           item._id === id ? { ...item, is_read: true } : item
         )
       );
-
       try {
         await axios.put(
           `${BASE_URL}/api/notifications/${id}/read`,
@@ -143,18 +228,16 @@ export const Navbar = () => {
       }
     }
 
-    // Kiểm tra quyền chuyển hướng
-    if (user.role?.toLowerCase() === "employer") {
-      navigate("/employer/candidates");
-    } else if (linkUrl) {
+    if (linkUrl) {
       navigate(linkUrl);
+    } else if (user.role?.toLowerCase() === "employer") {
+      navigate("/employer/candidates");
     }
   };
 
   const handleMarkAllRead = async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
-
     try {
       await axios.put(
         `${BASE_URL}/api/notifications/read-all`,
@@ -169,7 +252,6 @@ export const Navbar = () => {
     }
   };
 
-  // Tách biệt luồng xử lý và đảm bảo fetch luôn chạy sau khi gán login thành công
   useEffect(() => {
     const loadUserData = () => {
       const token = localStorage.getItem("token");
@@ -180,6 +262,7 @@ export const Navbar = () => {
         try {
           const parsedUser = JSON.parse(savedUserStr);
           setUser({
+            id: parsedUser.id || parsedUser._id || "",
             name: parsedUser.full_name || parsedUser.name || "",
             avatarUrl: toFullUrl(parsedUser.avatar_url),
             role: parsedUser.role || "",
@@ -190,6 +273,8 @@ export const Navbar = () => {
       } else {
         setIsLoggedIn(false);
         setNotifications([]);
+        setChatUnreadCount(0);
+        setUser({ name: "", avatarUrl: "", role: "", id: "" });
       }
     };
 
@@ -219,10 +304,10 @@ export const Navbar = () => {
     };
   }, []);
 
-  // Tự động chạy lấy thông báo lần đầu ngay khi login đổi trạng thái thành true
   useEffect(() => {
     if (isLoggedIn) {
       fetchNotifications();
+      fetchUnreadChatCount();
     }
   }, [isLoggedIn]);
 
@@ -240,11 +325,15 @@ export const Navbar = () => {
   }, []);
 
   const handleLogout = () => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+    }
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setIsLoggedIn(false);
-    setUser({ name: "", avatarUrl: "", role: "" });
+    setUser({ name: "", avatarUrl: "", role: "", id: "" });
     setNotifications([]);
+    setChatUnreadCount(0);
     window.dispatchEvent(new Event("auth-change"));
     navigate("/");
   };
@@ -255,14 +344,13 @@ export const Navbar = () => {
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/80 backdrop-blur-md transition-colors dark:border-white/10 dark:bg-[#0B0F19]/80">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-        {/* LEFT: LOGO + NAV LINKS */}
         <div className="flex items-center gap-10">
           <Link to="/" className="flex items-center gap-2 shrink-0">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-md shadow-blue-500/20">
               <Briefcase size={20} />
             </div>
             <span className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-              Job
+              Job{" "}
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Spot
               </span>
@@ -289,7 +377,6 @@ export const Navbar = () => {
           </div>
         </div>
 
-        {/* RIGHT: CONTROLS */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -314,10 +401,11 @@ export const Navbar = () => {
             />
           </button>
 
+          {/* NÚT MESSAGES */}
           {isLoggedIn && (
             <Link
               to="/chat"
-              className={`relative rounded-full p-2 transition-colors ${
+              className={`relative rounded-full p-2 transition-all duration-200 ${
                 location.pathname === "/chat"
                   ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
                   : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10"
@@ -325,6 +413,12 @@ export const Navbar = () => {
               title="Messages"
             >
               <MessageSquare size={20} />
+              
+              {chatUnreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-white dark:ring-[#0B0F19] animate-pulse">
+                  {chatUnreadCount > 9 ? "9+" : chatUnreadCount}
+                </span>
+              )}
             </Link>
           )}
 
@@ -389,7 +483,7 @@ export const Navbar = () => {
             )}
           </div>
 
-          {/* USER AUTH */}
+          {/* USER AUTH DROPDOWN */}
           {isLoggedIn ? (
             <DropdownMenu>
               <DropdownMenuTrigger className="outline-none">
@@ -427,7 +521,6 @@ export const Navbar = () => {
                 </div>
                 <DropdownMenuSeparator className="bg-gray-100 dark:bg-white/5" />
 
-                {/* Nếu không phải Employer (tức Candidate) thì hiện Hồ sơ cá nhân của ứng viên */}
                 {!isEmployer && (
                   <DropdownMenuItem className="p-1 cursor-pointer focus:bg-transparent">
                     <Link
@@ -444,7 +537,6 @@ export const Navbar = () => {
                   </DropdownMenuItem>
                 )}
 
-                {/* THÊM VÀO ĐÂY: Phần dành riêng cho Employer - Quản lý trang Công ty */}
                 {isEmployer && (
                   <DropdownMenuItem className="p-1 cursor-pointer focus:bg-transparent">
                     <Link
@@ -479,7 +571,7 @@ export const Navbar = () => {
 
                 <DropdownMenuItem
                   onClick={handleLogout}
-                  className="p-1 cursor-pointer focus:bg-transparent mt-1"
+                  className="p-1 cursor-pointer focus:bg-transparent"
                 >
                   <div className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group">
                     <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-red-500/10 dark:group-hover:bg-red-500/20 transition-colors">
@@ -501,7 +593,6 @@ export const Navbar = () => {
             </Link>
           )}
 
-          {/* POST A JOB */}
           {isLoggedIn && isEmployer && (
             <Link
               to="/employer/jobs/new"
@@ -511,7 +602,6 @@ export const Navbar = () => {
             </Link>
           )}
 
-          {/* MOBILE MENU TOGGLE */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="rounded-full p-2 text-gray-500 hover:bg-gray-100 transition-colors dark:text-gray-400 dark:hover:bg-white/10 md:hidden"
@@ -521,7 +611,6 @@ export const Navbar = () => {
         </div>
       </div>
 
-      {/* MOBILE DROPDOWN MENU */}
       {mobileMenuOpen && (
         <div className="border-t border-gray-100 bg-white px-6 py-4 space-y-3 md:hidden shadow-inner dark:border-white/5 dark:bg-[#0B0F19]">
           {navLinks.map((link) => {
