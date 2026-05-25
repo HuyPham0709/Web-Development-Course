@@ -35,7 +35,9 @@ export const JobCard: React.FC<JobCardProps> = ({ job, isSaved, onToggleSave, in
 
   return (
     <div
-      className="group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-blue-200 hover:shadow-xl dark:border-white/10 dark:bg-white/5 dark:hover:border-blue-500/30"
+      onClick={() => navigate(`/job/${job.id}`)}
+      // 1. NÂNG CẤP HOVER CARD: Thêm -translate-y-1.5 (nhấc lên), bóng màu xanh glow, viền rõ hơn
+      className="cursor-pointer group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:-translate-y-1.5 hover:border-blue-300 hover:shadow-2xl hover:shadow-blue-500/20 dark:border-white/10 dark:bg-white/5 dark:hover:border-blue-500/50 dark:hover:shadow-blue-500/20 dark:hover:bg-white/10"
     >
       <div className="mb-6 flex items-start justify-between">
         <div className="flex items-center gap-4">
@@ -52,26 +54,24 @@ export const JobCard: React.FC<JobCardProps> = ({ job, isSaved, onToggleSave, in
         </div>
         <button
           onClick={(e) => {
-            e.stopPropagation(); // Ngăn click nhầm vào card khi bấm save
+            e.stopPropagation();
             onToggleSave(job.id);
           }}
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-colors
+          // Hiệu ứng nút Lưu tin mượt hơn khi scale
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-all duration-300 hover:scale-110 active:scale-95
             ${
               isSaved
                 ? "border-rose-200 bg-rose-50 text-rose-500 dark:bg-rose-950/40"
-                : "border-gray-200 bg-gray-50 text-gray-400 hover:border-rose-200 hover:text-rose-500 hover:bg-rose-50 dark:border-white/10 dark:bg-white/5"
+                : "border-gray-200 bg-gray-50 text-gray-400 hover:border-rose-300 hover:text-rose-500 hover:bg-rose-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-rose-500/10"
             }
           `}
         >
-          <Heart size={18} fill={isSaved ? "currentColor" : "none"} />
+          <Heart size={18} fill={isSaved ? "currentColor" : "none"} className={isSaved ? "animate-pulse" : ""} />
         </button>
       </div>
 
       <div className="mb-6">
-        <h3
-          onClick={() => navigate(`/job/${job.id}`)}
-          className="mb-2 text-xl font-bold text-gray-900 group-hover:text-blue-600 cursor-pointer transition-colors dark:text-white dark:group-hover:text-blue-400 line-clamp-2"
-        >
+        <h3 className="mb-2 text-xl font-bold text-gray-900 transition-colors group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400 line-clamp-2">
           {job.title}
         </h3>
         <div className="mb-4 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
@@ -79,8 +79,8 @@ export const JobCard: React.FC<JobCardProps> = ({ job, isSaved, onToggleSave, in
           <div className="flex items-center gap-1.5"><Clock size={16} /><span className="capitalize">{jobType}</span></div>
         </div>
         <div className="flex gap-2">
-          <span className="rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600 capitalize dark:bg-white/10 dark:text-gray-300">{jobType}</span>
-          <span className="rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600 capitalize dark:bg-white/10 dark:text-gray-300">{experience}</span>
+          <span className="rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium capitalize text-gray-600 dark:bg-white/10 dark:text-gray-300">{jobType}</span>
+          <span className="rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium capitalize text-gray-600 dark:bg-white/10 dark:text-gray-300">{experience}</span>
         </div>
       </div>
 
@@ -96,10 +96,19 @@ export const JobCard: React.FC<JobCardProps> = ({ job, isSaved, onToggleSave, in
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate(`/job/${job.id}`)}
-            className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 py-3.5 font-semibold text-white transition-all hover:opacity-90 hover:shadow-lg hover:scale-[1.02]"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/job/${job.id}`);
+            }}
+            // 2. NÂNG CẤP NÚT QUICK APPLY: 
+            // - Dùng group/btn để điều khiển icon bên trong.
+            // - Thay đổi màu hover:from-blue-500 hover:to-purple-500 cho sáng hơn.
+            // - Thêm hover:shadow-[glow] và hiệu ứng nhấn (active:scale-95).
+            className="group/btn flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 py-3.5 font-semibold text-white transition-all duration-300 hover:scale-105 hover:from-blue-500 hover:to-purple-500 hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] active:scale-95"
           >
-            <Zap size={18} /> Quick Apply
+            {/* 3. ICON HOVER: Khi di chuột vào nút, tia chớp sẽ phóng to một chút và chuyển sang màu vàng (hoặc có thể bỏ text-yellow-300 nếu bạn muốn giữ màu trắng) */}
+            <Zap size={18} className="transition-all duration-300 group-hover/btn:scale-125 group-hover/btn:text-yellow-300 group-hover/btn:rotate-12" /> 
+            Quick Apply
           </button>
         </div>
       </div>
