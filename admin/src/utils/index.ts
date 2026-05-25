@@ -19,10 +19,38 @@ export function formatDate(dateStr: string): string {
     return new Date(dateStr).toLocaleDateString('vi-VN');
 }
 
-// Format lương (VD: 20000000 -> "20M")
-export function formatSalary(min: number, max: number): string {
-    if (!min && !max) return 'Thỏa thuận';
-    return `${(min / 1_000_000).toFixed(0)}M – ${(max / 1_000_000).toFixed(0)}M`;
+// src/utils/index.ts
+
+export function formatSalary(
+    min: number | string | null | undefined,
+    max: number | string | null | undefined,
+    currency = "VND"
+): string {
+    const numMin = min !== null && min !== undefined ? Number(min) : 0;
+    const numMax = max !== null && max !== undefined ? Number(max) : 0;
+    const currentCurrency = String(currency || "VND").toUpperCase();
+
+    if (!numMin && !numMax) return 'Thỏa thuận';
+
+    if (currentCurrency === "VND") {
+        // Hàm phụ để biến đổi từng số đơn lẻ thành chuỗi hiển thị thông minh
+        const formatSingleValue = (val: number): string => {
+            if (val >= 1000000) {
+                const valueM = val / 1000000;
+                // Nếu là số nguyên (ví dụ 1.0) thì lấy 1M, nếu lẻ (ví dụ 1.5) thì giữ 1.5M
+                return Number(valueM.toFixed(1)) + "M";
+            } else if (val >= 1000) {
+                const valueK = val / 1000;
+                return Number(valueK.toFixed(0)) + " K";
+            }
+            return val.toString();
+        };
+
+        return `${formatSingleValue(numMin)} - ${formatSingleValue(numMax)}`;
+    }
+
+    // Fallback định dạng chuẩn cho ngoại tệ khác (USD...)
+    return `${numMin.toLocaleString()} - ${numMax.toLocaleString()} ${currentCurrency}`;
 }
 
 // Parse requirements từ JSON array hoặc plain text

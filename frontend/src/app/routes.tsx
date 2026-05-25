@@ -8,6 +8,7 @@ import App from "./App";
 import Home from "./pages/public/Home";
 import JobDetail from "./pages/public/JobDetail";
 import Auth from "./pages/auth/Auth";
+import { Jobs } from "./pages/public/Jobs"; // <-- THÊM COMPONENT MỚI Ở ĐÂY
 
 // CANDIDATE PAGES
 import ProfileDashboard from "./pages/candidate/ProfileDashboard";
@@ -27,7 +28,7 @@ import ErrorPage from "./pages/shared/ErrorPage";
 import Chat from "./pages/shared/Chat";
 
 // ======================================================
-// PROTECTED ROUTE (ROLE REQUIRED)
+// PROTECTED ROUTE (Bắt buộc đúng Role cụ thể)
 // ======================================================
 const ProtectedRoute = ({ allowedRole }: { allowedRole: string }) => {
   const userStr = localStorage.getItem("user");
@@ -54,20 +55,12 @@ const ProtectedRoute = ({ allowedRole }: { allowedRole: string }) => {
     return <Outlet />;
   } catch (error) {
     console.error("Lỗi parse user:", error);
-
-    value_cleanup();
     return <Navigate to="/auth" replace />;
   }
 };
 
-// Hàm phụ dọn dẹp storage khi lỗi parse
-const value_cleanup = () => {
-  localStorage.removeItem("user");
-  localStorage.removeItem("token");
-};
-
 // ======================================================
-// REQUIRE LOGIN ONLY (ANY ROLE)
+// REQUIRE LOGIN ONLY (Chỉ cần đăng nhập, Role nào cũng được)
 // ======================================================
 const RequireAuth = () => {
   const userStr = localStorage.getItem("user");
@@ -89,54 +82,86 @@ export const router = createBrowserRouter([
     errorElement: <ErrorPage />,
     children: [
       // ==========================================
-      // PUBLIC ROUTES (Ai cũng vào được)
+      // 1. PUBLIC ROUTES (Ai cũng vào được)
       // ==========================================
-      { index: true, element: <Home /> },
-      { path: "auth", element: <Auth /> },
-      { path: "job/:id", element: <JobDetail /> },
-      
-      // Bất kỳ ai (Kể cả Candidate) click vào xem công ty đều dùng route này
-      { path: "companies/:id", element: <CompanyProfile /> }, 
+      {
+        index: true,
+        element: <Home />,
+      },
+      {
+        path: "auth",
+        element: <Auth />,
+      },
+      {
+        path: "jobs", // <-- TUYẾN ĐƯỜNG XEM TẤT CẢ VIỆC LÀM
+        element: <Jobs />,
+      },
+      {
+        path: "job/:id",
+        element: <JobDetail />,
+      },
+      {
+        path: "company/:id",
+        element: <CompanyProfile />,
+      },
 
       // ==========================================
-      // LOGIN REQUIRED (Cứ Đăng nhập là vào được - Chat, Settings...)
+      // 2. SHARED ROUTES (Đăng nhập là vào được - Cả 2 Roles)
       // ==========================================
       {
         element: <RequireAuth />,
         children: [
-          { path: "chat", element: <Chat /> },
           { path: "settings", element: <Settings /> },
+          { path: "chat", element: <Chat /> }, 
         ],
       },
 
       // ==========================================
-      // CANDIDATE ROUTES (Chỉ Candidate được vào)
+      // 3. CANDIDATE ROUTES (Chỉ Candidate được vào)
       // ==========================================
       {
         element: <ProtectedRoute allowedRole="candidate" />,
         children: [
           { path: "profile", element: <ProfileDashboard /> },
           { path: "applications", element: <MyApplications /> },
-          
-          // Hứng cái link thông báo "/profile/applications" bị lệch
           { path: "profile/applications", element: <MyApplications /> },
         ],
       },
 
       // ==========================================
-      // EMPLOYER ROUTES (Chỉ Employer được vào)
+      // 4. EMPLOYER ROUTES (Chỉ Employer được vào)
       // ==========================================
       {
         element: <ProtectedRoute allowedRole="employer" />,
         children: [
-          { path: "employer/dashboard", element: <EmployerDashboard /> },
-          { path: "employer/candidates", element: <CandidateManagement /> },
-          { path: "employer/candidate/:id", element: <CandidateDetail /> },
-          { path: "employer/jobs/new", element: <JobForm /> },
-          { path: "employer/cv-search", element: <CVSearch /> },
-          
-          // Dành riêng cho Employer khi họ muốn tự sửa Profile của công ty họ
-          { path: "employer/profile", element: <CompanyProfile /> },
+          {
+            path: "employer/dashboard",
+            element: <EmployerDashboard />,
+          },
+          {
+            path: "employer/candidates",
+            element: <CandidateManagement />,
+          },
+          {
+            path: "employer/candidate/:id",
+            element: <CandidateDetail />,
+          },
+          {
+            path: "employer/jobs/new",
+            element: <JobForm />,
+          },
+          {
+            path: "employer/jobs/edit/:id",
+            element: <JobForm />,
+          },
+          {
+            path: "employer/cv-search",
+            element: <CVSearch />,
+          },
+          {
+            path: "employer/profile",
+            element: <CompanyProfile />,
+          },
         ],
       },
     ],

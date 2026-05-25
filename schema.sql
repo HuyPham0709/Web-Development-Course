@@ -1,9 +1,8 @@
 -- ==========================================================
--- DATABASE: job_finder_db (Phiên bản sạch & Tối ưu hoàn chỉnh)
+-- DATABASE: job_finder_db (Phiên bản Sạch & Nguyên khối 100%)
 -- ==========================================================
 
 SET FOREIGN_KEY_CHECKS = 0;
-DROP DATABASE IF EXISTS job_finder_db;
 CREATE DATABASE job_finder_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE job_finder_db;
 SET FOREIGN_KEY_CHECKS = 1;
@@ -16,7 +15,7 @@ CREATE TABLE Categories (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL UNIQUE,
     slug VARCHAR(100) UNIQUE,
-    icon_url VARCHAR(255) NULL,
+    icon_url VARCHAR(512) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -24,7 +23,7 @@ CREATE TABLE Locations (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL UNIQUE,
     slug VARCHAR(100) UNIQUE,
-    image_url VARCHAR(255) NULL,
+    image_url VARCHAR(512) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -40,14 +39,15 @@ CREATE TABLE Skills (
 CREATE TABLE Companies (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
-    logo_url VARCHAR(255) NULL,
-    banner_url VARCHAR(255) NULL,
+    logo_url VARCHAR(512) NULL,
+    banner_url VARCHAR(512) NULL,
     website VARCHAR(255) NULL,
     description TEXT NULL,
     address VARCHAR(255) NULL,
     slug VARCHAR(100) UNIQUE,
     is_verified BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -62,11 +62,12 @@ CREATE TABLE Users (
     is_verified BOOLEAN DEFAULT FALSE,
     otp_code VARCHAR(6) NULL,
     otp_expires DATETIME NULL,
-    avatar_url VARCHAR(255) NULL,
+    avatar_url VARCHAR(512) NULL,
     display_name VARCHAR(100) NULL,
     reset_password_token VARCHAR(255) NULL,
     reset_password_expires DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL DEFAULT NULL,
     FOREIGN KEY (company_id) REFERENCES Companies(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -88,7 +89,7 @@ CREATE TABLE Profiles (
     avatar_url VARCHAR(512) NULL,    
     cover_url VARCHAR(512) NULL,     
     bio TEXT NULL,
-    social_links JSON NULL COMMENT 'Lưu link mạng xã hội dưới dạng JSON',
+    social_links JSON NULL COMMENT 'Save social links as JSON',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -132,19 +133,25 @@ CREATE TABLE Jobs (
     slug VARCHAR(255) UNIQUE,
     salary_min BIGINT DEFAULT 0,
     salary_max BIGINT DEFAULT 0,
-    thumbnail_url VARCHAR(255) NULL,
+    thumbnail_url VARCHAR(512) NULL,
     job_type ENUM('full-time', 'part-time', 'contract', 'freelance') DEFAULT 'full-time',
-    experience_level ENUM('Thực tập sinh', 'Mới tốt nghiệp/ Chưa có kinh nghiệm', 'Nhân viên', 'Trưởng nhóm', 'Quản lý cấp cao') NULL,
+    experience_level ENUM('intern', 'fresher', 'junior', 'middle', 'senior') NULL,
     description TEXT NOT NULL,
     requirements TEXT NULL,
     benefit TEXT NULL,                
     status ENUM('pending', 'approved', 'rejected', 'closed') DEFAULT 'pending',
+    rejection_reason TEXT NULL DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL DEFAULT NULL,
+    
     FOREIGN KEY (company_id) REFERENCES Companies(id) ON DELETE CASCADE,
     FOREIGN KEY (posted_by) REFERENCES Users(id) ON DELETE RESTRICT,
     FOREIGN KEY (category_id) REFERENCES Categories(id) ON DELETE RESTRICT,
-    FOREIGN KEY (location_id) REFERENCES Locations(id) ON DELETE RESTRICT
+    FOREIGN KEY (location_id) REFERENCES Locations(id) ON DELETE RESTRICT,
+    
+    INDEX idx_job_status (status),
+    INDEX idx_job_type (job_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE User_Skills (
@@ -172,11 +179,14 @@ CREATE TABLE Applications (
     candidate_id INT NOT NULL,
     job_id INT NOT NULL,
     cover_letter TEXT NULL,
-    cv_snapshot_url VARCHAR(255) NULL,
-    status ENUM('pending', 'reviewed', 'accepted', 'rejected') DEFAULT 'pending',
+    cv_snapshot_url VARCHAR(512) NULL,
+    status ENUM('pending', 'reviewed', 'accepted', 'rejected', 'interviewing') DEFAULT 'pending',
     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
     FOREIGN KEY (candidate_id) REFERENCES Users(id) ON DELETE CASCADE,
-    FOREIGN KEY (job_id) REFERENCES Jobs(id) ON DELETE CASCADE
+    FOREIGN KEY (job_id) REFERENCES Jobs(id) ON DELETE CASCADE,
+    
+    INDEX idx_application_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE Favorite_Jobs (
@@ -204,7 +214,9 @@ CREATE TABLE Messages (
 CREATE TABLE Notifications (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
+    link_url VARCHAR(512) DEFAULT NULL,
     is_read BOOLEAN DEFAULT FALSE,
     type ENUM('application_status', 'new_job', 'system') DEFAULT 'system',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -223,7 +235,7 @@ CREATE TABLE Reports (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ==========================================================
--- 6. TIÊU CHÍ TÌM VIỆC (JobCriteria)
+-- 6. TIÊU CHÍ TÌM VIỆC & GHI CHÚ
 -- ==========================================================
 
 CREATE TABLE JobCriteria (
@@ -244,12 +256,20 @@ CREATE TABLE JobCriteria (
     preferred_companies TEXT NULL,                 
     benefits TEXT NULL,                            
     available_from DATE NULL,                      
-    is_open_to_work TINYINT DEFAULT 1,            
+    is_open_to_work BOOLEAN DEFAULT TRUE,            
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
+    
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
+    
+    INDEX idx_jobcriteria_user (user_id),
+    INDEX idx_jobcriteria_salary (salary_min, salary_max),
+    INDEX idx_jobcriteria_location (preferred_location),
+    INDEX idx_jobcriteria_industry (industry),
+    INDEX idx_jobcriteria_career_level (career_level),
+    INDEX idx_jobcriteria_workplace (workplace_type),
+    INDEX idx_jobcriteria_open_to_work (is_open_to_work)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 
 CREATE TABLE Application_Notes (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -257,29 +277,7 @@ CREATE TABLE Application_Notes (
     author_id INT NOT NULL,
     content TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (application_id) REFERENCES Applications(id) ON DELETE CASCADE,
     FOREIGN KEY (author_id) REFERENCES Users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-ALTER TABLE Applications 
-MODIFY COLUMN status ENUM('pending', 'reviewed', 'accepted', 'rejected', 'interviewing') DEFAULT 'pending';
--- ==========================================================
--- 7. CHỈ MỤC (INDEXES TỐI ƯU SEARCH)
--- ==========================================================
-
--- Chỉ mục cho bảng Jobs & Applications
-CREATE INDEX idx_job_status ON Jobs(status);
-CREATE INDEX idx_job_type ON Jobs(job_type);
-CREATE INDEX idx_application_status ON Applications(status);
-
--- Chỉ mục cho bảng JobCriteria
-CREATE INDEX idx_jobcriteria_user ON JobCriteria(user_id);
-CREATE INDEX idx_jobcriteria_salary ON JobCriteria(salary_min, salary_max);
-CREATE INDEX idx_jobcriteria_location ON JobCriteria(preferred_location);
-CREATE INDEX idx_jobcriteria_industry ON JobCriteria(industry);
-CREATE INDEX idx_jobcriteria_career_level ON JobCriteria(career_level);
-CREATE INDEX idx_jobcriteria_workplace ON JobCriteria(workplace_type);
-CREATE INDEX idx_jobcriteria_open_to_work ON JobCriteria(is_open_to_work);
-
-ALTER TABLE Notifications ADD COLUMN link_url VARCHAR(255) DEFAULT NULL;
-ALTER TABLE Notifications ADD COLUMN title VARCHAR(255) NOT NULL AFTER user_id;
