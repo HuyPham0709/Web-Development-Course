@@ -27,9 +27,8 @@ import ErrorPage from "./pages/shared/ErrorPage";
 import Chat from "./pages/shared/Chat";
 
 // ======================================================
-// PROTECTED ROUTE
+// PROTECTED ROUTE (Bắt buộc đúng Role cụ thể)
 // ======================================================
-
 const ProtectedRoute = ({ allowedRole }: { allowedRole: string }) => {
   const userStr = localStorage.getItem("user");
 
@@ -66,9 +65,8 @@ const ProtectedRoute = ({ allowedRole }: { allowedRole: string }) => {
 };
 
 // ======================================================
-// REQUIRE LOGIN ONLY
+// REQUIRE LOGIN ONLY (Chỉ cần đăng nhập, Role nào cũng được)
 // ======================================================
-
 const RequireAuth = () => {
   const userStr = localStorage.getItem("user");
 
@@ -80,94 +78,76 @@ const RequireAuth = () => {
 };
 
 // ======================================================
-// ROUTER
+// ROUTER CONFIGURATION
 // ======================================================
-
 export const router = createBrowserRouter([
   {
     path: "/",
     element: <App />,
     errorElement: <ErrorPage />,
     children: [
-      // =========================
-      // PUBLIC ROUTES
-      // =========================
-
+      // ==========================================
+      // 1. PUBLIC ROUTES (Ai cũng vào được)
+      // ==========================================
       {
         index: true,
         element: <Home />,
       },
-
       {
         path: "auth",
         element: <Auth />,
       },
-
       {
         path: "job/:id",
         element: <JobDetail />,
       },
 
-      // =========================
-      // LOGIN REQUIRED
-      // =========================
-
+      // ==========================================
+      // 2. SHARED ROUTES (Đăng nhập là vào được - Cả 2 Roles)
+      // ==========================================
       {
         element: <RequireAuth />,
         children: [
-          { path: "profile", element: <ProfileDashboard /> }, // BỔ SUNG: Route trang profile
-
-          { path: "applications", element: <MyApplications /> },
-
-          { path: "settings", element: <Settings /> }, // BỔ SUNG: Route cài đặt chung
+          { path: "settings", element: <Settings /> },
+          { path: "chat", element: <Chat /> }, // Chat dùng chung nên để ở đây
         ],
       },
 
-      // =========================
-      // CANDIDATE ROUTES
-      // =========================
-
+      // ==========================================
+      // 3. CANDIDATE ROUTES (Chỉ Candidate được vào)
+      // ==========================================
       {
         element: <ProtectedRoute allowedRole="candidate" />,
         children: [
           { path: "profile", element: <ProfileDashboard /> },
           { path: "applications", element: <MyApplications /> },
-
-          // BỔ SUNG DÒNG NÀY: Để hứng cái link thông báo "/profile/applications" bị lệch
+          // Hứng link từ thông báo cũ bị lệch nếu có
           { path: "profile/applications", element: <MyApplications /> },
-
-          { path: "settings", element: <Settings /> },
         ],
       },
 
-      // =========================
-      // EMPLOYER ROUTES
-      // =========================
-
+      // ==========================================
+      // 4. EMPLOYER ROUTES (Chỉ Employer được vào)
+      // ==========================================
       {
         element: <ProtectedRoute allowedRole="employer" />,
-
         children: [
           {
             path: "employer/dashboard",
             element: <EmployerDashboard />,
           },
-
           {
             path: "employer/candidates",
             element: <CandidateManagement />,
           },
-
           {
             path: "employer/candidate/:id",
             element: <CandidateDetail />,
           },
-
           {
             path: "employer/jobs/new",
             element: <JobForm />,
           },
-
           {
             path: "employer/cv-search",
             element: <CVSearch />,

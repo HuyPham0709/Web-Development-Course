@@ -16,19 +16,22 @@ module.exports = {
         io.on('connection', (socket) => {
             console.log('User connected:', socket.id);
 
-            // Khi user đăng nhập/vào trang
+            // Khi user đăng nhập/vào trang (Giữ nguyên logic cũ)
             socket.on('add_user', (userId) => {
-                onlineUsers.set(userId, socket.id);
-                // CHỨC NĂNG MỚI: Gửi mảng chứa các userId đang online cho toàn bộ client
-                io.emit('get_online_users', Array.from(onlineUsers.keys()));
+                if (userId) {
+                    // Ép kiểu sang String để tránh lệch kiểu dữ liệu giữa các bên
+                    onlineUsers.set(String(userId), socket.id);
+                    io.emit('get_online_users', Array.from(onlineUsers.keys()));
+                    console.log(`👤 User ${userId} đã đăng ký socket: ${socket.id}`);
+                }
             });
 
-            // Gửi tin nhắn real-time
+            // Gửi tin nhắn real-time (Đã tích hợp thêm bắn thông báo)
             socket.on('send_message', (data) => {
                 const { receiverId, senderId, text, fileUrl, conversationId, createdAt } = data;
-                const receiverSocketId = onlineUsers.get(receiverId);
+                const receiverSocketId = onlineUsers.get(String(receiverId));
 
-                // Nếu user kia đang online, push tin nhắn trực tiếp
+                // 1. Logic cũ: Đẩy tin nhắn vào màn hình nếu đối phương đang trực tiếp mở ô chat
                 if (receiverSocketId) {
                     io.to(receiverSocketId).emit('receive_message', {
                         conversationId,
@@ -38,6 +41,21 @@ module.exports = {
                         createdAt: createdAt || new Date()
                     });
                 }
+
+                // ======================================================================
+                // LOGIC MỚI: TỰ ĐỘNG ĐÓNG GÓI VÀ BẮN THÔNG BÁO LÊN NAVBAR REAL-TIME
+                // ======================================================================
+                const chatNotificationPayload = {
+                    _id: `chat_msg_${Date.now()}`, // Tạo ID tạm thời unique
+                    title: "Tin nhắn mới", 
+                    message: text || (fileUrl ? "📷 Đã gửi một tệp đính kèm..." : ""),
+                    created_at: new Date().toISOString(),
+                    is_read: false,
+                    link_url: "/chat" // Nhấp vào quả chuông sẽ tự động chuyển hướng đến trang chat
+                };
+
+                // Gọi hàm sendNotification ở dưới để đẩy thẳng data lên thanh Navbar người nhận
+                module.exports.sendNotification(receiverId, chatNotificationPayload);
             });
 
             socket.on('disconnect', () => {
@@ -48,7 +66,7 @@ module.exports = {
                         break;
                     }
                 }
-                // CHỨC NĂNG MỚI: Cập nhật lại danh sách online khi có người thoát
+                // Cập nhật lại danh sách online khi có người thoát
                 io.emit('get_online_users', Array.from(onlineUsers.keys()));
                 console.log('User disconnected:', socket.id);
             });
@@ -56,8 +74,24 @@ module.exports = {
 
         return io;
     },
+
     getIO: () => {
         if (!io) throw new Error('Socket.io is not initialized!');
         return io;
+    },
+
+    // Chức năng bắn thông báo đích danh (dùng cho cả chat lẫn các API controller khác)
+    sendNotification: (targetUserId, notificationData) => {
+        if (!io) return;
+        
+        // Tìm socketId của người nhận dựa vào map onlineUsers
+        const targetSocketId = onlineUsers.get(String(targetUserId));
+        
+        if (targetSocketId) {
+            io.to(targetSocketId).emit('receive_notification', notificationData);
+            console.log(`⚡ Đã bắn real-time thông báo tới User ${targetUserId}`);
+        } else {
+            console.log(`📴 User ${targetUserId} đang offline, thông báo sẽ đợi hiển thị khi họ F5.`);
+        }
     }
 };
