@@ -57,12 +57,11 @@ exports.createJob = async (req, res) => {
 };
 
 // 2. API Lấy tất cả tin (cho Trang chủ)
-// 2. API Lấy tất cả tin (cho Trang chủ)
 exports.getAllJobs = async (req, res) => {
     try {
-        const { title, location } = req.query;
+        // CẬP NHẬT: Lấy TẤT CẢ các tham số bao gồm cả experience_level và salary_min
+        const { title, location, category_id, type, experience_level, salary_min } = req.query;
 
-        // SỬA Ở ĐÂY: Thêm GROUP_CONCAT(s.name) và LEFT JOIN bảng Skills
         let query = `
             SELECT j.*, 
                    c.name as company_name, 
@@ -74,10 +73,11 @@ exports.getAllJobs = async (req, res) => {
             LEFT JOIN Locations l ON j.location_id = l.id
             LEFT JOIN Job_Skills js ON j.id = js.job_id
             LEFT JOIN Skills s ON js.skill_id = s.id
-            WHERE 1=1 
-        `;
+            WHERE j.deleted_at IS NULL AND j.status = 'approved'
+        `; // Nên thêm j.status = 'approved' để chỉ hiển thị các job đã duyệt
 
         const params = [];
+        
         if (title) {
             query += ` AND (j.title LIKE ? OR j.description LIKE ?)`;
             params.push(`%${title}%`, `%${title}%`);
@@ -86,9 +86,29 @@ exports.getAllJobs = async (req, res) => {
             query += ` AND l.name LIKE ?`;
             params.push(`%${location}%`);
         }
+        if (category_id) {
+            query += ` AND j.category_id = ?`;
+            params.push(category_id);
+        }
+        if (type) {
+            query += ` AND j.job_type = ?`;
+            params.push(type);
+        }
+        
+        // ⭐️ THÊM MỚI: Lọc theo Cấp bậc kinh nghiệm
+        if (experience_level) {
+            query += ` AND j.experience_level = ?`;
+            params.push(experience_level);
+        }
 
-        // Bắt buộc phải có GROUP BY khi dùng hàm gộp GROUP_CONCAT
-        query += ` GROUP BY j.id`;
+        // ⭐️ THÊM MỚI: Lọc theo Mức lương mong muốn
+        if (salary_min && Number(salary_min) > 0) {
+            // Lấy những công việc có mức lương tối đa lớn hơn hoặc bằng mức tối thiểu user mong muốn
+            query += ` AND j.salary_max >= ?`; 
+            params.push(Number(salary_min));
+        }
+
+        query += ` GROUP BY j.id ORDER BY j.created_at DESC`;
 
         const [rows] = await db.execute(query, params);
         res.status(200).json({ success: true, data: rows });

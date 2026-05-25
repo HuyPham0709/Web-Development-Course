@@ -37,7 +37,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, isSaved, onToggleSave, in
     <div
       onClick={() => navigate(`/job/${job.id}`)}
       // 1. NÂNG CẤP HOVER CARD: Thêm -translate-y-1.5 (nhấc lên), bóng màu xanh glow, viền rõ hơn
-      className="cursor-pointer group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:-translate-y-1.5 hover:border-blue-300 hover:shadow-2xl hover:shadow-blue-500/20 dark:border-white/10 dark:bg-white/5 dark:hover:border-blue-500/50 dark:hover:shadow-blue-500/20 dark:hover:bg-white/10"
+      className="cursor-pointer group relative flex h-full w-full flex-col justify-between overflow-hidden rounded-3xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-blue-300 hover:shadow-2xl hover:shadow-blue-500/20 dark:border-white/10 dark:bg-white/5 dark:hover:border-blue-500/50 dark:hover:shadow-blue-500/20 dark:hover:bg-white/10"
     >
       <div className="mb-6 flex items-start justify-between">
         <div className="flex items-center gap-4">
