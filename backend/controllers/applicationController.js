@@ -63,26 +63,18 @@ exports.applyJob = async (req, res) => {
 
       const targetEmployerId = String(job.posted_by);
 
-<<<<<<< HEAD
       // ✅ FIX LỖI: Lấy thông tin Tên đầy đủ của Ứng viên đang đăng nhập gửi đơn
       const candidateName = req.user.full_name || req.user.name || req.user.username || "Ứng viên ẩn danh";
 
       // Lưu vào cơ sở dữ liệu MongoDB thông báo
-=======
->>>>>>> 516238918ea5362915e0494aa5d786668f8e2ab9
       const newNotify = await Notification.create({
         user_id: targetEmployerId,
         title: "Đơn ứng tuyển mới 📄",
         message: `Ứng viên ${candidateName} đã nộp đơn vào vị trí "${job.title}"`,
         is_read: false,
         type: "apply",
-<<<<<<< HEAD
         link_url: "/employer/candidates", 
         created_at: new Date(),
-=======
-        link_url: "/employer/dashboard",
-        created_at: new Date()
->>>>>>> 516238918ea5362915e0494aa5d786668f8e2ab9
       });
 
       console.log("🍃 [MongoDB] Đã lưu thành công thông báo mới!");

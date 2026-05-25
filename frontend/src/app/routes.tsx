@@ -27,11 +27,7 @@ import ErrorPage from "./pages/shared/ErrorPage";
 import Chat from "./pages/shared/Chat";
 
 // ======================================================
-<<<<<<< HEAD
 // PROTECTED ROUTE (Bắt buộc đúng Role cụ thể)
-=======
-// PROTECTED ROUTE (ROLE REQUIRED)
->>>>>>> 516238918ea5362915e0494aa5d786668f8e2ab9
 // ======================================================
 const ProtectedRoute = ({ allowedRole }: { allowedRole: string }) => {
   const userStr = localStorage.getItem("user");
@@ -64,19 +60,8 @@ const ProtectedRoute = ({ allowedRole }: { allowedRole: string }) => {
   }
 };
 
-<<<<<<< HEAD
 // ======================================================
 // REQUIRE LOGIN ONLY (Chỉ cần đăng nhập, Role nào cũng được)
-=======
-// Hàm phụ dọn dẹp storage khi lỗi parse
-const value_cleanup = () => {
-  localStorage.removeItem("user");
-  localStorage.removeItem("token");
-};
-
-// ======================================================
-// REQUIRE LOGIN ONLY (ANY ROLE)
->>>>>>> 516238918ea5362915e0494aa5d786668f8e2ab9
 // ======================================================
 const RequireAuth = () => {
   const userStr = localStorage.getItem("user");
@@ -98,7 +83,6 @@ export const router = createBrowserRouter([
     errorElement: <ErrorPage />,
     children: [
       // ==========================================
-<<<<<<< HEAD
       // 1. PUBLIC ROUTES (Ai cũng vào được)
       // ==========================================
       {
@@ -116,61 +100,30 @@ export const router = createBrowserRouter([
 
       // ==========================================
       // 2. SHARED ROUTES (Đăng nhập là vào được - Cả 2 Roles)
-=======
-      // PUBLIC ROUTES (Ai cũng vào được)
-      // ==========================================
-      { index: true, element: <Home /> },
-      { path: "auth", element: <Auth /> },
-      { path: "job/:id", element: <JobDetail /> },
-
-      // Bất kỳ ai (Kể cả Candidate) click vào xem công ty đều dùng route này
-      { path: "companies/:id", element: <CompanyProfile /> },
-
-      // ==========================================
-      // LOGIN REQUIRED (Cứ Đăng nhập là vào được - Chat, Settings...)
->>>>>>> 516238918ea5362915e0494aa5d786668f8e2ab9
       // ==========================================
       {
         element: <RequireAuth />,
         children: [
-<<<<<<< HEAD
           { path: "settings", element: <Settings /> },
           { path: "chat", element: <Chat /> }, // Chat dùng chung nên để ở đây
-=======
-          { path: "chat", element: <Chat /> },
-          { path: "settings", element: <Settings /> },
->>>>>>> 516238918ea5362915e0494aa5d786668f8e2ab9
         ],
       },
 
       // ==========================================
-<<<<<<< HEAD
       // 3. CANDIDATE ROUTES (Chỉ Candidate được vào)
-=======
-      // CANDIDATE ROUTES (Chỉ Candidate được vào)
->>>>>>> 516238918ea5362915e0494aa5d786668f8e2ab9
       // ==========================================
       {
         element: <ProtectedRoute allowedRole="candidate" />,
         children: [
           { path: "profile", element: <ProfileDashboard /> },
           { path: "applications", element: <MyApplications /> },
-<<<<<<< HEAD
           // Hứng link từ thông báo cũ bị lệch nếu có
-=======
-
-          // Hứng cái link thông báo "/profile/applications" bị lệch
->>>>>>> 516238918ea5362915e0494aa5d786668f8e2ab9
           { path: "profile/applications", element: <MyApplications /> },
         ],
       },
 
       // ==========================================
-<<<<<<< HEAD
       // 4. EMPLOYER ROUTES (Chỉ Employer được vào)
-=======
-      // EMPLOYER ROUTES (Chỉ Employer được vào)
->>>>>>> 516238918ea5362915e0494aa5d786668f8e2ab9
       // ==========================================
       {
         element: <ProtectedRoute allowedRole="employer" />,
