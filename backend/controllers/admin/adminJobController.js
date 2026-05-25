@@ -1,14 +1,108 @@
 const db = require('../../config/db');
 
-// =========================================================================
-// ADMIN MODERATION
-// =========================================================================
+// 1. Lấy tất cả jobs (cho trang Job Management)
+exports.getAllJobs = async (req, res) => {
+    const { status, job_type, experience_level, search } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    try {
+        let where = ['j.deleted_at IS NULL'];
+        let params = [];
+
+        if (status && status !== 'all') {
+            where.push('j.status = ?');
+            params.push(status);
+        }
+        if (job_type) {
+            where.push('j.job_type = ?');
+            params.push(job_type);
+        }
+        if (experience_level) {
+            where.push('j.experience_level = ?');
+            params.push(experience_level);
+        }
+        if (search) {
+            where.push('(j.title LIKE ? OR c.name LIKE ?)');
+            params.push(`%${search}%`, `%${search}%`);
+        }
+
+        const whereClause = 'WHERE ' + where.join(' AND ');
+
+        const [jobs] = await db.execute(`
+            SELECT
+                j.id, j.title, j.job_type, j.experience_level,
+                j.salary_min, j.salary_max, j.status, j.created_at,
+                c.name AS company_name,
+                l.name AS location_name,
+                cat.name AS category_name
+            FROM Jobs j
+            JOIN Companies  c   ON j.company_id  = c.id
+            JOIN Locations  l   ON j.location_id = l.id
+            JOIN Categories cat ON j.category_id = cat.id
+            ${whereClause}
+            ORDER BY j.created_at DESC
+            LIMIT ? OFFSET ?
+        `, [...params, limit, offset]);
+
+        const [countResult] = await db.execute(`
+            SELECT COUNT(*) AS total
+            FROM Jobs j
+            JOIN Companies c ON j.company_id = c.id
+            ${whereClause}
+        `, params);
+
+        // Stats tổng quan
+        const [stats] = await db.execute(`
+            SELECT
+                COUNT(*) AS total,
+                SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS total_approved,
+                SUM(CASE WHEN status = 'pending'  THEN 1 ELSE 0 END) AS total_pending,
+                SUM(CASE WHEN status = 'closed'   THEN 1 ELSE 0 END) AS total_closed,
+                SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) AS total_rejected
+            FROM Jobs
+            WHERE deleted_at IS NULL
+        `);
+
+        res.status(200).json({
+            success: true,
+            data: jobs,
+            pagination: {
+                total: countResult[0].total,
+                page,
+                limit,
+                totalPages: Math.ceil(countResult[0].total / limit)
+            },
+            stats: stats[0]
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// 2. Xóa job (soft delete)
+exports.deleteJob = async (req, res) => {
+    const { job_id } = req.params;
+    try {
+        const [result] = await db.execute(
+            "UPDATE Jobs SET deleted_at = NOW(), status = 'closed' WHERE id = ? AND deleted_at IS NULL",
+            [job_id]
+        );
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy tin tuyển dụng' });
+        }
+        res.status(200).json({ success: true, message: 'Đã xóa tin tuyển dụng' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
 
 // 3. Lấy danh sách jobs chờ duyệt (pending queue)
 exports.getPendingJobs = async (req, res) => {
     try {
         const [jobs] = await db.execute(`
-            SELECT 
+            SELECT
                 j.id, j.title, j.description, j.requirements,
                 j.job_type, j.experience_level,
                 j.salary_min, j.salary_max,
@@ -28,7 +122,6 @@ exports.getPendingJobs = async (req, res) => {
             WHERE j.status = 'pending' AND j.deleted_at IS NULL
             ORDER BY j.created_at ASC
         `);
-
         res.status(200).json({ success: true, count: jobs.length, data: jobs });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -38,25 +131,18 @@ exports.getPendingJobs = async (req, res) => {
 // 4. Approve job
 exports.approveJob = async (req, res) => {
     const { job_id } = req.params;
-
     try {
         const [jobs] = await db.execute(
             "SELECT id, title, status FROM Jobs WHERE id = ? AND deleted_at IS NULL",
             [job_id]
         );
-
         if (jobs.length === 0) {
             return res.status(404).json({ success: false, message: "Không tìm thấy tin tuyển dụng!" });
         }
-
         if (jobs[0].status !== 'pending') {
             return res.status(400).json({ success: false, message: `Tin này đang ở trạng thái "${jobs[0].status}", không thể duyệt!` });
         }
-
         await db.execute("UPDATE Jobs SET status = 'approved' WHERE id = ?", [job_id]);
-
-        console.log(`[ADMIN] Job #${job_id} "${jobs[0].title}" approved`);
-
         res.status(200).json({ success: true, message: "Đã duyệt tin tuyển dụng thành công!" });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -82,9 +168,11 @@ exports.rejectJob = async (req, res) => {
             return res.status(400).json({ success: false, message: `Tin này đang ở trạng thái "${jobs[0].status}", không thể từ chối!` });
         }
 
-        await db.execute("UPDATE Jobs SET status = 'rejected' WHERE id = ?", [job_id]);
-
-        console.log(`[ADMIN] Job #${job_id} "${jobs[0].title}" rejected. Reason: ${reason || 'N/A'}`);
+        // ← Lưu rejection_reason vào cột mới
+        await db.execute(
+            "UPDATE Jobs SET status = 'rejected', rejection_reason = ? WHERE id = ?",
+            [reason || null, job_id]
+        );
 
         res.status(200).json({ success: true, message: "Đã từ chối tin tuyển dụng!" });
     } catch (error) {
@@ -92,7 +180,7 @@ exports.rejectJob = async (req, res) => {
     }
 };
 
-// 6. Lấy stats tổng quan cho admin dashboard
+// 6. Stats tổng quan
 exports.getJobStats = async (req, res) => {
     try {
         const [stats] = await db.execute(`
@@ -102,11 +190,150 @@ exports.getJobStats = async (req, res) => {
                 SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS total_approved,
                 SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) AS total_rejected,
                 SUM(CASE WHEN status = 'closed'   THEN 1 ELSE 0 END) AS total_closed
-            FROM Jobs
-            WHERE deleted_at IS NULL
+            FROM Jobs WHERE deleted_at IS NULL
         `);
-
         res.status(200).json({ success: true, data: stats[0] });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// [THÊM MỚI] 7. Xóa nhiều Job hàng loạt (Bulk Delete)
+exports.bulkDeleteJobs = async (req, res) => {
+    const { ids } = req.body; // Mảng chứa các ID cần xóa, ví dụ: [232, 233]
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ success: false, message: 'Danh sách ID không hợp lệ' });
+    }
+
+    try {
+        const [result] = await db.execute(
+            `UPDATE Jobs SET deleted_at = NOW(), status = 'closed' 
+             WHERE id IN (${ids.map(() => '?').join(',')}) AND deleted_at IS NULL`,
+            ids
+        );
+        res.status(200).json({
+            success: true,
+            message: `Đã xóa thành công ${result.affectedRows} tin tuyển dụng`
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// [THÊM MỚI] 8. Nhân bản tin tuyển dụng (Duplicate)
+exports.duplicateJob = async (req, res) => {
+    const { job_id } = req.params;
+    try {
+        // Lấy thông tin bản gốc cũ
+        const [jobs] = await db.execute(
+            "SELECT * FROM Jobs WHERE id = ? AND deleted_at IS NULL",
+            [job_id]
+        );
+        if (jobs.length === 0) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy tin tuyển dụng gốc' });
+        }
+
+        const original = jobs[0];
+        // Nhân bản dữ liệu với tiêu đề mới kèm hậu tố Copy
+        const [result] = await db.execute(`
+            INSERT INTO Jobs (
+                title, description, requirements, company_id, location_id, category_id,
+                job_type, experience_level, salary_min, salary_max, status, posted_by, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NOW())
+        `, [
+            `${original.title} (Copy)`, original.description, original.requirements,
+            original.company_id, original.location_id, original.category_id,
+            original.job_type, original.experience_level, original.salary_min,
+            original.salary_max, original.posted_by
+        ]);
+
+        res.status(201).json({
+            success: true,
+            message: 'Nhân bản thành công tin tuyển dụng dưới dạng Chờ duyệt!',
+            insertId: result.insertId
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// [THÊM MỚI] 9. Xuất danh sách CSV lọc theo điều kiện (Export CSV)
+exports.exportJobsCSV = async (req, res) => {
+    const { status, job_type, experience_level, search } = req.query;
+    try {
+        let where = ['j.deleted_at IS NULL'];
+        let params = [];
+
+        if (status && status !== 'all') { where.push('j.status = ?'); params.push(status); }
+        if (job_type) { where.push('j.job_type = ?'); params.push(job_type); }
+        if (experience_level) { where.push('j.experience_level = ?'); params.push(experience_level); }
+        if (search) {
+            where.push('(j.title LIKE ? OR c.name LIKE ?)');
+            params.push(`%${search}%`, `%${search}%`);
+        }
+
+        const whereClause = 'WHERE ' + where.join(' AND ');
+        const [jobs] = await db.execute(`
+            SELECT j.id, j.title, j.job_type, j.experience_level, j.salary_min, j.salary_max, j.status,
+                   c.name AS company_name, l.name AS location_name, cat.name AS category_name, j.created_at
+            FROM Jobs j
+            JOIN Companies c ON j.company_id = c.id
+            JOIN Locations l ON j.location_id = l.id
+            JOIN Categories cat ON j.category_id = cat.id
+            ${whereClause} ORDER BY j.created_at DESC
+        `, params);
+
+        // Tạo nội dung file CSV thủ công kết hợp UTF-8 BOM chống lỗi font tiếng Việt trên Excel
+        let csvContent = "\uFEFFID,Tiêu đề,Công ty,Hình thức,Kinh nghiệm,Lương tối thiểu,Lương tối đa,Trạng thái,Ngày tạo\n";
+        jobs.forEach(row => {
+            csvContent += `${row.id},"${row.title.replace(/"/g, '""')}","${row.company_name.replace(/"/g, '""')}",${row.job_type},${row.experience_level},${row.salary_min},${row.salary_max},${row.status},${row.created_at}\n`;
+        });
+
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename=jobs_export.csv');
+        return res.status(200).send(csvContent);
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Lấy chi tiết 1 Job theo ID
+exports.getJobById = async (req, res) => {
+    const { job_id } = req.params;
+    try {
+        const [jobs] = await db.execute(`
+            SELECT j.*, 
+                   c.name AS company_name, 
+                   l.name AS location_name, 
+                   cat.name AS category_name
+            FROM Jobs j
+            JOIN Companies c ON j.company_id = c.id
+            JOIN Locations l ON j.location_id = l.id
+            JOIN Categories cat ON j.category_id = cat.id
+            WHERE j.id = ? AND j.deleted_at IS NULL
+        `, [job_id]);
+
+        if (jobs.length === 0) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy tin tuyển dụng' });
+        }
+        res.status(200).json({ success: true, data: jobs[0] });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Cập nhật Job (Sửa tin)
+exports.updateJob = async (req, res) => {
+    const { job_id } = req.params;
+    const { title, description, requirements, salary_min, salary_max, status } = req.body;
+    try {
+        await db.execute(`
+            UPDATE Jobs 
+            SET title = ?, description = ?, requirements = ?, salary_min = ?, salary_max = ?, status = ?
+            WHERE id = ? AND deleted_at IS NULL
+        `, [title, description, requirements, salary_min, salary_max, status, job_id]);
+
+        res.status(200).json({ success: true, message: 'Cập nhật tin tuyển dụng thành công!' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

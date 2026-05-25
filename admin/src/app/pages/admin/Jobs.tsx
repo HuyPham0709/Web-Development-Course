@@ -4,33 +4,14 @@ import {
   ShieldCheck, AlertTriangle, Check, Loader2, Building2, RefreshCw
 } from "lucide-react"
 import { toast } from "sonner"
+import { PendingJob } from '../../../types'
+import { formatDate, formatSalary } from "../../../utils"
 
 const API_URL = 'http://localhost:5000/api/admin';
 
 function getHeaders() {
   const token = localStorage.getItem('admin_token');
   return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
-}
-
-interface PendingJob {
-  id: number;
-  title: string;
-  description: string;
-  requirements: string;
-  job_type: string;
-  experience_level: string;
-  salary_min: number;
-  salary_max: number;
-  status: string;
-  created_at: string;
-  company_id: number;
-  company_name: string;
-  logo_url: string | null;
-  company_verified: number;
-  location_name: string;
-  category_name: string;
-  posted_by_username: string;
-  posted_by_email: string;
 }
 
 const QUICK_REASONS = [
@@ -88,8 +69,8 @@ export function Jobs() {
   }, []);
 
   const handleAction = async (action: 'approve' | 'reject') => {
-    if (!jobs[0]) return;
-    const currentJob = jobs[0];
+    if (!jobs[selectedIndex]) return;
+    const currentJob = jobs[selectedIndex];
 
     if (action === 'reject' && !reason.trim()) {
       toast.warning('Vui lòng nhập lý do từ chối!');
@@ -116,10 +97,10 @@ export function Jobs() {
         } else {
           toast.error(`Job #${currentJob.id} rejected. ${reason ? `Reason: ${reason}` : ''}`);
         }
-        // Xóa job đầu khỏi queue
+
         setJobs(prev => {
           const next = prev.filter((_, i) => i !== selectedIndex);
-          setSelectedIndex(0); // reset về đầu sau khi xử lý
+          setSelectedIndex(0);
           return next;
         });
         setReason('');
@@ -133,7 +114,6 @@ export function Jobs() {
     }
   };
 
-  // ── Loading state ─────────────────────────────────────
   if (loading) {
     return (
       <div className="h-full w-full flex flex-col items-center justify-center min-h-[600px] gap-3 text-slate-400">
@@ -143,7 +123,6 @@ export function Jobs() {
     );
   }
 
-  // ── Error state ───────────────────────────────────────
   if (error) {
     return (
       <div className="h-full w-full flex flex-col items-center justify-center min-h-[600px] gap-4">
@@ -158,7 +137,6 @@ export function Jobs() {
     );
   }
 
-  // ── Empty queue ───────────────────────────────────────
   if (jobs.length === 0) {
     return (
       <div className="h-full w-full flex flex-col items-center justify-center bg-[#F8FAFC] animate-in fade-in duration-500 p-8 min-h-[600px]">
@@ -182,6 +160,10 @@ export function Jobs() {
   const job = jobs[selectedIndex];
   const requirements = parseRequirements(job.requirements);
   const initials = getInitials(job.company_name);
+
+  const upcomingJobs = jobs.filter((_, idx) => idx !== selectedIndex);
+  const displayedUpcomingJobs = upcomingJobs.slice(0, 3);
+  const remainingCount = upcomingJobs.length - displayedUpcomingJobs.length;
 
   return (
     <div className="p-6 md:p-8 bg-[#F8FAFC] min-h-screen">
@@ -209,14 +191,11 @@ export function Jobs() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-
         {/* Cột Trái: Chi tiết job */}
         <div className="lg:col-span-2 bg-white rounded-[32px] shadow-sm border border-gray-100 p-8 md:p-10 flex flex-col animate-in slide-in-from-right-8 duration-500 fade-in">
-
           {/* Header job */}
           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6 border-b border-gray-50 pb-8 mb-8">
             <div className="flex gap-6 items-start">
-              {/* Logo / initials */}
               <div className="w-20 h-20 rounded-2xl border border-gray-100 flex items-center justify-center flex-shrink-0 shadow-sm bg-indigo-50 text-indigo-600 text-2xl font-black">
                 {job.logo_url
                   ? <img src={job.logo_url} alt={job.company_name} className="w-full h-full object-cover rounded-2xl" />
@@ -231,7 +210,7 @@ export function Jobs() {
                   <span className="bg-green-50 text-green-600 text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-lg flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3" /> Pending Review
                   </span>
-                  {job.company_verified === 1 && (
+                  {(job as any).company_verified === 1 && (
                     <span className="bg-emerald-50 text-emerald-600 text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-lg flex items-center gap-1">
                       <Building2 className="w-3 h-3" /> Verified Company
                     </span>
@@ -239,7 +218,7 @@ export function Jobs() {
                 </div>
                 <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-2">{job.title}</h2>
                 <p className="text-lg font-bold text-gray-500">{job.company_name}</p>
-                <p className="text-xs text-gray-400 mt-1">{job.category_name}</p>
+                <p className="text-xs text-gray-400 mt-1">{(job as any).category_name}</p>
               </div>
             </div>
           </div>
@@ -249,18 +228,21 @@ export function Jobs() {
             <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
               <MapPin className="w-5 h-5 text-gray-400 mb-2" />
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Location</p>
-              <p className="text-sm font-bold text-gray-900">{job.location_name}</p>
+              <p className="text-sm font-bold text-gray-900">{job.location_name || "Chưa cập nhật"}</p>
             </div>
+            {/* Ô dưới đây đã được cập nhật dùng hàm formatSalary mới */}
             <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
               <DollarSign className="w-5 h-5 text-gray-400 mb-2" />
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Salary</p>
               <p className="text-sm font-bold text-gray-900">
-                {job.salary_min && job.salary_max
-                  ? `${(job.salary_min / 1_000_000).toFixed(0)}M – ${(job.salary_max / 1_000_000).toFixed(0)}M`
-                  : 'Thỏa thuận'
-                }
+                {formatSalary(
+                  job.salary_min ?? (job as any).salaryMin,
+                  job.salary_max ?? (job as any).salaryMax,
+                  (job as any).currency
+                )}
               </p>
             </div>
+
             <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
               <Briefcase className="w-5 h-5 text-gray-400 mb-2" />
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Job Type</p>
@@ -313,15 +295,13 @@ export function Jobs() {
               <p className="text-gray-400 text-sm font-medium">Review carefully before publishing to the live platform.</p>
             </div>
 
-            {/* Submitted by */}
             <div className="mb-6 p-4 bg-gray-800/50 border border-gray-700 rounded-2xl">
               <p className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500 mb-2">Submitted by</p>
-              <p className="text-sm font-bold text-white">{job.posted_by_username}</p>
+              <p className="text-sm font-bold text-white">{(job as any).posted_by_username}</p>
               <p className="text-xs text-gray-400">{job.posted_by_email}</p>
             </div>
 
             <div className="flex-1 flex flex-col gap-6">
-              {/* Quick rejection chips */}
               <div className="flex flex-col gap-3">
                 <label className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500">
                   Quick Rejection Notes
@@ -342,7 +322,6 @@ export function Jobs() {
                 </div>
               </div>
 
-              {/* Reason textarea */}
               <div className="flex-1 min-h-[120px] flex flex-col">
                 <label className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500 mb-3">
                   Reason Details
@@ -356,7 +335,6 @@ export function Jobs() {
                 />
               </div>
 
-              {/* Action buttons */}
               <div className="flex flex-col gap-4 pt-4 border-t border-gray-800">
                 <button
                   onClick={() => handleAction('approve')}
@@ -383,28 +361,31 @@ export function Jobs() {
                 </button>
               </div>
 
-              {/* Queue preview */}
-              {jobs.length > 1 && (
+              {upcomingJobs.length > 0 && (
                 <div className="pt-4 border-t border-gray-800">
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500 mb-3">Up Next</p>
                   <div className="space-y-2">
-                    {jobs.map((nextJob, idx) => idx !== selectedIndex && (
-                      <button
-                        key={nextJob.id}
-                        onClick={() => { setSelectedIndex(idx); setReason(''); }}
-                        className="w-full flex items-center gap-3 p-3 bg-gray-800/50 hover:bg-gray-700/50 rounded-xl border border-gray-700 transition-colors text-left"
-                      >
-                        <div className="w-8 h-8 rounded-lg bg-gray-700 flex items-center justify-center text-xs font-black text-gray-300 flex-shrink-0">
-                          {getInitials(nextJob.company_name)}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-white truncate">{nextJob.title}</p>
-                          <p className="text-[11px] text-gray-400 truncate">{nextJob.company_name}</p>
-                        </div>
-                      </button>
-                    )).filter(Boolean)}
-                    {jobs.length > 3 && (
-                      <p className="text-xs text-gray-500 text-center pt-1">+{jobs.length - 3} more in queue</p>
+                    {displayedUpcomingJobs.map((nextJob) => {
+                      const originalIndex = jobs.findIndex(j => j.id === nextJob.id);
+                      return (
+                        <button
+                          key={nextJob.id}
+                          onClick={() => { setSelectedIndex(originalIndex); setReason(''); }}
+                          className="w-full flex items-center gap-3 p-3 bg-gray-800/50 hover:bg-gray-700/50 rounded-xl border border-gray-700 transition-colors text-left"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-gray-700 flex items-center justify-center text-xs font-black text-gray-300 flex-shrink-0">
+                            {getInitials(nextJob.company_name)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-white truncate">{nextJob.title}</p>
+                            <p className="text-[11px] text-gray-400 truncate">{nextJob.company_name}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+
+                    {remainingCount > 0 && (
+                      <p className="text-xs text-gray-500 text-center pt-1">+{remainingCount} more in queue</p>
                     )}
                   </div>
                 </div>

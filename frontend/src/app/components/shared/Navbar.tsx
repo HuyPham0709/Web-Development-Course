@@ -449,9 +449,7 @@ export const Navbar = () => {
                         key={notif._id}
                         onClick={() => handleMarkAsRead(notif._id, notif.link_url)}
                         className={`p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors flex gap-3 items-start ${
-                          !notif.is_read
-                            ? "bg-blue-50/60 dark:bg-blue-950/20"
-                            : ""
+                          !notif.is_read ? "bg-blue-50/60 dark:bg-blue-950/20" : ""
                         }`}
                       >
                         {!notif.is_read && (
@@ -514,6 +512,7 @@ export const Navbar = () => {
                 </div>
                 <DropdownMenuSeparator className="bg-gray-100 dark:bg-white/5" />
 
+                {/* Nếu không phải Employer (tức Candidate) thì hiện Hồ sơ cá nhân của ứng viên */}
                 {!isEmployer && (
                   <DropdownMenuItem className="p-1 cursor-pointer focus:bg-transparent">
                     <Link
@@ -525,6 +524,23 @@ export const Navbar = () => {
                       </div>
                       <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
                         Hồ sơ cá nhân
+                      </span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+
+                {/* THÊM VÀO ĐÂY: Phần dành riêng cho Employer - Quản lý trang Công ty */}
+                {isEmployer && (
+                  <DropdownMenuItem className="p-1 cursor-pointer focus:bg-transparent">
+                    <Link
+                      to="/employer/profile"
+                      className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-blue-500/10 dark:group-hover:bg-blue-500/20 transition-colors">
+                        <Briefcase className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+                      </div>
+                      <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
+                        Hồ sơ công ty
                       </span>
                     </Link>
                   </DropdownMenuItem>
