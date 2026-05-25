@@ -18,155 +18,119 @@ interface RecommendedJob {
 }
 
 interface RecommendedJobsAsideProps {
-  recommendedJobs: RecommendedJob[];
+  recommendedJobs?: RecommendedJob[]; // Cho phép undefined
   openModal: (type: 'personalInfo' | 'experience' | 'education' | 'skills' | null) => void;
 }
 
-export function RecommendedJobsAside({ recommendedJobs, openModal }: RecommendedJobsAsideProps) {
+// LƯU Ý KỸ THUẬT: Gán default value recommendedJobs = [] để chống crash app khi data chưa load kịp hoặc API lỗi
+export function RecommendedJobsAside({ recommendedJobs = [], openModal }: RecommendedJobsAsideProps) {
   return (
-    <aside className="hidden 2xl:block w-[340px] p-6 pl-0 flex-shrink-0 select-none">
-      <div className="sticky top-6 space-y-6">
+    <aside className="hidden xl:block w-[360px] p-6 pl-0 flex-shrink-0 sticky top-24 self-start">
+      <div className="space-y-6">
         
-        {/* RECOMMENDED JOBS CARD */}
-        <div className="bg-white dark:bg-[#111827] rounded-3xl border border-gray-100 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-none overflow-hidden transition-all duration-300">
+        {/* RECOMMENDED JOBS PANEL */}
+        <div className="bg-white/80 dark:bg-[#0B0F19]/80 backdrop-blur-md rounded-3xl border border-gray-200 dark:border-white/5 shadow-xl shadow-gray-100/40 dark:shadow-none overflow-hidden relative group/panel transition-all duration-300">
+          {/* Top Decorative Gradient Line */}
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-70"></div>
           
           {/* Header */}
-          <div className="px-5 py-4 border-b border-gray-50 dark:border-white/5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center shadow-sm">
-                <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
+          <div className="px-5 py-5 border-b border-gray-100 dark:border-white/5 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl text-blue-500 dark:text-blue-400">
+                <Sparkles className="w-4 h-4 animate-pulse" />
               </div>
-              <div>
-                <h3 className="font-bold text-gray-900 dark:text-gray-100 text-sm tracking-wide">Gợi ý cho bạn</h3>
-                <p className="text-[11px] text-gray-400 dark:text-gray-500 font-medium">Công việc phù hợp hồ sơ</p>
-              </div>
+              <h3 className="font-extrabold text-sm uppercase tracking-wider text-gray-900 dark:text-white">
+                AI Match For You
+              </h3>
             </div>
-            <Link 
-              to="/recommended-jobs" 
-              className="group/link flex items-center gap-0.5 text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
-            >
-              Xem tất cả
-              <ChevronRight className="w-3 h-3 transition-transform duration-200 group-hover/link:translate-x-0.5" />
-            </Link>
+            <span className="text-[10px] bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold px-2 py-0.5 rounded-full">
+              Smart AI
+            </span>
           </div>
 
-          {/* Jobs List */}
-          <div className="max-h-[620px] overflow-y-auto custom-scrollbar">
-            {recommendedJobs.length === 0 ? (
-              <div className="p-8 text-center">
-                <div className="w-14 h-14 mx-auto rounded-2xl bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5 flex items-center justify-center mb-4 shadow-sm">
-                  <Briefcase className="w-6 h-6 text-gray-400 dark:text-gray-500" />
-                </div>
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Chưa có công việc phù hợp</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5 max-w-[200px] mx-auto leading-relaxed">
-                  Hãy cập nhật hồ sơ để nhận đề xuất tốt hơn
-                </p>
+          {/* Job Items List */}
+          <div className="p-4 space-y-3.5 max-h-[480px] overflow-y-auto custom-scrollbar">
+            {/* Sử dụng ?.length an toàn */}
+            {!recommendedJobs || recommendedJobs.length === 0 ? (
+              <div className="text-center py-10 text-gray-400 dark:text-gray-500 space-y-2">
+                <Briefcase className="w-8 h-8 mx-auto opacity-40" />
+                <p className="text-xs italic font-medium">No recommendations found.</p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-50 dark:divide-white/5">
-                {recommendedJobs.slice(0, 3).map((job) => (
-                  <Link 
-                    key={job.id} 
-                    to={`/job/${job.id}`} 
-                    className="group block p-5 hover:bg-gray-50/60 dark:hover:bg-white/[0.015] border-l-4 border-transparent hover:border-blue-500 dark:hover:border-blue-400 transition-all duration-200"
-                  >
-                    <div className="flex gap-3.5">
-                      {/* Logo công ty */}
-                      <div className="w-12 h-12 rounded-xl bg-gray-50 dark:bg-white/5 overflow-hidden flex items-center justify-center flex-shrink-0 border border-gray-100 dark:border-white/5 shadow-sm group-hover:scale-105 transition-transform duration-300">
-                        {job.company_logo ? (
-                          <img src={job.company_logo} alt={job.company_name} className="w-full h-full object-cover" />
-                        ) : (
-                          <Briefcase className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                        )}
-                      </div>
+              recommendedJobs.map((job, idx) => (
+                <Link
+                  key={job.id || idx}
+                  to={`/job/${job.id}`}
+                  className="block p-3.5 bg-gray-50/50 dark:bg-[#0E1322]/40 rounded-2xl border border-gray-100 dark:border-white/5 hover:border-blue-500/30 dark:hover:border-purple-500/30 transition-all duration-300 transform hover:-translate-y-1 hover:bg-white dark:hover:bg-[#121829] hover:shadow-[0_0_20px_rgba(59,130,246,0.2)] dark:hover:shadow-[0_0_25px_rgba(147,51,234,0.15)] group"
+                >
+                  <div className="flex items-start gap-3">
+                    {/* Company Logo Container */}
+                    <div className="w-11 h-11 rounded-xl overflow-hidden border border-gray-200 dark:border-white/10 bg-white p-1 flex-shrink-0 transition-transform group-hover:scale-105">
+                      <img
+                        src={job.company_logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company_name || 'C')}&background=random`}
+                        alt={job.company_name}
+                        className="w-full h-full object-contain rounded-lg"
+                      />
+                    </div>
 
-                      {/* Thông tin công việc */}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200 line-clamp-2 leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                            {job.title}
-                          </h4>
-                          {job.match_score > 0 && (
-                            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md flex-shrink-0 tracking-wider shadow-sm border ${
-                              job.match_score >= 60
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200/40 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
-                                : 'bg-amber-50 text-amber-700 border-amber-200/40 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20'
-                            }`}>
-                              {job.match_score}%
-                            </span>
-                          )}
-                        </div>
+                    {/* Meta Info */}
+                    <div className="flex-1 min-w-0 text-left">
+                      <h4 className="font-bold text-xs sm:text-sm text-gray-900 dark:text-white truncate group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">
+                        {job.title}
+                      </h4>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium truncate mt-0.5">
+                        {job.company_name}
+                      </p>
 
-                        <p className="text-[11px] font-medium text-gray-400 dark:text-gray-500 mt-1 truncate">
-                          {job.company_name} <span className="mx-1 text-gray-300 dark:text-gray-700">·</span> {job.location_name || 'Remote'}
-                        </p>
-
-                        {job.experience_level && (
-                          <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-50/80 border border-blue-100/30 dark:bg-blue-500/10 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 font-semibold">
-                              {job.experience_level}
-                            </span>
-                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-gray-50 border border-gray-100 dark:bg-white/5 dark:border-white/5 text-gray-500 dark:text-gray-400 font-semibold">
-                              {job.job_type}
-                            </span>
-                          </div>
-                        )}
-
+                      <div className="flex items-center justify-between mt-3">
+                        <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                          {job.salary_min && job.salary_max
+                            ? `$${job.salary_min / 1000}k - $${job.salary_max / 1000}k`
+                            : 'Negotiable'}
+                        </span>
+                        
                         {job.match_score > 0 && (
-                          <div className="mt-3.5">
-                            <div className="w-full h-1.5 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden shadow-inner">
-                              <div
-                                className={`h-full rounded-full transition-all duration-700 ease-out ${
-                                  job.match_score >= 60 
-                                    ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' 
-                                    : 'bg-gradient-to-r from-amber-400 to-amber-500'
-                                }`}
-                                style={{ width: `${job.match_score}%` }}
-                              />
-                            </div>
-                            <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 mt-1.5 flex items-center gap-1">
-                              <span className={`w-1.5 h-1.5 rounded-full ${job.match_score >= 60 ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                              {job.match_score >= 60 ? 'Phù hợp cao' : 'Có thể phù hợp'}
-                            </p>
+                          <div className="text-right">
+                            <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 px-2 py-0.5 rounded-md">
+                              {job.match_score}% Match
+                            </span>
                           </div>
                         )}
                       </div>
                     </div>
-                  </Link>
-                ))}
-              </div>
+                  </div>
+                </Link>
+              ))
             )}
           </div>
         </div>
 
-        {/* QUICK STATS / PROFILE COMPLETE */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-3xl p-5 text-white shadow-[0_12px_30px_rgba(59,130,246,0.25)] dark:shadow-none">
-          {/* Vòng tròn decor ambient nền mờ tạo chiều sâu */}
-          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-          <div className="absolute -left-6 -top-6 w-24 h-24 bg-purple-500/20 rounded-full blur-xl pointer-events-none" />
-
-          <div className="relative z-10">
-            <h3 className="font-extrabold text-lg tracking-wide mb-0.5">Hồ sơ của bạn</h3>
-            <p className="text-xs text-blue-100/80 font-medium mb-5">Hoàn thiện hồ sơ để tăng cơ hội được tuyển dụng</p>
-            
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between text-xs font-bold tracking-wide mb-1.5">
-                  <span className="text-blue-100">Độ hoàn thiện</span>
-                  <span className="bg-white/20 px-1.5 py-0.5 rounded text-[11px]">80%</span>
-                </div>
-                <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden shadow-inner p-[1px]">
-                  <div className="h-full w-[80%] bg-white rounded-full shadow-sm transition-all duration-500" />
-                </div>
+        {/* PROFILE COMPLETION BANNER */}
+        <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-3xl p-5 text-white shadow-xl shadow-blue-500/10 relative overflow-hidden group">
+          <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-white/10 blur-xl group-hover:scale-150 transition-transform duration-500"></div>
+          
+          <h3 className="font-extrabold text-base tracking-tight mb-1">Optimize Your Profile</h3>
+          <p className="text-xs text-blue-100/90 mb-5 leading-relaxed">
+            Complete your profile mapping parameters to achieve maximum AI matching performance.
+          </p>
+          
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between text-xs font-bold mb-1.5">
+                <span className="text-blue-100">Profile Strength</span>
+                <span>80%</span>
               </div>
-              
-              <button 
-                onClick={() => openModal('personalInfo')} 
-                className="w-full py-3 rounded-2xl bg-white text-indigo-700 font-bold text-sm hover:bg-blue-50 hover:shadow-md active:scale-[0.98] transition-all duration-200"
-              >
-                Cập nhật hồ sơ
-              </button>
+              <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
+                <div className="h-full w-[80%] bg-white rounded-full transition-all duration-1000" />
+              </div>
             </div>
+            
+            <button 
+              onClick={() => openModal('personalInfo')} 
+              className="w-full py-3 rounded-xl bg-white text-blue-700 font-bold text-xs sm:text-sm hover:bg-blue-50 transition-all duration-300 active:scale-95 flex items-center justify-center gap-1.5 shadow-md hover:shadow-[0_0_15px_rgba(255,255,255,0.4)]"
+            >
+              Update Profile <ChevronRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
 

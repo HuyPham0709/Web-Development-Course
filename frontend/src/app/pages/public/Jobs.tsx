@@ -45,7 +45,7 @@ export const Jobs: React.FC = () => {
   const [jobs, setJobs] = useState<IJob[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
-  const [aiRecommendations, setAiRecommendations] = useState<any[]>([]); // Dữ liệu nạp cho Sidebar phía phải
+  const [aiRecommendations, setAiRecommendations] = useState<any[]>([]); 
   
   // UI States
   const [loading, setLoading] = useState(false);
@@ -239,110 +239,8 @@ export const Jobs: React.FC = () => {
         {/* BODY LAYOUT - 2 CỘT ĐỒNG NHẤT (JOBS LIST & UNIFIED SIDEBAR) */}
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-4 items-start">
           
-          {/* KHU VỰC CHÍNH BÊN TRÁI: MAIN JOBS LIST GRID COMPONENT (Chiếm 3 cột) */}
-          <main className="lg:col-span-3 space-y-5">
-            <div className="flex items-center justify-between bg-white dark:bg-[#0B0F19] rounded-2xl px-5 py-3.5 border border-gray-100 dark:border-white/5 shadow-sm">
-              <div className="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                <Grid size={16} className="text-purple-500" />
-                Found <span className="font-bold text-gray-900 dark:text-white">{totalJobs}</span> matching job listings
-              </div>
-            </div>
-
-            {loading ? (
-              <div className="flex h-72 w-full flex-col items-center justify-center gap-3 rounded-3xl border border-gray-200 bg-white dark:border-white/5 dark:bg-[#0B0F19]">
-                <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
-                <p className="text-sm font-medium text-gray-400">Scanning matching career paths...</p>
-              </div>
-            ) : jobs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center text-center py-16 px-4 rounded-3xl border border-dashed border-gray-200 bg-white dark:border-white/10 dark:bg-[#0B0F19]">
-                <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-full mb-4 text-gray-400">
-                  <Search size={32} />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">No jobs found matching parameters</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-sm">
-                  Try adjusting your search keywords or tweaking the advanced filters on the right.
-                </p>
-                <button
-                  onClick={handleResetFilters}
-                  className="mt-5 rounded-xl border border-blue-500 px-5 py-2 text-sm font-semibold text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-all"
-                >
-                  Clear All Filters
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                  {jobs.map((job, idx) => (
-                    <div 
-                      key={job.id} 
-                      className="animate-fade-in-up flex flex-col h-full hover:scale-[1.01] hover:shadow-lg hover:shadow-gray-100/30 transition-all duration-300 rounded-3xl dark:hover:shadow-none bg-white dark:bg-[#0B0F19] p-1 border border-gray-100 dark:border-white/5"
-                      style={{ animationDelay: `${idx * 80}ms` }}
-                    >
-                      <JobCard
-                        index={idx}
-                        job={job}
-                        isSaved={savedJobs.includes(job.id)}
-                        onToggleSave={handleToggleSaveJob}
-                      />
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between border-t border-gray-200 dark:border-white/5 pt-6 mt-8">
-                    <div className="hidden sm:flex flex-1 justify-between items-center text-sm text-gray-500 dark:text-gray-400">
-                      <p>
-                        Showing page <span className="font-semibold text-gray-900 dark:text-white">{filters.page}</span> of{" "}
-                        <span className="font-semibold text-gray-900 dark:text-white">{totalPages}</span> pages
-                      </p>
-                    </div>
-                    <div className="flex flex-1 sm:justify-end justify-center gap-2">
-                      <button
-                        onClick={() => handlePageChange((filters.page || 1) - 1)}
-                        disabled={filters.page === 1}
-                        className="flex items-center justify-center gap-1 px-3 py-2 rounded-xl border border-gray-200 text-sm font-medium bg-white disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-[#0B0F19] dark:text-gray-300 transition-colors"
-                      >
-                        <ChevronLeft size={16} /> Prev
-                      </button>
-                      
-                      {Array.from({ length: totalPages }, (_, i) => i + 1)
-                        .filter(p => p === 1 || p === totalPages || Math.abs(p - (filters.page || 1)) <= 1)
-                        .map((pageNumber, idx, arr) => {
-                          const showEllipsis = idx > 0 && pageNumber - arr[idx - 1] > 1;
-                          return (
-                            <React.Fragment key={pageNumber}>
-                              {showEllipsis && <span className="px-2 py-2 text-gray-400">...</span>}
-                              <button
-                                onClick={() => handlePageChange(pageNumber)}
-                                className={`h-9 w-9 flex items-center justify-center rounded-xl text-sm font-semibold transition-all ${
-                                  filters.page === pageNumber
-                                    ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
-                                    : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-white/10 dark:bg-[#0B0F19] dark:text-gray-400"
-                                }`}
-                              >
-                                {pageNumber}
-                              </button>
-                            </React.Fragment>
-                          );
-                        })}
-
-                      <button
-                        onClick={() => handlePageChange((filters.page || 1) + 1)}
-                        disabled={filters.page === totalPages}
-                        className="flex items-center justify-center gap-1 px-3 py-2 rounded-xl border border-gray-200 text-sm font-medium bg-white disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-[#0B0F19] dark:text-gray-300 transition-colors"
-                      >
-                        Next <ChevronRight size={16} />
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </main>
-
-          {/* CỘT SIDEBAR TỔNG HỢP BÊN PHẢI: CHỨA CẢ BỘ LỌC NÂNG CAO VÀ VIỆC LÀM GỢI Ý (Chiếm 1 cột) */}
-          <aside className="sticky top-24 hidden lg:flex lg:flex-col gap-6 lg:col-span-1">
+          {/* CỘT SIDEBAR TỔNG HỢP BÊN TRÁI: CHỨA CẢ BỘ LỌC NÂNG CAO VÀ VIỆC LÀM GỢI Ý (Chiếm 1 cột) */}
+          <aside className="sticky top-24 hidden lg:flex lg:flex-col gap-6 lg:col-span-1 overflow-x-hidden">
             
             {/* 1. KHỐI BỘ LỌC NÂNG CAO (ADVANCED FILTERS) */}
             <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-white/5 dark:bg-[#0B0F19]">
@@ -459,6 +357,108 @@ export const Jobs: React.FC = () => {
             />
 
           </aside>
+
+          {/* KHU VỰC CHÍNH BÊN PHẢI: MAIN JOBS LIST GRID COMPONENT (Chiếm 3 cột) */}
+          <main className="lg:col-span-3 space-y-5">
+            <div className="flex items-center justify-between bg-white dark:bg-[#0B0F19] rounded-2xl px-5 py-3.5 border border-gray-100 dark:border-white/5 shadow-sm">
+              <div className="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                <Grid size={16} className="text-purple-500" />
+                Found <span className="font-bold text-gray-900 dark:text-white">{totalJobs}</span> matching job listings
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="flex h-72 w-full flex-col items-center justify-center gap-3 rounded-3xl border border-gray-200 bg-white dark:border-white/5 dark:bg-[#0B0F19]">
+                <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+                <p className="text-sm font-medium text-gray-400">Scanning matching career paths...</p>
+              </div>
+            ) : jobs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center text-center py-16 px-4 rounded-3xl border border-dashed border-gray-200 bg-white dark:border-white/10 dark:bg-[#0B0F19]">
+                <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-full mb-4 text-gray-400">
+                  <Search size={32} />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">No jobs found matching parameters</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-sm">
+                  Try adjusting your search keywords or tweaking the advanced filters on the right.
+                </p>
+                <button
+                  onClick={handleResetFilters}
+                  className="mt-5 rounded-xl border border-blue-500 px-5 py-2 text-sm font-semibold text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-all"
+                >
+                  Clear All Filters
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                  {jobs.map((job, idx) => (
+                    <div 
+                      key={job.id} 
+                      className="animate-fade-in-up flex flex-col h-full hover:scale-[1.01] hover:shadow-lg hover:shadow-gray-100/30 transition-all duration-300 rounded-3xl dark:hover:shadow-none bg-white dark:bg-[#0B0F19] p-1 border border-gray-100 dark:border-white/5"
+                      style={{ animationDelay: `${idx * 80}ms` }}
+                    >
+                      <JobCard
+                        index={idx}
+                        job={job}
+                        isSaved={savedJobs.includes(job.id)}
+                        onToggleSave={handleToggleSaveJob}
+                      />
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between border-t border-gray-200 dark:border-white/5 pt-6 mt-8">
+                    <div className="hidden sm:flex flex-1 justify-between items-center text-sm text-gray-500 dark:text-gray-400">
+                      <p>
+                        Showing page <span className="font-semibold text-gray-900 dark:text-white">{filters.page}</span> of{" "}
+                        <span className="font-semibold text-gray-900 dark:text-white">{totalPages}</span> pages
+                      </p>
+                    </div>
+                    <div className="flex flex-1 sm:justify-end justify-center gap-2">
+                      <button
+                        onClick={() => handlePageChange((filters.page || 1) - 1)}
+                        disabled={filters.page === 1}
+                        className="flex items-center justify-center gap-1 px-3 py-2 rounded-xl border border-gray-200 text-sm font-medium bg-white disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-[#0B0F19] dark:text-gray-300 transition-colors"
+                      >
+                        <ChevronLeft size={16} /> Prev
+                      </button>
+                      
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(p => p === 1 || p === totalPages || Math.abs(p - (filters.page || 1)) <= 1)
+                        .map((pageNumber, idx, arr) => {
+                          const showEllipsis = idx > 0 && pageNumber - arr[idx - 1] > 1;
+                          return (
+                            <React.Fragment key={pageNumber}>
+                              {showEllipsis && <span className="px-2 py-2 text-gray-400">...</span>}
+                              <button
+                                onClick={() => handlePageChange(pageNumber)}
+                                className={`h-9 w-9 flex items-center justify-center rounded-xl text-sm font-semibold transition-all ${
+                                  filters.page === pageNumber
+                                    ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
+                                    : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-white/10 dark:bg-[#0B0F19] dark:text-gray-400"
+                                }`}
+                              >
+                                {pageNumber}
+                              </button>
+                            </React.Fragment>
+                          );
+                        })}
+
+                      <button
+                        onClick={() => handlePageChange((filters.page || 1) + 1)}
+                        disabled={filters.page === totalPages}
+                        className="flex items-center justify-center gap-1 px-3 py-2 rounded-xl border border-gray-200 text-sm font-medium bg-white disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-[#0B0F19] dark:text-gray-300 transition-colors"
+                      >
+                        Next <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </main>
 
         </div>
       </div>
