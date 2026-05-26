@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { getJobs } from "../../../../services/jobService";
-import { api } from "../../../../services/api"; // Chuyển axios sang api local của bạn
+import { api } from "../../../../services/api"; 
 import { JobCard } from "./JobCard";
 import { HorizontalTrack } from "./HorizontalTrack";
 import { IJob } from "../../../../types/job";
@@ -17,24 +17,11 @@ export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter }: Liv
   const [jobs, setJobs] = useState<IJob[]>([]);
   const [activeTab, setActiveTab] = useState("All Jobs");
   const [savedJobs, setSavedJobs] = useState<number[]>([]);
-  
-  // States cho Infinite Scroll
-  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
 
-  // 1. Reset feed khi Filters hoặc Tab thay đổi
-  useEffect(() => {
-    setJobs([]);
-    setPage(1);
-    setHasMore(true);
-  }, [titleFilter, locationFilter, categoryFilter, activeTab]);
-
-  // 2. Load Jobs logic
+  // 1. Chỉ fetch đúng 10 bài tuyển dụng mới nhất theo điều kiện bộ lọc
   useEffect(() => {
     const fetchJobs = async () => {
-      if (!hasMore || loading) return;
-      
       setLoading(true);
       try {
         let typeParam = "";
@@ -48,18 +35,14 @@ export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter }: Liv
           category_id: categoryFilter,
           type: typeParam,
           status: "approved",
-          page: page,
-          limit: 9, // Số lượng load mỗi lần
+          page: 1,       // Cố định trang 1
+          limit: 10,     // Giới hạn lấy chuẩn 10 bài viết mới nhất
         });
         
         const approvedJobs = response.data.filter((job: IJob) => job.status === "approved");
         
-        setJobs(prev => page === 1 ? approvedJobs : [...prev, ...approvedJobs]);
-        
-        // Kiểm tra xem còn data để load không (Phụ thuộc vào backend của bạn)
-        // Nếu backend chưa hỗ trợ trả về meta.hasMore, ta có thể check bằng cách:
-        const hasNext = response.meta?.hasMore ?? (approvedJobs.length === 9); 
-        setHasMore(hasNext);
+        // Đảm bảo chặt chẽ tối đa 10 bản ghi đưa vào State
+        setJobs(approvedJobs.slice(0, 10));
         
       } catch (error) {
         console.error("Error loading job list:", error);
@@ -69,14 +52,13 @@ export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter }: Liv
     };
 
     fetchJobs();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, titleFilter, locationFilter, categoryFilter, activeTab]);
+  }, [titleFilter, locationFilter, categoryFilter, activeTab]);
 
-  // 3. Load Saved Jobs (Thay axios bằng config api của bạn)
+  // 2. Load Danh sách các công việc đã lưu
   useEffect(() => {
     const fetchSavedJobs = async () => {
       try {
-        const res = await api.get("/api/favorites"); // Api interceptor tự đính kèm token
+        const res = await api.get("/api/favorites"); 
         const savedIds = res.data.data.map((job: any) => job.id);
         setSavedJobs(savedIds);
       } catch (err) {
@@ -88,31 +70,27 @@ export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter }: Liv
     }
   }, []);
 
-  // 4. Handle Save Toggle
+  // 3. Xử lý Lưu/Hủy lưu công việc
   const handleToggleSave = useCallback(async (jobId: number) => {
     try {
-      const isSaved = savedJobs.includes(jobId);
-      if (isSaved) {
-        await api.delete(`/api/favorites/${jobId}`);
-        setSavedJobs(prev => prev.filter(id => id !== jobId));
-      } else {
-        await api.post(`/api/favorites/${jobId}`, {});
-        setSavedJobs(prev => [...prev, jobId]);
-      }
+      setSavedJobs(prev => {
+        const isSaved = prev.includes(jobId);
+        if (isSaved) {
+          api.delete(`/api/favorites/${jobId}`).catch(err => console.error(err));
+          return prev.filter(id => id !== jobId);
+        } else {
+          api.post(`/api/favorites/${jobId}`, {}).catch(err => console.error(err));
+          return [...prev, jobId];
+        }
+      });
     } catch (err) {
       console.error("Save job error:", err);
     }
-  }, [savedJobs]);
-
-  const loadMoreJobs = useCallback(() => {
-    if (!loading && hasMore) {
-      setPage(prev => prev + 1);
-    }
-  }, [loading, hasMore]);
+  }, []);
 
   return (
     <section className="w-full bg-white py-20 relative transition-colors duration-300 dark:bg-[#0B0F19]">
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-50 dark:opacity-10 dark:bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)]"></div>
+     <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-50 dark:opacity-10 dark:bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)] pointer-events-none"></div>
       
       <div className="relative mx-auto max-w-7xl px-6">
         <div className="mb-12 flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
@@ -147,13 +125,12 @@ export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter }: Liv
         {jobs.length === 0 && !loading ? (
           <div className="text-center text-gray-500 dark:text-gray-400 py-12">No jobs matched your filter criteria.</div>
         ) : (
-          <HorizontalTrack onLoadMore={loadMoreJobs} hasMore={hasMore} isLoading={loading}>
+          /* Khóa tính năng tải thêm bằng cách truyền hasMore={false} vào track trượt */
+          <HorizontalTrack onLoadMore={() => {}} hasMore={false} isLoading={loading}>
             {jobs.map((job, idx) => (
               <div 
                 key={`${job.id}-${idx}`}
-                // ĐIỀU CHỈNH: Giảm width xuống 320px (hoặc 340px tuỳ ý thích)
-                // Đảm bảo chiều cao các thẻ bằng nhau (self-stretch)
-                className="w-[280px] sm:w-[320px] shrink-0 snap-start self-stretch pointer-events-auto"
+                className="w-[280px] sm:w-[320px] shrink-0 self-stretch pointer-events-auto"
               >
                 <JobCard 
                   index={idx}

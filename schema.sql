@@ -1,5 +1,5 @@
 -- ==========================================================
--- DATABASE: job_finder_db (Phiên bản Sạch & Nguyên khối 100%)
+-- DATABASE: job_finder_db (Clean & 100% Monolithic Version)
 -- ==========================================================
 
 SET FOREIGN_KEY_CHECKS = 0;
@@ -8,7 +8,7 @@ USE job_finder_db;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ==========================================================
--- 1. DANH MỤC HỆ THỐNG
+-- 1. SYSTEM CATEGORIES
 -- ==========================================================
 
 CREATE TABLE Categories (
@@ -33,7 +33,7 @@ CREATE TABLE Skills (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ==========================================================
--- 2. THỰC THỂ CHÍNH (Companies & Users)
+-- 2. MAIN ENTITIES (Companies & Users)
 -- ==========================================================
 
 CREATE TABLE Companies (
@@ -73,7 +73,7 @@ CREATE TABLE Users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ==========================================================
--- 3. HỒ SƠ CHI TIẾT (Profiles, Education, Work_Experience)
+-- 3. DETAILED PROFILES (Profiles, Education, Work_Experience)
 -- ==========================================================
 
 CREATE TABLE Profiles (
@@ -120,7 +120,7 @@ CREATE TABLE Work_Experience (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ==========================================================
--- 4. QUẢN LÝ VIỆC LÀM (Jobs & Bảng liên kết Kỹ năng)
+-- 4. JOB MANAGEMENT (Jobs & Skill Mapping Tables)
 -- ==========================================================
 
 CREATE TABLE Jobs (
@@ -171,7 +171,7 @@ CREATE TABLE Job_Skills (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ==========================================================
--- 5. NGHIỆP VỤ KẾT NỐI & TƯƠNG TÁC
+-- 5. CONNECTION & INTERACTION OPERATIONS
 -- ==========================================================
 
 CREATE TABLE Applications (
@@ -235,7 +235,7 @@ CREATE TABLE Reports (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ==========================================================
--- 6. TIÊU CHÍ TÌM VIỆC & GHI CHÚ
+-- 6. JOB SEARCH CRITERIA & NOTES
 -- ==========================================================
 
 CREATE TABLE JobCriteria (
@@ -251,7 +251,7 @@ CREATE TABLE JobCriteria (
     preferred_salary_type VARCHAR(50) NULL,        
     preferred_location VARCHAR(255) NULL,
     workplace_type VARCHAR(100) NULL,
-    skills TEXT NULL COMMENT 'Danh sách kỹ năng cách nhau bởi dấu phẩy hoặc JSON',
+    skills TEXT NULL COMMENT 'Comma-separated list of skills or JSON',
     languages TEXT NULL,                           
     preferred_companies TEXT NULL,                 
     benefits TEXT NULL,                            

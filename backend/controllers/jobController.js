@@ -56,64 +56,97 @@ exports.createJob = async (req, res) => {
     }
 };
 
-// 2. API Lấy tất cả tin (cho Trang chủ)
+// 2. API Lấy tất cả tin (cho Trang chủ & Trang tìm kiếm - Fix lỗi phân trang)
 exports.getAllJobs = async (req, res) => {
     try {
-        // CẬP NHẬT: Lấy TẤT CẢ các tham số bao gồm cả experience_level và salary_min
-        const { title, location, category_id, type, experience_level, salary_min } = req.query;
+        const { 
+            title, location, category_id, type, experience_level, salary_min, 
+            page, limit 
+        } = req.query;
 
-        let query = `
-            SELECT j.*, 
-                   c.name as company_name, 
-                   c.logo_url, 
-                   l.name as location_name,
-                   GROUP_CONCAT(s.name SEPARATOR ',') as skills
+        // 1. Ép kiểu rõ ràng về số nguyên (Integer)
+        const pageNum = parseInt(page, 10) || 1;
+        const limitNum = parseInt(limit, 10) || 12; // Đồng bộ mặc định 12 giống Frontend
+        const offsetNum = (pageNum - 1) * limitNum;
+
+        // 2. Tạo phần điều kiện lọc chung (WHERE Clause) để dùng cho cả câu lệnh COUNT và SELECT dữ liệu
+        let whereClause = ` WHERE j.deleted_at IS NULL AND j.status = 'approved'`;
+        const params = [];
+        
+        if (title) {
+            whereClause += ` AND j.title LIKE ?`; 
+            params.push(`%${title}%`);
+        }
+        if (location) {
+            whereClause += ` AND l.name LIKE ?`;
+            params.push(`%${location}%`);
+        }
+        if (category_id) {
+            whereClause += ` AND j.category_id = ?`;
+            params.push(category_id);
+        }
+        if (type) {
+            whereClause += ` AND j.job_type = ?`;
+            params.push(type);
+        }
+        if (experience_level) {
+            whereClause += ` AND j.experience_level = ?`;
+            params.push(experience_level);
+        }
+        if (salary_min && Number(salary_min) > 0) {
+            whereClause += ` AND j.salary_max >= ?`; 
+            params.push(Number(salary_min));
+        }
+
+        // 3. TÍNH TỔNG SỐ ĐỐI TƯỢNG (Không có LIMIT/OFFSET) để phục vụ tính số trang ở Frontend
+        let countQuery = `
+            SELECT COUNT(DISTINCT j.id) as total 
+            FROM Jobs j
+            LEFT JOIN Locations l ON j.location_id = l.id
+            ${whereClause}
+        `;
+        const [countRows] = await db.execute(countQuery, params);
+        const totalItems = countRows[0].total;
+
+        // 4. TRUY VẤN DỮ LIỆU THẬT (Có phân trang)
+        let dataQuery = `
+            SELECT 
+                j.id, j.title, j.job_type, j.experience_level, 
+                j.salary_min, j.salary_max, j.created_at, j.status,
+                c.name as company_name, 
+                c.logo_url, 
+                c.is_verified,
+                l.name as location_name,
+                GROUP_CONCAT(s.name SEPARATOR ',') as skills
             FROM Jobs j
             LEFT JOIN Companies c ON j.company_id = c.id
             LEFT JOIN Locations l ON j.location_id = l.id
             LEFT JOIN Job_Skills js ON j.id = js.job_id
             LEFT JOIN Skills s ON js.skill_id = s.id
-            WHERE j.deleted_at IS NULL AND j.status = 'approved'
-        `; // Nên thêm j.status = 'approved' để chỉ hiển thị các job đã duyệt
+            ${whereClause}
+            GROUP BY j.id 
+            ORDER BY j.created_at DESC 
+            LIMIT ${limitNum} OFFSET ${offsetNum}
+        `;
 
-        const params = [];
-        
-        if (title) {
-            query += ` AND (j.title LIKE ? OR j.description LIKE ?)`;
-            params.push(`%${title}%`, `%${title}%`);
-        }
-        if (location) {
-            query += ` AND l.name LIKE ?`;
-            params.push(`%${location}%`);
-        }
-        if (category_id) {
-            query += ` AND j.category_id = ?`;
-            params.push(category_id);
-        }
-        if (type) {
-            query += ` AND j.job_type = ?`;
-            params.push(type);
-        }
-        
-        // ⭐️ THÊM MỚI: Lọc theo Cấp bậc kinh nghiệm
-        if (experience_level) {
-            query += ` AND j.experience_level = ?`;
-            params.push(experience_level);
-        }
+        const [rows] = await db.execute(dataQuery, params);
 
-        // ⭐️ THÊM MỚI: Lọc theo Mức lương mong muốn
-        if (salary_min && Number(salary_min) > 0) {
-            // Lấy những công việc có mức lương tối đa lớn hơn hoặc bằng mức tối thiểu user mong muốn
-            query += ` AND j.salary_max >= ?`; 
-            params.push(Number(salary_min));
-        }
+        // Kiểm tra xem có còn trang tiếp theo hay không
+        const hasMore = offsetNum + rows.length < totalItems;
 
-        query += ` GROUP BY j.id ORDER BY j.created_at DESC`;
-
-        const [rows] = await db.execute(query, params);
-        res.status(200).json({ success: true, data: rows });
+        // 5. TRẢ VỀ RESPONSE (Bổ sung trường total trong meta)
+        res.status(200).json({ 
+            success: true, 
+            data: rows,
+            meta: {
+                page: pageNum,
+                limit: limitNum,
+                total: totalItems, // <--- CỰC KỲ QUAN TRỌNG: Gửi tổng số công việc về cho Frontend
+                hasMore: hasMore
+            }
+        });
     } catch (error) {
-        console.error('Lỗi getAllJobs:', error);
+        console.error('Lỗi chi tiết tại getAllJobs:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
