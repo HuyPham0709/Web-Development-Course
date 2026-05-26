@@ -1,4 +1,4 @@
-import { User, Briefcase, Bell, FileText, Sparkles } from 'lucide-react';
+import { User, Briefcase, Bell, FileText, Sparkles, Settings } from 'lucide-react';
 
 export type MenuItem = {
   id: string;
@@ -41,7 +41,7 @@ export const SIDEBAR_MENU: MenuItem[] = [
       { id: 'personality-test', label: 'Trắc nghiệm tính cách' },
     ]
   },
-  { id: 'account', label: 'Quản lý tài khoản', icon: User },
+  { id: 'account', label: 'Cài đặt giao diện', icon: Settings },
 ];
 
 export const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1762522926157-bcc04bf0b10a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400';

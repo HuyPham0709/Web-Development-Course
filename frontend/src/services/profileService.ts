@@ -71,6 +71,9 @@ export interface ProfileData {
 export interface SearchCandidateParams {
   keyword?: string;
   location?: string;
+  exp_min?: number;
+  exp_max?: number;
+  skills?: string;
 }
 
 export interface Candidate {
@@ -200,31 +203,18 @@ export async function searchCandidates(
   try {
     const queryParams = new URLSearchParams();
 
-    if (params.keyword) {
-      queryParams.append('keyword', params.keyword);
-    }
-
-    if (params.location) {
-      queryParams.append('location', params.location);
-    }
+    if (params.keyword) queryParams.append('keyword', params.keyword);
+    if (params.location) queryParams.append('location', params.location);
+    if (params.exp_min !== undefined && params.exp_min !== null)
+      queryParams.append('exp_min', params.exp_min.toString());
+    if (params.exp_max !== undefined && params.exp_max !== null)
+      queryParams.append('exp_max', params.exp_max.toString());
+    if (params.skills) queryParams.append('skills', params.skills);
 
     const url = `${BASE_URL}/api/profile/search-cv?${queryParams.toString()}`;
-
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: authHeaders(),
-    });
-
-    if (!res.ok) {
-      console.warn(
-        'API tìm kiếm ứng viên trả về status lỗi:',
-        res.status
-      );
-      return [];
-    }
-
+    const res = await fetch(url, { method: 'GET', headers: authHeaders() });
+    if (!res.ok) return [];
     const json = await res.json();
-
     return json.data || [];
   } catch (error) {
     console.error('Lỗi kết nối hàm searchCandidates:', error);

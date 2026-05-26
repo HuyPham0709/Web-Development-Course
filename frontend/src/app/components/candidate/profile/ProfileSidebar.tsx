@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronDown, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { SIDEBAR_MENU } from './constants';
+import { getVisibilityStatus, updateVisibility } from '../../../../services/candidateVisibilityService';
 
 interface ProfileSidebarProps {
   activeTab: string;
@@ -11,7 +12,27 @@ interface ProfileSidebarProps {
 export function ProfileSidebar({ activeTab, setActiveTab, userName }: ProfileSidebarProps) {
   // Mặc định mở tab Hồ sơ
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['group-profile']);
-  const [allowSearch, setAllowSearch] = useState(false);
+  const [allowSearch, setAllowSearch] = useState(false); // CHỈ MỘT DÒNG NÀY
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getVisibilityStatus()
+      .then(setAllowSearch)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const toggleVisibility = async () => {
+    if (loading) return;
+    const newValue = !allowSearch;
+    setAllowSearch(newValue);
+    try {
+      await updateVisibility(newValue);
+    } catch (error) {
+      setAllowSearch(!newValue);
+      alert('Cập nhật thất bại, vui lòng thử lại.');
+    }
+  };
 
   const toggleMenu = (id: string) => {
     setExpandedMenus(prev =>
@@ -25,22 +46,36 @@ export function ProfileSidebar({ activeTab, setActiveTab, userName }: ProfileSid
 
         {/* ── Header Sidebar ── */}
         <div className="mb-6">
-          <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100 mb-4">
-            {userName || 'Chưa cập nhật tên'}
-          </h2>
+  <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100 mb-4">
+    {userName || 'Chưa cập nhật tên'}
+  </h2>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 flex items-center justify-between border border-gray-200 dark:border-gray-700 shadow-sm transition-colors duration-200">
-            <span className="text-sm text-gray-700 dark:text-gray-300 font-semibold pr-4 leading-tight">
-              Cho phép Nhà tuyển dụng tìm bạn
-            </span>
-            <button
-              onClick={() => setAllowSearch(!allowSearch)}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${allowSearch ? 'bg-blue-600' : 'bg-gray-400 dark:bg-gray-600'}`}
-            >
-              <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${allowSearch ? 'translate-x-5' : 'translate-x-0'}`} />
-            </button>
-          </div>
-        </div>
+  <div className="bg-white dark:bg-gray-800 rounded-xl p-4 flex items-center justify-between border border-gray-200 dark:border-gray-700 shadow-sm transition-colors duration-200">
+    <div className="flex items-center gap-2">
+      {allowSearch ? (
+        <Eye className="w-5 h-5 text-green-600 dark:text-green-400" />
+      ) : (
+        <EyeOff className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+      )}
+      <span className="text-sm text-gray-700 dark:text-gray-300 font-semibold leading-tight">
+        Cho phép Nhà tuyển dụng tìm bạn
+      </span>
+    </div>
+    <button
+      onClick={toggleVisibility}
+      disabled={loading}
+      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+        allowSearch ? 'bg-blue-600' : 'bg-gray-400 dark:bg-gray-600'
+      } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+    >
+      <span
+        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+          allowSearch ? 'translate-x-5' : 'translate-x-0'
+        }`}
+      />
+    </button>
+  </div>
+</div>
 
         {/* ── Menu Navigation ── */}
         <nav className="space-y-1">

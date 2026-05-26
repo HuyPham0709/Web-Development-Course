@@ -1,3 +1,4 @@
+// ProfileDashboard.tsx (fully translated to English)
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Link,
@@ -12,6 +13,7 @@ import {
 
 import { RecommendedJobs } from '../../components/candidate/RecommendedJobs';
 import { CVBuilder } from '../../components/candidate/CVBuilder';
+import CVTemplateGallery from '../../components/candidate/CVTemplateGallery';
 import {
   getProfile, saveProfile, uploadCV, deleteCV,
   PersonalInfo, WorkExperience, Education
@@ -29,41 +31,9 @@ import axios from 'axios';
 import SavedJobs from '../../components/candidate/profile/SavedJobs';
 import dayjs from '../../../utils/date';
 import { getRecommendations } from '../../../services/recommendationService';
+import Settings from '../../components/candidate/profile/Settings';
 
-const CV_TEMPLATES = [
-  {
-    id: '1', name: 'Đào Phú Quý', tags: ['Đơn giản', 'Chuyên nghiệp'], isNew: true,
-    image: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=200&h=280&fit=crop'
-  },
-  {
-    id: '2', name: 'Đào Phú Quốc', tags: ['Đơn giản', 'Chuyên nghiệp'], isNew: false,
-    image: 'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=200&h=280&fit=crop'
-  },
-  {
-    id: '3', name: 'Đào Nam Du', tags: ['Đơn giản', 'Chuyên nghiệp'], isNew: true,
-    image: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=200&h=280&fit=crop'
-  },
-  {
-    id: '4', name: 'Đào Bình Ba', tags: ['Đơn giản', 'Sáng tạo'], isNew: false,
-    image: 'https://images.unsplash.com/photo-1517842645767-c639042777db?w=200&h=280&fit=crop'
-  },
-  {
-    id: '5', name: 'Đào Phú Quý (S)', tags: ['Đơn giản', 'Sáng tạo'], isNew: true,
-    image: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=200&h=280&fit=crop'
-  },
-  {
-    id: '6', name: 'Nguyễn Trúc Quỳnh', tags: ['Hiện đại', 'Sáng tạo'], isNew: true,
-    image: 'https://images.unsplash.com/photo-1512314889357-e157c22f938d?w=200&h=280&fit=crop'
-  },
-  {
-    id: '7', name: 'Nguyễn Trúc Quỳnh (P)', tags: ['Chuyên nghiệp', 'Hiện đại'], isNew: false,
-    image: 'https://images.unsplash.com/photo-1506784365847-bbad939e9335?w=200&h=280&fit=crop'
-  },
-  {
-    id: '8', name: 'Nguyễn Trúc Quỳnh (M)', tags: ['Sáng tạo', 'Đơn giản'], isNew: false,
-    image: 'https://images.unsplash.com/photo-1521898284481-a5ec348cb555?w=200&h=280&fit=crop'
-  },
-];
+// No longer need CV_TEMPLATES or TEMPLATE_FILTERS here
 
 interface RecommendedJob {
   id: number;
@@ -80,18 +50,10 @@ interface RecommendedJob {
   match_score: number;
 }
 
-const TEMPLATE_FILTERS = [
-  { id: 'all', label: 'Tất cả' },
-  { id: 'Đơn giản', label: 'Đơn giản' },
-  { id: 'Hiện đại', label: 'Hiện đại' },
-  { id: 'Sáng tạo', label: 'Sáng tạo' },
-  { id: 'Chuyên nghiệp', label: 'Chuyên nghiệp' }
-];
-
 export default function ProfileDashboard() {
   const [activeTab, setActiveTab] = useState('profile');
   const [showFullCVBuilder, setShowFullCVBuilder] = useState(false);
-  const [templateFilter, setTemplateFilter] = useState('all');
+  const [selectedTemplate, setSelectedTemplate] = useState<{ template: string; accentColor: string } | null>(null);
 
   const [personalInfo, setPersonalInfo] = useState<PersonalInfo>({
     full_name: '', title: '', bio: '', location: '',
@@ -104,7 +66,7 @@ export default function ProfileDashboard() {
   const [recommendedJobs, setRecommendedJobs] = useState<RecommendedJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<ToastState | null>(null);
+  const [toast, setToast] = useState<any>(null);
   const [cvUploading, setCvUploading] = useState(false);
   const cvInputRef = useRef<HTMLInputElement>(null);
 
@@ -125,14 +87,14 @@ export default function ProfileDashboard() {
   const userId = JSON.parse(localStorage.getItem('user') || '{}')?.id;
 
   // ── Fetch recommendations ─────────────────────────────────────────────────
-  const fetchRecommendations = useCallback(async () => {  // 👈 đổi thành useCallback
+  const fetchRecommendations = useCallback(async () => {
     try {
       const res = await getRecommendations();
       setRecommendedJobs(res.data.jobs || []);
     } catch (error) {
       console.error('Fetch recommendations error:', error);
     }
-  }, []); // không phụ thuộc gì → stable reference
+  }, []);
 
   // ── Load profile ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -149,33 +111,28 @@ export default function ProfileDashboard() {
           fetchRecommendations();
         }
       })
-      .catch(() => showToast('error', 'Không thể tải hồ sơ'))
+      .catch(() => showToast('error', 'Could not load profile'))
       .finally(() => setLoading(false));
   }, [userId]);
 
-  // ── Lắng nghe criteria-updated ────────────────────────────────────────────
+  // ── Listen to criteria-updated event ─────────────────────────────────────
   useEffect(() => {
     window.addEventListener('criteria-updated', fetchRecommendations);
     return () => window.removeEventListener('criteria-updated', fetchRecommendations);
-  }, [fetchRecommendations]); // 👈 thêm fetchRecommendations vào deps
+  }, [fetchRecommendations]);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const showToast = (type: 'success' | 'error', message: string) => setToast({ type, message });
 
-
   const formatDate = (date?: string | null) => {
-    if (!date) return 'Chưa cập nhật';
-
+    if (!date) return 'Not updated';
     const pureDate = date.split('T')[0];
-
     const [year, month, day] = pureDate.split('-');
-
     return `${day}-${month}-${year}`;
   };
 
   const formatDateForInput = (dateString?: string | null) => {
     if (!dateString) return '';
-
     return dateString.split('T')[0];
   };
 
@@ -191,54 +148,35 @@ export default function ProfileDashboard() {
     if (!userId) return;
     setSaving(true);
     try {
-      // 1. Chuẩn bị dữ liệu từ các state chỉnh sửa
       let newPI = { ...personalInfo };
       let newExp = [...experiences];
       let newEdu = [...education];
       let newSkills = [...skills];
 
-      // 2. Gán và "LÀM SẠCH" ngày tháng về định dạng YYYY-MM-DD
       if (modal === 'personalInfo') {
-        newPI = {
-          ...editPI,
-          dob: editPI.dob || null
-        };
+        newPI = { ...editPI, dob: editPI.dob || null };
       }
-
       if (modal === 'experience') {
-        newExp = editExp.map(exp => ({
-          ...exp,
-          start_date: exp.start_date || '',
-          end_date: exp.end_date || null
-        }));
+        newExp = editExp.map(exp => ({ ...exp, start_date: exp.start_date || '', end_date: exp.end_date || null }));
       }
-
       if (modal === 'education') {
-        newEdu = editEdu.map(edu => ({
-          ...edu,
-          start_date: edu.start_date || '',
-          end_date: edu.end_date || null
-        }));
+        newEdu = editEdu.map(edu => ({ ...edu, start_date: edu.start_date || '', end_date: edu.end_date || null }));
       }
-
       if (modal === 'skills') newSkills = editSkills;
 
-      // 3. Kiểm tra logic (Validation) - Giữ nguyên logic của bạn
       if (modal === 'experience' && newExp.some(e => !e.company_name?.trim() || !e.position?.trim() || !e.start_date)) {
-        showToast('error', 'Vui lòng điền đầy đủ thông tin kinh nghiệm làm việc!');
+        showToast('error', 'Please fill in all work experience fields!');
         setSaving(false); return;
       }
       if (modal === 'education' && newEdu.some(e => !e.school_name?.trim() || !e.major?.trim() || !e.start_date)) {
-        showToast('error', 'Vui lòng điền đầy đủ thông tin học vấn!');
+        showToast('error', 'Please fill in all education fields!');
         setSaving(false); return;
       }
       if (modal === 'skills' && newSkills.some(s => !s.trim())) {
-        showToast('error', 'Kỹ năng không được để trống!');
+        showToast('error', 'Skill cannot be empty!');
         setSaving(false); return;
       }
 
-      // 4. LƯU VÀO DATABASE: Gửi dữ liệu đã được format chuẩn YYYY-MM-DD
-      // Việc này giúp Database nhận đúng chuỗi ngày mà không bị lệch múi giờ.
       await saveProfile(userId, {
         personalInfo: newPI,
         experiences: newExp,
@@ -246,16 +184,14 @@ export default function ProfileDashboard() {
         skills: newSkills
       });
 
-      // 5. Cập nhật lại giao diện (State)
       setPersonalInfo(newPI);
       setExperiences(newExp);
       setEducation(newEdu);
       setSkills(newSkills);
 
       setModal(null);
-      showToast('success', 'Hồ sơ đã được cập nhật!');
+      showToast('success', 'Profile updated successfully!');
 
-      // 6. Cập nhật Local Storage (Cho thông tin cá nhân)
       if (modal === 'personalInfo') {
         const savedUserStr = localStorage.getItem('user');
         if (savedUserStr) {
@@ -273,7 +209,7 @@ export default function ProfileDashboard() {
         }
       }
     } catch (err: any) {
-      showToast('error', err?.message || 'Lưu thất bại');
+      showToast('error', err?.message || 'Save failed');
     } finally {
       setSaving(false);
     }
@@ -287,9 +223,9 @@ export default function ProfileDashboard() {
     try {
       const result = await uploadCV(file);
       setPersonalInfo(prev => ({ ...prev, cv_url: result.cv_url }));
-      showToast('success', 'Upload CV thành công!');
+      showToast('success', 'CV uploaded successfully!');
     } catch (err: any) {
-      showToast('error', err.message || 'Upload thất bại');
+      showToast('error', err.message || 'Upload failed');
     } finally {
       setCvUploading(false);
       if (cvInputRef.current) cvInputRef.current.value = '';
@@ -297,13 +233,13 @@ export default function ProfileDashboard() {
   };
 
   const handleCVDelete = async () => {
-    if (!window.confirm('Bạn có chắc muốn xóa CV này?')) return;
+    if (!window.confirm('Are you sure you want to delete this CV?')) return;
     try {
       await deleteCV();
       setPersonalInfo(prev => ({ ...prev, cv_url: null }));
-      showToast('success', 'CV đã được xóa');
+      showToast('success', 'CV deleted');
     } catch (err: any) {
-      showToast('error', err.message || 'Xóa thất bại');
+      showToast('error', err.message || 'Deletion failed');
     }
   };
 
@@ -334,7 +270,7 @@ export default function ProfileDashboard() {
       if (data.success) {
         setAvatarSrc(data.avatar_url);
         setPersonalInfo(prev => ({ ...prev, avatar_url: data.avatar_url }));
-        showToast('success', 'Cập nhật ảnh đại diện thành công!');
+        showToast('success', 'Avatar updated successfully!');
 
         const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
         savedUser.avatar_url = data.avatar_url;
@@ -348,7 +284,7 @@ export default function ProfileDashboard() {
         }));
       }
     } catch (err) {
-      showToast('error', 'Upload ảnh thất bại');
+      showToast('error', 'Avatar upload failed');
     }
   };
 
@@ -379,7 +315,7 @@ export default function ProfileDashboard() {
       if (data.success) {
         setCoverSrc(data.cover_url);
         setPersonalInfo(prev => ({ ...prev, cover_url: data.cover_url }));
-        showToast('success', 'Cập nhật ảnh bìa thành công!');
+        showToast('success', 'Cover image updated successfully!');
 
         const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
         savedUser.cover_url = data.cover_url;
@@ -393,16 +329,25 @@ export default function ProfileDashboard() {
         }));
       }
     } catch (err) {
-      showToast('error', 'Upload ảnh bìa thất bại');
+      showToast('error', 'Cover upload failed');
     }
   };
 
-  const getTagColor = (tag: string) => {
-    if (tag === 'Đơn giản') return 'text-blue-500 bg-blue-50 dark:bg-blue-950/40 dark:text-blue-400';
-    if (tag === 'Chuyên nghiệp') return 'text-purple-600 bg-purple-50 dark:bg-purple-950/40 dark:text-purple-400';
-    if (tag === 'Sáng tạo') return 'text-orange-500 bg-orange-50 dark:bg-orange-950/40 dark:text-orange-400';
-    if (tag === 'Hiện đại') return 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400';
-    return 'text-gray-500 bg-gray-50 dark:bg-white/5 dark:text-gray-400';
+  // Handler for selecting a template from gallery
+  const handleSelectTemplate = (template: string, accentColor: string) => {
+    setSelectedTemplate({ template, accentColor });
+    setShowFullCVBuilder(true);
+  };
+
+  const getActiveTabLabel = () => {
+    for (const item of SIDEBAR_MENU) {
+      if (item.id === activeTab) return item.label;
+      if (item.subItems) {
+        const sub = item.subItems.find(s => s.id === activeTab);
+        if (sub) return sub.label;
+      }
+    }
+    return 'This feature';
   };
 
   // ── Experience helpers ────────────────────────────────────────────────────
@@ -422,23 +367,19 @@ export default function ProfileDashboard() {
     if (s && !editSkills.includes(s)) { setEditSkills(prev => [...prev, s]); setNewSkill(''); }
   };
 
-  const getActiveTabLabel = () => {
-    for (const item of SIDEBAR_MENU) {
-      if (item.id === activeTab) return item.label;
-      if (item.subItems) {
-        const sub = item.subItems.find(s => s.id === activeTab);
-        if (sub) return sub.label;
-      }
-    }
-    return 'Tính năng này';
-  };
-
   return (
     <>
       {/* FULLSCREEN CV BUILDER */}
       {showFullCVBuilder && (
         <div className="fixed inset-0 z-50 bg-white dark:bg-[#0E1422] transition-colors duration-300 animate-fade-in-up">
-          <CVBuilder onClose={() => setShowFullCVBuilder(false)} />
+          <CVBuilder
+            onClose={() => {
+              setShowFullCVBuilder(false);
+              setSelectedTemplate(null);
+            }}
+            initialTemplate={selectedTemplate?.template}
+            initialAccentColor={selectedTemplate?.accentColor}
+          />
         </div>
       )}
 
@@ -458,67 +399,9 @@ export default function ProfileDashboard() {
         <main className={`w-full p-4 md:p-8 overflow-y-auto ${activeTab === 'cv-builder' ? 'xl:w-4/5' : 'xl:w-3/5'}`}>
           <div className={`w-full mx-auto ${activeTab === 'cv-builder' ? 'max-w-7xl' : 'max-w-4xl'}`}>
 
-            {/* CV LIBRARY */}
+            {/* CV LIBRARY - Using CVTemplateGallery component */}
             {activeTab === 'cv-builder' && (
-              <div className="animate-fade-in-up">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-white mb-6">
-                  Danh sách các mẫu CV được Top nhà tuyển dụng ưa thích
-                </h2>
-
-                <div className="flex items-center gap-4 mb-10 overflow-x-auto pb-2 no-scrollbar">
-                  <span className="text-sm font-bold text-gray-500 dark:text-gray-400 whitespace-nowrap">Lọc theo chủ đề:</span>
-                  <div className="flex gap-2">
-                    {TEMPLATE_FILTERS.map(filter => (
-                      <button
-                        key={filter.id}
-                        onClick={() => setTemplateFilter(filter.id)}
-                        className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all border flex items-center gap-1.5 ${templateFilter === filter.id
-                          ? 'bg-gray-800 text-white border-gray-800 shadow-sm dark:bg-white dark:text-gray-900 dark:border-white'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 dark:bg-white/5 dark:text-gray-300 dark:border-white/10 dark:hover:border-white/20'
-                          }`}
-                      >
-                        {templateFilter === filter.id && <Check className="w-3 h-3" />}
-                        {filter.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
-                  {CV_TEMPLATES.filter(t => templateFilter === 'all' || t.tags.includes(templateFilter)).map(t => (
-                    <div key={t.id} className="group flex flex-col">
-                      <div className="relative aspect-[1/1.4] rounded-xl overflow-hidden border border-gray-100 dark:border-white/10 shadow-sm transition-all duration-300 group-hover:shadow-xl group-hover:border-purple-200 dark:group-hover:border-purple-500/30 bg-white dark:bg-white/5">
-                        <img src={t.image} alt={t.name} className="w-full h-full object-cover" />
-                        {t.isNew && (
-                          <div className="absolute top-3 right-3 bg-blue-500 text-white text-[10px] font-black px-2 py-0.5 rounded shadow-sm">
-                            NEW
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-black/5 dark:bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-4">
-                          <button
-                            onClick={() => setShowFullCVBuilder(true)}
-                            className="bg-[#6b46c1] text-white text-sm font-bold px-6 py-2.5 rounded-lg shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 hover:bg-[#553c9a] dark:bg-purple-600 dark:hover:bg-purple-500"
-                          >
-                            Dùng mẫu này
-                          </button>
-                        </div>
-                      </div>
-                      <div className="mt-4 px-1">
-                        <h3 className="text-[14px] font-bold text-gray-800 dark:text-white mb-2 truncate group-hover:text-purple-700 dark:group-hover:text-purple-400 transition-colors">
-                          {t.name}
-                        </h3>
-                        <div className="flex flex-wrap gap-1.5">
-                          {t.tags.map(tag => (
-                            <span key={tag} className={`text-[10px] font-bold px-2 py-0.5 rounded ${getTagColor(tag)}`}>
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <CVTemplateGallery onSelectTemplate={handleSelectTemplate} />
             )}
 
             {/* PROFILE TAB */}
@@ -540,15 +423,15 @@ export default function ProfileDashboard() {
                         <button onClick={() => avatarInputRef.current?.click()} className="absolute bottom-0 right-0 bg-white dark:bg-white/10 p-2 rounded-full shadow border border-gray-100 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"><Edit2 className="w-4 h-4" /></button>
                         <input type="file" ref={avatarInputRef} accept="image/*" className="hidden" onChange={handleAvatarChange} />
                       </div>
-                      <button onClick={() => openModal('personalInfo')} className="self-start md:self-auto px-6 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 font-medium rounded-xl hover:bg-gray-50 dark:hover:bg-white/10 transition-colors flex items-center gap-2"><Edit2 className="w-4 h-4" /> Chỉnh sửa hồ sơ</button>
+                      <button onClick={() => openModal('personalInfo')} className="self-start md:self-auto px-6 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 font-medium rounded-xl hover:bg-gray-50 dark:hover:bg-white/10 transition-colors flex items-center gap-2"><Edit2 className="w-4 h-4" /> Edit Profile</button>
                     </div>
 
                     {loading ? (
                       <div className="space-y-3"><ProfileSkeleton className="h-8 w-48" /><ProfileSkeleton className="h-5 w-72" /></div>
                     ) : (
                       <div>
-                        <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{personalInfo.full_name || 'Chưa có tên'}</h1>
-                        <p className="text-lg text-gray-600 dark:text-gray-400 mt-1 font-medium">{personalInfo.title || 'Chưa có chức danh'}</p>
+                        <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{personalInfo.full_name || 'No name'}</h1>
+                        <p className="text-lg text-gray-600 dark:text-gray-400 mt-1 font-medium">{personalInfo.title || 'No title'}</p>
                         {personalInfo.bio && <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-2xl leading-relaxed">{personalInfo.bio}</p>}
                         <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-gray-500 dark:text-gray-400">
                           {personalInfo.location && <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {personalInfo.location}</span>}
@@ -563,13 +446,13 @@ export default function ProfileDashboard() {
                 {/* Experience */}
                 <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-6 md:p-8 transition-colors duration-300">
                   <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Kinh nghiệm làm việc</h2>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Work Experience</h2>
                     <button onClick={() => openModal('experience')} className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-lg transition-colors"><Edit2 className="w-5 h-5" /></button>
                   </div>
                   {loading ? (
                     <div className="space-y-6">{[1, 2].map(i => <ProfileSkeleton key={i} className="h-24" />)}</div>
                   ) : experiences.length === 0 ? (
-                    <button onClick={() => openModal('experience')} className="w-full py-8 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl text-gray-400 dark:text-gray-500 text-sm hover:border-blue-300 dark:hover:border-blue-500/50 hover:text-blue-500 dark:hover:text-blue-400 transition-colors flex flex-col items-center gap-2"><Plus className="w-6 h-6" /> Thêm kinh nghiệm</button>
+                    <button onClick={() => openModal('experience')} className="w-full py-8 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl text-gray-400 dark:text-gray-500 text-sm hover:border-blue-300 dark:hover:border-blue-500/50 hover:text-blue-500 dark:hover:text-blue-400 transition-colors flex flex-col items-center gap-2"><Plus className="w-6 h-6" /> Add Experience</button>
                   ) : (
                     <div className="space-y-6">
                       {experiences.map((exp, i) => (
@@ -577,7 +460,7 @@ export default function ProfileDashboard() {
                           <div className={`absolute w-3 h-3 rounded-full -left-[7px] top-1.5 ring-4 ring-white dark:ring-[#0E1422] ${i === 0 ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}`} />
                           <h3 className="font-bold text-gray-900 dark:text-white">{exp.position}</h3>
                           <p className="text-blue-600 dark:text-blue-400 text-sm font-medium mb-1">{exp.company_name}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{exp.start_date && <>{formatDate(exp.start_date)}{exp.end_date ? ` — ${formatDate(exp.end_date)}` : ' — Hiện tại'}</>}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{exp.start_date && <>{formatDate(exp.start_date)}{exp.end_date ? ` — ${formatDate(exp.end_date)}` : ' — Present'}</>}</p>
                           {exp.description && <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{exp.description}</p>}
                         </div>
                       ))}
@@ -590,12 +473,12 @@ export default function ProfileDashboard() {
                   {/* Education */}
                   <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-6 md:p-8 transition-colors duration-300">
                     <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-xl font-bold text-gray-900 dark:text-white">Học vấn</h2>
+                      <h2 className="text-xl font-bold text-gray-900 dark:text-white">Education</h2>
                       <button onClick={() => openModal('education')} className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-lg transition-colors"><Edit2 className="w-5 h-5" /></button>
                     </div>
                     {loading ? <ProfileSkeleton className="h-20" /> :
                       education.length === 0 ? (
-                        <button onClick={() => openModal('education')} className="w-full py-6 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl text-gray-400 dark:text-gray-500 text-sm hover:border-blue-300 dark:hover:border-blue-500/50 hover:text-blue-500 dark:hover:text-blue-400 transition-colors flex flex-col items-center gap-2"><Plus className="w-5 h-5" /> Thêm học vấn</button>
+                        <button onClick={() => openModal('education')} className="w-full py-6 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl text-gray-400 dark:text-gray-500 text-sm hover:border-blue-300 dark:hover:border-blue-500/50 hover:text-blue-500 dark:hover:text-blue-400 transition-colors flex flex-col items-center gap-2"><Plus className="w-5 h-5" /> Add Education</button>
                       ) : (
                         <div className="space-y-4">
                           {education.map((edu, i) => (
@@ -604,7 +487,7 @@ export default function ProfileDashboard() {
                               <div>
                                 <h3 className="font-bold text-gray-900 dark:text-white">{edu.school_name}</h3>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">{edu.major}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{edu.start_date && <>{formatDate(edu.start_date)}{edu.end_date ? ` — ${formatDate(edu.end_date)}` : ' — Hiện tại'}</>}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{edu.start_date && <>{formatDate(edu.start_date)}{edu.end_date ? ` — ${formatDate(edu.end_date)}` : ' — Present'}</>}</p>
                               </div>
                             </div>
                           ))}
@@ -615,17 +498,17 @@ export default function ProfileDashboard() {
                   {/* Skills */}
                   <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-6 md:p-8 transition-colors duration-300">
                     <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-xl font-bold text-gray-900 dark:text-white">Kỹ năng</h2>
+                      <h2 className="text-xl font-bold text-gray-900 dark:text-white">Skills</h2>
                       <button onClick={() => openModal('skills')} className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-lg transition-colors"><Edit2 className="w-5 h-5" /></button>
                     </div>
                     {loading ? <ProfileSkeleton className="h-16" /> : (
                       <div className="flex flex-wrap gap-2">
                         {skills.length === 0 ? (
-                          <button onClick={() => openModal('skills')} className="w-full py-6 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl text-gray-400 dark:text-gray-500 text-sm hover:border-blue-300 dark:hover:border-blue-500/50 hover:text-blue-500 dark:hover:text-blue-400 transition-colors flex flex-col items-center gap-2"><Plus className="w-5 h-5" /> Thêm kỹ năng</button>
+                          <button onClick={() => openModal('skills')} className="w-full py-6 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl text-gray-400 dark:text-gray-500 text-sm hover:border-blue-300 dark:hover:border-blue-500/50 hover:text-blue-500 dark:hover:text-blue-400 transition-colors flex flex-col items-center gap-2"><Plus className="w-5 h-5" /> Add Skills</button>
                         ) : (
                           <>
                             {skills.map(skill => <span key={skill} className="px-3 py-1.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 text-sm rounded-lg font-medium">{skill}</span>)}
-                            <button onClick={() => openModal('skills')} className="px-3 py-1.5 border border-dashed border-gray-300 dark:border-white/20 text-gray-500 dark:text-gray-400 text-sm rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-white/10 hover:text-gray-700 dark:hover:text-white transition-colors flex items-center gap-1"><Plus className="w-4 h-4" /> Thêm</button>
+                            <button onClick={() => openModal('skills')} className="px-3 py-1.5 border border-dashed border-gray-300 dark:border-white/20 text-gray-500 dark:text-gray-400 text-sm rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-white/10 hover:text-gray-700 dark:hover:text-white transition-colors flex items-center gap-1"><Plus className="w-4 h-4" /> Add</button>
                           </>
                         )}
                       </div>
@@ -640,19 +523,18 @@ export default function ProfileDashboard() {
                     <label className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all group ${cvUploading ? 'opacity-60 pointer-events-none' : 'hover:bg-gray-50 dark:hover:bg-white/5 hover:border-blue-300 dark:hover:border-blue-500/50 border-gray-200 dark:border-white/10'}`}>
                       <input ref={cvInputRef} type="file" accept=".pdf,.docx" onChange={handleCVUpload} className="hidden" />
                       <div className="w-12 h-12 bg-blue-50 dark:bg-blue-950/40 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">{cvUploading ? <Loader2 className="w-6 h-6 text-blue-600 dark:text-blue-400 animate-spin" /> : <UploadCloud className="w-6 h-6 text-blue-600 dark:text-blue-400" />}</div>
-                      <h3 className="font-bold text-gray-900 dark:text-white mb-1">{cvUploading ? 'Đang tải lên...' : 'Tải lên CV'}</h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">PDF, DOCX tối đa 5MB</p>
-                      <span className="px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:border-blue-300 dark:group-hover:border-blue-500/50">Chọn file</span>
+                      <h3 className="font-bold text-gray-900 dark:text-white mb-1">{cvUploading ? 'Uploading...' : 'Upload CV'}</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">PDF, DOCX up to 5MB</p>
+                      <span className="px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:border-blue-300 dark:group-hover:border-blue-500/50">Choose file</span>
                     </label>
 
-                    {/* FIX: Chỉ giữ 1 bộ nút Xem/Xóa dùng resolveFileUrl */}
                     {loading ? <ProfileSkeleton className="rounded-2xl h-40" /> : personalInfo?.cv_url ? (
                       <div className="bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl p-6 flex flex-col">
                         <div className="flex items-start gap-4 mb-auto">
                           <div className="w-12 h-12 bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-xl flex items-center justify-center flex-shrink-0"><FileText className="w-6 h-6" /></div>
                           <div className="min-w-0">
                             <h3 className="font-bold text-gray-900 dark:text-white truncate">{personalInfo?.cv_url?.split('/').pop()}</h3>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">CV đã tải lên</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Uploaded CV</p>
                           </div>
                         </div>
                         <div className="flex gap-3 mt-6">
@@ -662,20 +544,20 @@ export default function ProfileDashboard() {
                             rel="noreferrer"
                             className="flex-1 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors text-center"
                           >
-                            Xem
+                            View
                           </a>
                           <button
                             onClick={handleCVDelete}
                             className="flex-1 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center justify-center gap-2"
                           >
-                            <Trash2 className="w-4 h-4" /> Xóa
+                            <Trash2 className="w-4 h-4" /> Delete
                           </button>
                         </div>
                       </div>
                     ) : (
                       <div className="bg-gray-50 dark:bg-white/5 border border-dashed border-gray-200 dark:border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center text-center text-gray-400 dark:text-gray-500">
                         <FileText className="w-8 h-8 mb-2 opacity-40" />
-                        <p className="text-sm">Chưa có CV nào</p>
+                        <p className="text-sm">No CV uploaded yet</p>
                       </div>
                     )}
                   </div>
@@ -688,14 +570,22 @@ export default function ProfileDashboard() {
             {activeTab === 'search-criteria' && (<JobCriteria />)}
             {activeTab === 'saved' && <SavedJobs />}
 
+            {/* SETTINGS TAB (thay thế cho account management) */}
+            {activeTab === 'account' && (
+              <Settings topJob={recommendedJobs.length > 0
+                ? recommendedJobs.reduce((prev, current) => (prev.match_score > current.match_score ? prev : current))
+                : undefined}
+              />
+            )}
+
             {/* FALLBACK for unimplemented tabs */}
-            {!['profile', 'cv-builder', 'recommended', 'applied', 'applications', 'search-criteria', 'saved'].includes(activeTab) && (
+            {!['profile', 'cv-builder', 'recommended', 'applied', 'applications', 'search-criteria', 'saved', 'account'].includes(activeTab) && (
               <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
                 <div className="w-16 h-16 bg-gray-50 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
                   <FileText className="w-8 h-8 text-gray-400 dark:text-gray-500" />
                 </div>
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{getActiveTabLabel()}</h2>
-                <p className="text-gray-500 dark:text-gray-400 max-w-md">Tính năng đang được phát triển. Vui lòng quay lại sau.</p>
+                <p className="text-gray-500 dark:text-gray-400 max-w-md">This feature is under development. Please check back later.</p>
               </div>
             )}
           </div>
@@ -718,11 +608,11 @@ export default function ProfileDashboard() {
 
                     <div>
                       <h3 className="font-bold text-gray-900 dark:text-white text-sm">
-                        Gợi ý cho bạn
+                        Recommended for you
                       </h3>
 
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Công việc phù hợp hồ sơ
+                        Jobs matching your profile
                       </p>
                     </div>
                   </div>
@@ -731,7 +621,7 @@ export default function ProfileDashboard() {
                     to="/recommended-jobs"
                     className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400"
                   >
-                    Xem tất cả
+                    View all
                   </Link>
                 </div>
 
@@ -744,11 +634,11 @@ export default function ProfileDashboard() {
                       </div>
 
                       <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Chưa có công việc phù hợp
+                        No matching jobs yet
                       </p>
 
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Hãy cập nhật hồ sơ để nhận đề xuất tốt hơn
+                        Update your profile to get better recommendations
                       </p>
                     </div>
                   ) : (
@@ -784,10 +674,10 @@ export default function ProfileDashboard() {
                                 </h4>
                                 {job.match_score > 0 && (
                                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${job.match_score >= 60
-                                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
-                                      : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400'
+                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+                                    : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400'
                                     }`}>
-                                    {job.match_score}%  {/* 👈 hiện số % thay vì chữ */}
+                                    {job.match_score}%
                                   </span>
                                 )}
                               </div>
@@ -808,22 +698,20 @@ export default function ProfileDashboard() {
                                 </div>
                               )}
 
-                              {/* 👇 THÊM: Progress bar + label */}
+                              {/* Progress bar */}
                               {job.match_score > 0 && (
                                 <div className="mt-3">
-                                  {/* Bar */}
                                   <div className="w-full h-1.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
                                     <div
                                       className={`h-full rounded-full transition-all duration-500 ${job.match_score >= 60
-                                          ? 'bg-emerald-500'
-                                          : 'bg-yellow-400'
+                                        ? 'bg-emerald-500'
+                                        : 'bg-yellow-400'
                                         }`}
                                       style={{ width: `${job.match_score}%` }}
                                     />
                                   </div>
-                                  {/* Label */}
                                   <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
-                                    {job.match_score >= 60 ? 'Phù hợp cao' : 'Có thể phù hợp'}
+                                    {job.match_score >= 60 ? 'Highly suitable' : 'Potentially suitable'}
                                   </p>
                                 </div>
                               )}
@@ -841,18 +729,18 @@ export default function ProfileDashboard() {
               <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-3xl p-5 text-white shadow-lg">
 
                 <h3 className="font-bold text-lg mb-1">
-                  Hồ sơ của bạn
+                  Your profile
                 </h3>
 
                 <p className="text-sm text-blue-100 mb-5">
-                  Hoàn thiện hồ sơ để tăng cơ hội được tuyển dụng
+                  Complete your profile to increase your chances
                 </p>
 
                 <div className="space-y-4">
 
                   <div>
                     <div className="flex justify-between text-sm mb-1">
-                      <span>Độ hoàn thiện</span>
+                      <span>Completion</span>
                       <span>80%</span>
                     </div>
 
@@ -865,7 +753,7 @@ export default function ProfileDashboard() {
                     onClick={() => openModal('personalInfo')}
                     className="w-full py-3 rounded-2xl bg-white text-blue-700 font-semibold text-sm hover:bg-blue-50 transition"
                   >
-                    Cập nhật hồ sơ
+                    Update profile
                   </button>
                 </div>
               </div>
@@ -892,22 +780,22 @@ export default function ProfileDashboard() {
 
       {/* MODALS */}
       {modal === 'personalInfo' && (
-        <EditModal title="Chỉnh sửa thông tin cá nhân" onClose={() => setModal(null)} onSave={handleSave} saving={saving}>
-          <Field label="Họ và tên *"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Nguyễn Văn A" value={editPI.full_name || ''} onChange={e => setEditPI(p => ({ ...p, full_name: e.target.value }))} /></Field>
-          <Field label="Chức danh"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Senior Frontend Engineer" value={editPI.title || ''} onChange={e => setEditPI(p => ({ ...p, title: e.target.value }))} /></Field>
-          <Field label="Giới thiệu bản thân"><textarea className={inputCls + ' h-24 resize-none dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Một vài dòng về bạn..." value={editPI.bio || ''} onChange={e => setEditPI(p => ({ ...p, bio: e.target.value }))} /></Field>
+        <EditModal title="Edit Personal Information" onClose={() => setModal(null)} onSave={handleSave} saving={saving}>
+          <Field label="Full name *"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Nguyễn Văn A" value={editPI.full_name || ''} onChange={e => setEditPI(p => ({ ...p, full_name: e.target.value }))} /></Field>
+          <Field label="Title"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Senior Frontend Engineer" value={editPI.title || ''} onChange={e => setEditPI(p => ({ ...p, title: e.target.value }))} /></Field>
+          <Field label="Bio"><textarea className={inputCls + ' h-24 resize-none dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="A few lines about you..." value={editPI.bio || ''} onChange={e => setEditPI(p => ({ ...p, bio: e.target.value }))} /></Field>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Địa điểm"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="TP. Hồ Chí Minh" value={editPI.location || ''} onChange={e => setEditPI(p => ({ ...p, location: e.target.value }))} /></Field>
-            <Field label="Số điện thoại"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="0901 234 567" value={editPI.phone || ''} onChange={e => setEditPI(p => ({ ...p, phone: e.target.value }))} /></Field>
+            <Field label="Location"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Ho Chi Minh City" value={editPI.location || ''} onChange={e => setEditPI(p => ({ ...p, location: e.target.value }))} /></Field>
+            <Field label="Phone"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="0901 234 567" value={editPI.phone || ''} onChange={e => setEditPI(p => ({ ...p, phone: e.target.value }))} /></Field>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Ngày sinh"><input type="date" className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} value={editPI.dob || ''} onChange={e => setEditPI(p => ({ ...p, dob: e.target.value }))} /></Field>
-            <Field label="Giới tính">
+            <Field label="Date of birth"><input type="date" className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} value={editPI.dob || ''} onChange={e => setEditPI(p => ({ ...p, dob: e.target.value }))} /></Field>
+            <Field label="Gender">
               <select className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} value={editPI.gender || ''} onChange={e => setEditPI(p => ({ ...p, gender: e.target.value as any }))}>
-                <option value="" className="dark:bg-[#0E1422] dark:text-white">-- Chọn --</option>
-                <option value="male" className="dark:bg-[#0E1422] dark:text-white">Nam</option>
-                <option value="female" className="dark:bg-[#0E1422] dark:text-white">Nữ</option>
-                <option value="other" className="dark:bg-[#0E1422] dark:text-white">Khác</option>
+                <option value="" className="dark:bg-[#0E1422] dark:text-white">-- Select --</option>
+                <option value="male" className="dark:bg-[#0E1422] dark:text-white">Male</option>
+                <option value="female" className="dark:bg-[#0E1422] dark:text-white">Female</option>
+                <option value="other" className="dark:bg-[#0E1422] dark:text-white">Other</option>
               </select>
             </Field>
           </div>
@@ -915,49 +803,49 @@ export default function ProfileDashboard() {
       )}
 
       {modal === 'experience' && (
-        <EditModal title="Chỉnh sửa kinh nghiệm" onClose={() => setModal(null)} onSave={handleSave} saving={saving}>
+        <EditModal title="Edit Work Experience" onClose={() => setModal(null)} onSave={handleSave} saving={saving}>
           {editExp.map((exp, i) => (
             <div key={i} className="p-4 border border-gray-100 dark:border-white/10 rounded-xl space-y-3 relative bg-gray-50 dark:bg-white/5">
               <button onClick={() => removeExp(i)} className="absolute top-3 right-3 p-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"><Trash2 className="w-4 h-4" /></button>
-              <Field label="Tên công ty"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="TechCorp Inc." value={exp.company_name} onChange={e => updateExp(i, 'company_name', e.target.value)} /></Field>
-              <Field label="Vị trí"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Senior Frontend Engineer" value={exp.position} onChange={e => updateExp(i, 'position', e.target.value)} /></Field>
+              <Field label="Company"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="TechCorp Inc." value={exp.company_name} onChange={e => updateExp(i, 'company_name', e.target.value)} /></Field>
+              <Field label="Position"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Senior Frontend Engineer" value={exp.position} onChange={e => updateExp(i, 'position', e.target.value)} /></Field>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Từ ngày"><input type="date" className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} value={formatDateForInput(exp.start_date)} onChange={e => updateExp(i, 'start_date', e.target.value)} /></Field>
-                <Field label="Đến ngày"><input type="date" className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} value={formatDateForInput(exp.end_date)} onChange={e => updateExp(i, 'end_date', e.target.value)} /></Field>
+                <Field label="Start date"><input type="date" className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} value={formatDateForInput(exp.start_date)} onChange={e => updateExp(i, 'start_date', e.target.value)} /></Field>
+                <Field label="End date"><input type="date" className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} value={formatDateForInput(exp.end_date)} onChange={e => updateExp(i, 'end_date', e.target.value)} /></Field>
               </div>
-              <Field label="Mô tả"><textarea className={inputCls + ' h-20 resize-none dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Mô tả công việc..." value={exp.description} onChange={e => updateExp(i, 'description', e.target.value)} /></Field>
+              <Field label="Description"><textarea className={inputCls + ' h-20 resize-none dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Job description..." value={exp.description} onChange={e => updateExp(i, 'description', e.target.value)} /></Field>
             </div>
           ))}
-          <button onClick={addExp} className="w-full py-3 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl text-sm text-gray-500 dark:text-gray-400 hover:border-blue-300 dark:hover:border-blue-500/50 hover:text-blue-500 dark:hover:text-blue-400 transition-colors flex items-center justify-center gap-2"><Plus className="w-4 h-4" /> Thêm kinh nghiệm</button>
+          <button onClick={addExp} className="w-full py-3 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl text-sm text-gray-500 dark:text-gray-400 hover:border-blue-300 dark:hover:border-blue-500/50 hover:text-blue-500 dark:hover:text-blue-400 transition-colors flex items-center justify-center gap-2"><Plus className="w-4 h-4" /> Add Experience</button>
         </EditModal>
       )}
 
       {modal === 'education' && (
-        <EditModal title="Chỉnh sửa học vấn" onClose={() => setModal(null)} onSave={handleSave} saving={saving}>
+        <EditModal title="Edit Education" onClose={() => setModal(null)} onSave={handleSave} saving={saving}>
           {editEdu.map((edu, i) => (
             <div key={i} className="p-4 border border-gray-100 dark:border-white/10 rounded-xl space-y-3 relative bg-gray-50 dark:bg-white/5">
               <button onClick={() => removeEdu(i)} className="absolute top-3 right-3 p-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"><Trash2 className="w-4 h-4" /></button>
-              <Field label="Trường học"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Đại học Bách Khoa" value={edu.school_name} onChange={e => updateEdu(i, 'school_name', e.target.value)} /></Field>
-              <Field label="Chuyên ngành"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Công nghệ thông tin" value={edu.major} onChange={e => updateEdu(i, 'major', e.target.value)} /></Field>
+              <Field label="School"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Hanoi University of Science and Technology" value={edu.school_name} onChange={e => updateEdu(i, 'school_name', e.target.value)} /></Field>
+              <Field label="Major"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Information Technology" value={edu.major} onChange={e => updateEdu(i, 'major', e.target.value)} /></Field>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Từ năm"><input type="date" className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} value={edu.start_date} onChange={e => updateEdu(i, 'start_date', e.target.value)} /></Field>
-                <Field label="Đến năm"><input type="date" className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} value={edu.end_date || ''} onChange={e => updateEdu(i, 'end_date', e.target.value)} /></Field>
+                <Field label="Start year"><input type="date" className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} value={edu.start_date} onChange={e => updateEdu(i, 'start_date', e.target.value)} /></Field>
+                <Field label="End year"><input type="date" className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} value={edu.end_date || ''} onChange={e => updateEdu(i, 'end_date', e.target.value)} /></Field>
               </div>
-              <Field label="Mô tả"><textarea className={inputCls + ' h-16 resize-none dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Thành tích, hoạt động..." value={edu.description || ''} onChange={e => updateEdu(i, 'description', e.target.value)} /></Field>
+              <Field label="Description"><textarea className={inputCls + ' h-16 resize-none dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Achievements, activities..." value={edu.description || ''} onChange={e => updateEdu(i, 'description', e.target.value)} /></Field>
             </div>
           ))}
-          <button onClick={addEdu} className="w-full py-3 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl text-sm text-gray-500 dark:text-gray-400 hover:border-blue-300 dark:hover:border-blue-500/50 hover:text-blue-500 dark:hover:text-blue-400 transition-colors flex items-center justify-center gap-2"><Plus className="w-4 h-4" /> Thêm học vấn</button>
+          <button onClick={addEdu} className="w-full py-3 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl text-sm text-gray-500 dark:text-gray-400 hover:border-blue-300 dark:hover:border-blue-500/50 hover:text-blue-500 dark:hover:text-blue-400 transition-colors flex items-center justify-center gap-2"><Plus className="w-4 h-4" /> Add Education</button>
         </EditModal>
       )}
 
       {modal === 'skills' && (
-        <EditModal title="Chỉnh sửa kỹ năng" onClose={() => setModal(null)} onSave={handleSave} saving={saving}>
+        <EditModal title="Edit Skills" onClose={() => setModal(null)} onSave={handleSave} saving={saving}>
           <div className="flex gap-2">
-            <input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="VD: React, TypeScript..." value={newSkill} onChange={e => setNewSkill(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSkill())} />
+            <input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="e.g., React, TypeScript..." value={newSkill} onChange={e => setNewSkill(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSkill())} />
             <button onClick={addSkill} className="px-4 py-2.5 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors flex-shrink-0"><Plus className="w-4 h-4" /></button>
           </div>
           <div className="flex flex-wrap gap-2 min-h-[60px] p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/10">
-            {editSkills.length === 0 && <span className="text-sm text-gray-400 dark:text-gray-500 m-auto">Nhập kỹ năng và nhấn Enter hoặc nút +</span>}
+            {editSkills.length === 0 && <span className="text-sm text-gray-400 dark:text-gray-500 m-auto">Type a skill and press Enter or + button</span>}
             {editSkills.map(skill => (
               <span key={skill} className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 text-sm rounded-lg font-medium">
                 {skill}
