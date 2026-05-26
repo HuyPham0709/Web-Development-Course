@@ -281,3 +281,23 @@ CREATE TABLE Application_Notes (
     FOREIGN KEY (application_id) REFERENCES Applications(id) ON DELETE CASCADE,
     FOREIGN KEY (author_id) REFERENCES Users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 1. Thêm cột bật/tắt cho phép NTD tìm bạn (trong bảng Profiles)
+ALTER TABLE Profiles 
+ADD COLUMN allow_employer_search BOOLEAN DEFAULT FALSE,
+ADD INDEX idx_allow_employer_search (allow_employer_search);
+
+use job_finder_db ;
+-- 2. Bảng lưu lịch sử NTD xem profile ứng viên
+CREATE TABLE IF NOT EXISTS Employer_Profile_Views (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    employer_id INT NOT NULL,
+    candidate_id INT NOT NULL,
+    viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_notified TINYINT DEFAULT 0,
+    view_date DATE GENERATED ALWAYS AS (DATE(viewed_at)) STORED,
+    FOREIGN KEY (employer_id) REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (candidate_id) REFERENCES Users(id) ON DELETE CASCADE,
+    INDEX idx_candidate (candidate_id),
+    UNIQUE KEY uk_view_per_day (employer_id, candidate_id, view_date)
+);

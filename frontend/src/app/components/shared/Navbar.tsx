@@ -98,7 +98,6 @@ export const Navbar = () => {
         { name: "Home", path: "/" },
         { name: "Jobs", path: "/jobs" },
         { name: "My Applications", path: "/applications" },
-        { name: "Settings", path: "/settings" },
       ];
     }
 

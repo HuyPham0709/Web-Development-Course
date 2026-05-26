@@ -25,7 +25,8 @@ const favoriteRoutes = require("./routes/favoriteRoutes");
 const recommendationRoutes = require("./routes/recommendationRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const messageRoutes = require("./routes/messageRoutes");
-
+const cvBuilderRoutes = require("./routes/cvBuilderRoutes");
+const candidateVisibilityRoutes = require('./routes/candidateVisibilityRoutes');
 // Admin Routes
 const adminRoutes = require("./routes/admin/adminRoutes");
 const adminUserRoutes = require("./routes/admin/Userroutes");
@@ -179,6 +180,11 @@ app.use(
   messageRoutes
 );
 
+app.use(
+  "/api/cv-builder",
+  cvBuilderRoutes
+);
+app.use('/api/candidate', candidateVisibilityRoutes);
 // ─────────────────────────────────────────────────────────────
 // Admin Routes
 // ─────────────────────────────────────────────────────────────
