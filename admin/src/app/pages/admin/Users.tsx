@@ -6,9 +6,9 @@ import {
 import { Card } from "../../components/ui/card"
 import { Input } from "../../components/ui/input"
 import { Button } from "../../components/ui/button"
-import { Badge } from "../../components/ui/Badge"
+import { Badge } from "../../components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "../../components/ui/Tabs"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/Table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/Dialog"
 
 const API_URL = 'http://localhost:5000/api/admin';

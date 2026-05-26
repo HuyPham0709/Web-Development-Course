@@ -5,9 +5,9 @@ const cors = require("cors");
 const path = require("path");
 const http = require("http");
 const mongoose = require("mongoose");
-
+const { Server } = require('socket.io');
 const app = express();
-
+const server = http.createServer(app);
 // ─────────────────────────────────────────────────────────────
 // Routes
 // ─────────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 // ==========================================
-// CandidateDetail.tsx (Dark Mode & Staggered Animation)
+// CandidateDetail.tsx (Dark Mode & Staggered Animation) - FIXED LOGIC ONLY
 // ==========================================
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
@@ -9,25 +9,29 @@ import { ApplicationDetail, ApplicationNote } from '../../../types/application';
 
 export default function CandidateDetail() {
   const { id } = useParams<{ id: string }>();
-  
+
   const [candidate, setCandidate] = useState<ApplicationDetail | null>(null);
   const [notes, setNotes] = useState<ApplicationNote[]>([]);
   const [newNote, setNewNote] = useState('');
   const [loading, setLoading] = useState(true);
-  
-  // ĐÃ THÊM: State kiểm soát hiệu ứng lướt chào sân mượt mà
+
+  // State kiểm soát hiệu ứng lướt chào sân mượt mà
   const [animate, setAnimate] = useState(false);
-  
+
   const steps = ['Pending', 'Reviewed', 'Interview', 'Hired'];
+
+  // FIX 1: ĐƯA BIẾN BACKEND URL LÊN ĐẦU ĐỂ TRÁNH LỖI SỬ DỤNG TRƯỚC KHI KHAI BÁO (UNDEFINED)
+  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     if (!id) return;
-    
+
     const fetchData = async () => {
       try {
+        // FIX 2: GIỮ NGUYÊN CHUỖI ID (M_ID CỦA MONGODB), KHÔNG ÉP SANG NUMBER GÂY LỖI URL THÀNH NaN
         const [detailRes, notesRes] = await Promise.all([
           applicationService.getApplicationById(id),
-          applicationService.getNotes(Number(id))
+          applicationService.getNotes(id as any)
         ]);
         setCandidate(detailRes.data.data);
         setNotes(notesRes.data.data || []);
@@ -41,7 +45,7 @@ export default function CandidateDetail() {
     fetchData();
   }, [id]);
 
-  // ĐÃ THÊM: Kích hoạt animation ngay sau khi tắt loading
+  // Kích hoạt animation ngay sau khi tắt loading
   useEffect(() => {
     if (!loading) {
       const timer = setTimeout(() => setAnimate(true), 60);
@@ -52,7 +56,8 @@ export default function CandidateDetail() {
   const handleAddNote = async () => {
     if (!newNote.trim() || !id) return;
     try {
-      const res = await applicationService.addNote(Number(id), newNote);
+      // FIX 3: BỎ Number(id) ĐỂ TRÁNH GỬI URL DẠNG /NaN/ LÊN BACKEND
+      const res = await applicationService.addNote(id as any, newNote);
       setNotes([...notes, res.data.data]);
       setNewNote('');
     } catch (error) {
@@ -63,10 +68,10 @@ export default function CandidateDetail() {
 
   const handleUpdateStatus = async (stepLabel: string) => {
     if (!candidate || !id) return;
-    
-    let backendStatus = stepLabel.toLowerCase(); 
+
+    let backendStatus = stepLabel.toLowerCase();
     if (backendStatus === 'interview') backendStatus = 'interviewing';
-    if (backendStatus === 'hired') backendStatus = 'accepted'; 
+    if (backendStatus === 'hired') backendStatus = 'accepted';
 
     if (candidate.status?.toLowerCase() === backendStatus) return;
 
@@ -75,7 +80,8 @@ export default function CandidateDetail() {
 
     try {
       if (applicationService.updateStatus) {
-        await applicationService.updateStatus(Number(id), backendStatus);
+        // FIX 4: BỎ Number(id) ĐỂ TƯƠNG THÍCH VỚI ID CHUỖI CỦA MONGODB
+        await applicationService.updateStatus(id as any, backendStatus);
       }
     } catch (error) {
       console.error("Lỗi cập nhật trạng thái:", error);
@@ -105,82 +111,73 @@ export default function CandidateDetail() {
   switch (candidate.status?.toLowerCase()) {
     case 'pending': activeStep = 0; break;
     case 'reviewed': activeStep = 1; break;
-    case 'interviewing': 
+    case 'interviewing':
     case 'interview': activeStep = 2; break;
-    case 'accepted': 
+    case 'accepted':
     case 'hired': activeStep = 3; break;
     default: activeStep = 0;
   }
 
-  // ĐÃ CẬP NHẬT: Thêm dải màu hỗ trợ Dark Mode cho các Status Badge
+  // Thêm dải màu hỗ trợ Dark Mode cho các Status Badge
   const getStatusColor = (status?: string) => {
     switch (status?.toLowerCase()) {
       case 'pending': return 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/30';
       case 'reviewed': return 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200/30';
-      case 'interviewing': 
+      case 'interviewing':
       case 'interview': return 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400 border border-purple-200/30';
-      case 'accepted': 
+      case 'accepted':
       case 'hired': return 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400 border border-green-200/30';
       default: return 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-400 border border-transparent';
     }
   };
 
   const displayName = candidate.full_name || candidate.candidate_name || 'Ứng viên';
-  const cvFile = candidate.cv_url || ''; 
- const cvLink = cvFile.startsWith('http') 
-    ? cvFile 
+  const cvFile = candidate.cv_url || '';
+  const cvLink = cvFile.startsWith('http')
+    ? cvFile
     : `${backendUrl}/uploads/${cvFile.replace(/^(?:\/?uploads\/)+/, '')}`;
 
-  // Biến này dùng để check xem có file hay không (để render iframe)
   const cleanCvFile = cvFile;
 
-  // =========================================================================
   // LOGIC XỬ LÝ AVATAR ĐỒNG BỘ HOÀN TOÀN TỪ CVSearch.tsx
-  // =========================================================================
   const rawAvatar = candidate.avatar_url || candidate.avatar;
-  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-  
+
   const avatarSrc = rawAvatar
-    ? (rawAvatar.startsWith('http') || rawAvatar.startsWith('data:') 
-        ? rawAvatar 
-        : `${backendUrl}/${rawAvatar.replace(/^\//, '')}`)
+    ? (rawAvatar.startsWith('http') || rawAvatar.startsWith('data:')
+      ? rawAvatar
+      : `${backendUrl}/${rawAvatar.replace(/^\//, '')}`)
     : `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random`;
-  // =========================================================================
 
   return (
     <div className="min-h-screen bg-gray-50/50 dark:bg-[#0E1422] py-4 transition-colors duration-300">
       <div className="flex flex-col gap-6 font-sans pb-12 h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        {/* 1. Breadcrumb - Xuất hiện đầu tiên */}
-        <div className={`flex items-center text-sm text-gray-500 dark:text-gray-400 mb-2 mt-4 transform transition-all duration-500 ease-out ${
-          animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-        }`}>
+
+        {/* 1. Breadcrumb */}
+        <div className={`flex items-center text-sm text-gray-500 dark:text-gray-400 mb-2 mt-4 transform transition-all duration-500 ease-out ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          }`}>
           <Link to="/employer/candidates" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Candidates</Link>
           <ChevronRight className="w-4 h-4 mx-1" />
           <span className="text-gray-900 dark:text-white font-medium">{displayName}</span>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
-          
+
           {/* ================= LEFT COLUMN (Profile Box) ================= */}
-          <div className={`w-full lg:w-[340px] flex-shrink-0 flex flex-col gap-6 transform transition-all duration-500 ease-out delay-75 ${
-            animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-          }`}>
+          <div className={`w-full lg:w-[340px] flex-shrink-0 flex flex-col gap-6 transform transition-all duration-500 ease-out delay-75 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+            }`}>
             <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-sm transition-colors">
-              
+
               <div className="flex flex-col items-center text-center mb-6">
                 <div className="relative mb-4">
-                  
-                  {/* THAY THẾ KHỐI CHỮ CŨ BẰNG THẺ KHỐI ẢNH ĐỒNG BỘ VỚI CVSEARCH */}
                   <div className="w-24 h-24 rounded-full bg-gray-100 dark:bg-white/5 overflow-hidden shrink-0 border border-gray-200 dark:border-white/10 transition-colors">
-                    <img 
-                      src={avatarSrc} 
-                      alt="Avatar" 
+                    <img
+                      src={avatarSrc}
+                      alt="Avatar"
                       className="w-full h-full object-cover"
-                      onError={(e) => { 
+                      onError={(e) => {
                         const target = e.target as HTMLImageElement;
-                        target.onerror = null; 
-                        target.src = "https://placehold.co/150x150/e2e8f0/64748b?text=No+Image"; 
+                        target.onerror = null;
+                        target.src = "https://placehold.co/150x150/e2e8f0/64748b?text=No+Image";
                       }}
                     />
                   </div>
@@ -191,7 +188,7 @@ export default function CandidateDetail() {
                     </div>
                   )}
                 </div>
-                
+
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white mt-2">{displayName}</h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1.5 mt-1">
                   <Briefcase className="w-4 h-4 text-gray-400" />
@@ -204,7 +201,7 @@ export default function CandidateDetail() {
                   <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />
                   <span className="font-medium text-gray-700 dark:text-gray-300 truncate">{candidate.candidate_email}</span>
                 </div>
-                
+
                 {candidate.phone && (
                   <div className="flex items-center gap-3 p-3.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-[#0E1422]/30 text-sm transition-colors">
                     <Phone className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />
@@ -250,45 +247,42 @@ export default function CandidateDetail() {
 
           {/* ================= RIGHT COLUMN (Details Timeline & Notes) ================= */}
           <div className="w-full flex-1 flex flex-col gap-6">
-            
+
             {/* 1. Application Status Card */}
-            <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-sm transform transition-all duration-500 ease-out delay-150 ${
-              animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-            }`}>
+            <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-sm transform transition-all duration-500 ease-out delay-150 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+              }`}>
               <div className="flex items-start justify-between mb-8">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white">Application Status</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Applied on {new Date(candidate.applied_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                 </div>
-                
+
                 <div className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full shadow-sm transition-colors ${getStatusColor(candidate.status)}`}>
                   {candidate.status || 'Action Required'}
                 </div>
               </div>
-              
+
               {/* Timeline Flow */}
               <div className="relative flex items-center justify-between w-full mt-6 px-2 pb-8">
                 <div className="absolute left-6 right-6 top-3 h-1 bg-gray-200 dark:bg-white/10 z-0 rounded-full">
-                  <div 
+                  <div
                     className="absolute left-0 top-0 h-full bg-blue-600 dark:bg-blue-500 z-0 rounded-full transition-all duration-500"
                     style={{ width: `${(activeStep / (steps.length - 1)) * 100}%` }}
                   ></div>
                 </div>
-                
+
                 {steps.map((step, index) => {
                   const isCompleted = index <= activeStep;
                   return (
                     <div key={step} onClick={() => handleUpdateStatus(step)} className="relative z-10 flex flex-col items-center cursor-pointer group">
-                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 group-hover:scale-110 group-hover:shadow-md ${
-                        isCompleted 
-                          ? 'bg-blue-600 dark:bg-blue-500 text-white ring-4 ring-white dark:ring-[#0E1422]' 
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 group-hover:scale-110 group-hover:shadow-md ${isCompleted
+                          ? 'bg-blue-600 dark:bg-blue-500 text-white ring-4 ring-white dark:ring-[#0E1422]'
                           : 'bg-gray-200 dark:bg-white/10 text-gray-500 dark:text-gray-400 ring-4 ring-white dark:ring-[#0E1422] group-hover:bg-gray-300 dark:group-hover:bg-white/20'
-                      }`}>
+                        }`}>
                         {index + 1}
                       </div>
-                      <span className={`text-xs font-medium absolute top-9 whitespace-nowrap transition-colors ${
-                        isCompleted ? 'text-gray-900 dark:text-white font-bold' : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300'
-                      }`}>
+                      <span className={`text-xs font-medium absolute top-9 whitespace-nowrap transition-colors ${isCompleted ? 'text-gray-900 dark:text-white font-bold' : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300'
+                        }`}>
                         {step}
                       </span>
                     </div>
@@ -299,9 +293,8 @@ export default function CandidateDetail() {
 
             {/* 2. Cover Letter Card */}
             {candidate.cover_letter && (
-              <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-sm transform transition-all duration-500 ease-out delay-200 ${
-                animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-              }`}>
+              <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-sm transform transition-all duration-500 ease-out delay-200 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+                }`}>
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                   <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" /> Cover Letter
                 </h3>
@@ -314,9 +307,8 @@ export default function CandidateDetail() {
             )}
 
             {/* 3. Resume Document Card */}
-            <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-sm transform transition-all duration-500 ease-out delay-300 ${
-              animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-            }`}>
+            <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-sm transform transition-all duration-500 ease-out delay-300 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+              }`}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">Resume Document</h3>
                 <div className="flex items-center gap-4">
@@ -329,27 +321,26 @@ export default function CandidateDetail() {
                   </a>
                 </div>
               </div>
-              
+
               <div className="w-full h-[600px] bg-slate-50 dark:bg-[#0E1422]/40 rounded-xl border border-gray-200 dark:border-white/10 relative overflow-hidden transition-colors">
-                 {cleanCvFile ? (
-                   <iframe src={cvLink} className="w-full h-full border-0 absolute inset-0 z-10 dark:opacity-90" title="CV Viewer" />
-                 ) : (
-                   <div className="flex items-center justify-center h-full text-gray-400 dark:text-gray-500 text-sm">
-                     Chưa có file đính kèm
-                   </div>
-                 )}
+                {cleanCvFile ? (
+                  <iframe src={cvLink} className="w-full h-full border-0 absolute inset-0 z-10 dark:opacity-90" title="CV Viewer" />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-400 dark:text-gray-500 text-sm">
+                    Chưa có file đính kèm
+                  </div>
+                )}
               </div>
             </div>
 
             {/* 4. HR Internal Notes Card */}
-            <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-sm relative overflow-hidden transform transition-all duration-500 ease-out delay-[400ms] ${
-              animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-            }`}>
+            <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-sm relative overflow-hidden transform transition-all duration-500 ease-out delay-[400ms] ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+              }`}>
               <div className="absolute left-0 top-0 w-1.5 h-full bg-blue-600 dark:bg-blue-500"></div>
-              
+
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 ml-2">HR Notes</h3>
               <p className="text-xs text-gray-400 dark:text-gray-500 mb-4 ml-2">Internal workspace. Candidate cannot see these notes.</p>
-              
+
               {notes.length > 0 && (
                 <div className="mb-4 space-y-3 ml-2">
                   {notes.map(note => (
@@ -365,7 +356,7 @@ export default function CandidateDetail() {
               )}
 
               <div className="relative ml-2">
-                <textarea 
+                <textarea
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
                   className="w-full bg-white dark:bg-[#0E1422]/60 border border-gray-200 dark:border-white/10 rounded-xl p-4 pr-14 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/30 transition-all resize-none placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-white min-h-[100px]"

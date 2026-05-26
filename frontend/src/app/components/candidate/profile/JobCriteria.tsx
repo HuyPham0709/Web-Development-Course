@@ -158,11 +158,11 @@ export default function JobCriteria() {
               <select name="experience_level" value={formData.experience_level || ''} onChange={handleChange}
                 className="w-full bg-gray-50 dark:bg-[#111827] border border-gray-300 dark:border-white/10 rounded-2xl px-5 py-3.5 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all">
                 <option value="">Select experience level</option>
-                <option value="Thực tập sinh">Intern</option>
-                <option value="Mới tốt nghiệp/ Chưa có kinh nghiệm">Fresh graduate / No experience</option>
-                <option value="Nhân viên">Staff</option>
-                <option value="Trưởng nhóm">Team Leader</option>
-                <option value="Quản lý cấp cao">Senior Manager</option>
+                <option value="intern">Intern</option>
+                <option value="fresher">Fresher</option>
+                <option value="junior">Junior</option>
+                <option value="middle">Middle</option>
+                <option value="senior">Senior</option>
               </select>
             </div>
           </div>

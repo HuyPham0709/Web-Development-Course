@@ -1,27 +1,28 @@
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
-const db = require('../config/db'); // THÊM DÒNG NÀY: Kết nối MySQL để lấy thông tin User
+const db = require('../config/db'); 
+const socketModule = require('../utils/socket');
 
+// ======================================================================
 // [GET] Lấy danh sách hội thoại của user hiện tại
+// ======================================================================
 exports.getConversations = async (req, res, next) => {
     try {
-        const userId = req.user.id; // Giả định req.user.id có từ authMiddleware
+        const userId = req.user.id; 
         
         // 1. Lấy danh sách phòng chat từ MongoDB
         const conversations = await Conversation.find({
-            participants: { $in: [userId] }
+            participants: { $in: [String(userId), userId] }
         })
         .populate('lastMessage')
         .sort({ updatedAt: -1 })
-        .lean(); // Dùng .lean() để chuyển Document thành Object thường, giúp ta dễ thêm field
+        .lean(); 
 
-        // 2. Chạy vòng lặp để đính kèm thông tin Tên & Avatar từ MySQL cho từng phòng chat
+        // 2. Chạy vòng lặp để đính kèm thông tin Tên & Avatar từ MySQL
         const enrichedConversations = await Promise.all(
             conversations.map(async (conv) => {
-                // Lấy ID của người đối diện (người chat cùng mình)
-                const targetUserId = conv.participants.find(id => id !== userId);
+                const targetUserId = conv.participants.find(id => String(id) !== String(userId));
                 
-                // Khởi tạo mặc định
                 let targetUser = { 
                     id: targetUserId, 
                     name: "Người dùng ẩn danh", 
@@ -29,7 +30,6 @@ exports.getConversations = async (req, res, next) => {
                 };
 
                 if (targetUserId) {
-                    // Bước 2.1: Lấy role và username từ bảng Users
                     const [userRows] = await db.query(
                         'SELECT id, username, email, role FROM Users WHERE id = ?', 
                         [targetUserId]
@@ -40,9 +40,8 @@ exports.getConversations = async (req, res, next) => {
                         targetUser.username = user.username;
                         targetUser.email = user.email;
                         targetUser.role = user.role;
-                        targetUser.name = user.username; // Fallback lấy username làm tên tạm thời
+                        targetUser.name = user.username; 
 
-                        // Bước 2.2: Lấy Tên thật & Avatar dựa trên Role
                         if (user.role === 'candidate') {
                             const [profileRows] = await db.query(
                                 'SELECT full_name, avatar_url FROM Profiles WHERE user_id = ?', 
@@ -65,9 +64,12 @@ exports.getConversations = async (req, res, next) => {
                     }
                 }
 
-                // Trả về cuộc hội thoại đã được đính kèm cục targetUser hoàn chỉnh
+                // 🔥 ĐỒNG BỘ NAVBAR: Nếu mình KHÔNG PHẢI là người gửi cuối cùng, hiển thị số tin chưa đọc từ DB
+                const dynamicUnreadCount = String(conv.lastSenderId) !== String(userId) ? (conv.unreadCount || 0) : 0;
+
                 return {
                     ...conv,
+                    unreadCount: dynamicUnreadCount, // Trả về cho frontend xử lý số đếm
                     targetUser
                 };
             })
@@ -80,10 +82,20 @@ exports.getConversations = async (req, res, next) => {
     }
 };
 
-// [GET] Lấy tin nhắn của 1 hội thoại
+// ======================================================================
+// [GET] Lấy tin nhắn của 1 hội thoại (Đồng thời XÓA số lượng chưa đọc)
+// ======================================================================
 exports.getMessages = async (req, res, next) => {
     try {
         const { conversationId } = req.params;
+        const userId = req.user.id;
+
+        // 🔥 GIỐNG APPLY: Khi người dùng bấm vào xem tin nhắn, reset số tin chưa đọc của phòng này về 0 trong DB
+        await Conversation.updateOne(
+            { _id: conversationId, lastSenderId: { $ne: String(userId) } },
+            { $set: { unreadCount: 0 } }
+        );
+
         const messages = await Message.find({ conversationId }).sort({ createdAt: 1 });
         res.status(200).json({ success: true, data: messages });
     } catch (error) {
@@ -91,37 +103,83 @@ exports.getMessages = async (req, res, next) => {
     }
 };
 
-// [POST] Gửi tin nhắn HTTP (Tạo hội thoại nếu chưa có)
+// ======================================================================
+// [POST] Gửi tin nhắn HTTP (Đã tích hợp lưu trữ unreadCount vào Database)
+// ======================================================================
 exports.sendMessage = async (req, res, next) => {
     try {
         const { receiverId, text, fileUrl } = req.body;
         const senderId = req.user.id;
 
-        // 1. Tìm hoặc tạo conversation
+        if (!receiverId) {
+            return res.status(400).json({ success: false, message: "Thiếu thông tin người nhận (receiverId)." });
+        }
+
+        // 1. Tìm hoặc tạo cuộc hội thoại trong MongoDB
         let conversation = await Conversation.findOne({
-            participants: { $all: [senderId, receiverId] }
+            participants: { $all: [String(senderId), String(receiverId)] }
         });
 
         if (!conversation) {
             conversation = await Conversation.create({
-                participants: [senderId, receiverId]
+                participants: [String(senderId), String(receiverId)],
+                unreadCount: 0
             });
         }
 
-        // 2. Tạo tin nhắn
+        // 2. Lưu tin nhắn mới vào MongoDB
         const newMessage = await Message.create({
             conversationId: conversation._id,
-            senderId,
+            senderId: String(senderId),
             text,
             fileUrl
         });
 
-        // 3. Cập nhật lastMessage
+        // 3. 🔥 KIẾN TRÚC BỀN VỮNG: Cập nhật người gửi cuối và cộng dồn số tin nhắn chưa đọc vào DB
         conversation.lastMessage = newMessage._id;
+        conversation.lastSenderId = String(senderId);
+        conversation.unreadCount = (conversation.unreadCount || 0) + 1;
         await conversation.save();
+
+        // ======================================================================
+        // ✅ CẦU NỐI REALTIME: Bắn tín hiệu sang file Socket để gửi ngay cho người nhận
+        // ======================================================================
+        try {
+            // Gửi trực tiếp nội dung vào khung chat của đối phương (nếu đang mở ô chat)
+            socketModule.emitToUser(receiverId, 'receive_message', {
+                conversationId: conversation._id,
+                senderId: String(senderId),
+                receiverId: String(receiverId),
+                text,
+                fileUrl,
+                createdAt: newMessage.createdAt
+            });
+
+            // Kích hoạt lệnh tăng chấm đỏ tin nhắn chưa đọc độc lập trên Navbar đối phương
+            socketModule.emitToUser(receiverId, 'update_unread_total', {
+                userId: String(receiverId),
+                conversationId: conversation._id,
+                currentUnread: conversation.unreadCount
+            });
+
+            // Gửi gói thông báo đẩy lên Quả chuông (nếu muốn)
+            const chatNotificationPayload = {
+                _id: `chat_msg_${Date.now()}`,
+                title: "Tin nhắn mới",
+                message: text || (fileUrl ? "📷 Đã gửi một tệp đính kèm..." : ""),
+                created_at: new Date().toISOString(),
+                is_read: false,
+                link_url: "/chat"
+            };
+            socketModule.sendNotification(receiverId, chatNotificationPayload);
+
+        } catch (socketBridgeErr) {
+            console.error("⚠️ Lỗi chuyển tiếp dữ liệu qua cổng Socket Bridge:", socketBridgeErr.message);
+        }
 
         res.status(201).json({ success: true, data: newMessage });
     } catch (error) {
+        console.error("Lỗi khi chạy sendMessage API:", error);
         next(error);
     }
 };

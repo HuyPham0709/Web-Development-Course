@@ -20,6 +20,36 @@ export interface PendingJob {
     posted_by_email: string;
 }
 
+// Đổi tên để tránh trùng
+export interface JobStats {
+    total: number
+    total_approved: number
+    total_pending: number
+    total_closed: number
+    total_rejected: number
+}
+
+export interface AdminJob {
+    id: number
+    title: string
+    company_name: string
+    location_name: string
+    category_name: string
+    job_type: string
+    experience_level: string
+    salary_min: number
+    salary_max: number
+    status: 'pending' | 'approved' | 'rejected' | 'closed'
+    created_at: string
+}
+
+// Đổi tên Pagination thành PaginationMeta để không trùng
+export interface PaginationMeta {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+}
 // ==================== USERS ====================
 export interface UserItem {
     id: number;
