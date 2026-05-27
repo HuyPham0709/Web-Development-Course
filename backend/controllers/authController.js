@@ -1,6 +1,8 @@
 const path = require("path");
 
-require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
+require("dotenv").config({
+  path: path.join(__dirname, "../.env"),
+});
 
 const db = require("../config/db");
 const bcrypt = require("bcryptjs");
@@ -49,7 +51,7 @@ exports.register = async (req, res) => {
     });
   }
 
-  const { name, username, email, password, role } = req.body;
+  const { name, username, email, password, role,phone } = req.body;
   const finalName = name || username;
 
   if (!finalName) {
@@ -58,7 +60,13 @@ exports.register = async (req, res) => {
       message: "Tên không được để trống!",
     });
   }
-
+  // 2. Validate sơ bộ số điện thoại (Tuỳ chọn)
+  if (!phone) {
+    return res.status(400).json({
+      success: false,
+      message: "Số điện thoại không được để trống!",
+    });
+  }
   try {
     // 🎯 ĐÃ SỬA: Bắt lỗi trùng cả Email và Username ngay từ đầu để tránh lỗi 500
     const [rows] = await db.execute(
@@ -88,8 +96,8 @@ exports.register = async (req, res) => {
     const otpExpires = formatToMySQLDateTime(otpExpiresRaw);
 
     const [userResult] = await db.execute(
-      "INSERT INTO Users (username, email, password, role, otp_code, otp_expires, is_verified) VALUES (?, ?, ?, ?, ?, ?, 0)",
-      [finalName, email, hashedPassword, role || "candidate", otp, otpExpires],
+      "INSERT INTO Users (username, email, password, role, otp_code, otp_expires, is_verified, phone) VALUES (?, ?, ?, ?, ?, ?, 0, ?)",
+      [finalName, email, hashedPassword, role || "candidate", otp, otpExpires, phone],
     );
 
     const userId = userResult.insertId;

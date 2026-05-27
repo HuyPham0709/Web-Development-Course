@@ -535,9 +535,8 @@ exports.uploadCover = async (req, res) => {
 
 exports.searchCandidates = async (req, res) => {
   try {
-    const { keyword, location } = req.query;
+    const { keyword, location, skills, exp_min, exp_max } = req.query;
 
-    // Base query kết hợp lấy kĩ năng và tính số năm kinh nghiệm
     let query = `
       SELECT 
         p.id, 
@@ -552,18 +551,19 @@ exports.searchCandidates = async (req, res) => {
           WHERE us.profile_id = p.id
         ) AS skills,
         (
-          SELECT SUM(TIMESTAMPDIFF(YEAR, start_date, IFNULL(end_date, CURRENT_DATE))) 
+          SELECT COALESCE(SUM(TIMESTAMPDIFF(YEAR, start_date, IFNULL(end_date, CURRENT_DATE))), 0)
           FROM Work_Experience we 
           WHERE we.profile_id = p.id
         ) AS years_of_exp
       FROM Profiles p
       JOIN Users u ON p.user_id = u.id
-      WHERE u.role = 'candidate' AND u.is_active = 1
+      WHERE u.role = 'candidate' 
+        AND u.is_active = 1
+        AND p.allow_employer_search = 1
     `;
     
     const queryParams = [];
 
-    // Tối ưu dynamic filters
     if (keyword) {
       query += ` AND (p.title LIKE ? OR p.full_name LIKE ?)`;
       queryParams.push(`%${keyword}%`, `%${keyword}%`);
@@ -574,16 +574,40 @@ exports.searchCandidates = async (req, res) => {
       queryParams.push(`%${location}%`);
     }
 
+    if (skills) {
+      const skillList = skills.split(',').map(s => s.trim());
+      for (let i = 0; i < skillList.length; i++) {
+        query += ` AND EXISTS (
+          SELECT 1 FROM User_Skills us 
+          JOIN Skills s ON us.skill_id = s.id 
+          WHERE us.profile_id = p.id AND s.name = ?
+        )`;
+        queryParams.push(skillList[i]);
+      }
+    }
+
+    query += ` GROUP BY p.id`;
+
+    let having = '';
+    if (exp_min !== undefined && exp_min !== '') {
+      having += ` HAVING years_of_exp >= ?`;
+      queryParams.push(parseInt(exp_min));
+    }
+    if (exp_max !== undefined && exp_max !== '') {
+      having += (having ? ' AND ' : ' HAVING ') + ` years_of_exp <= ?`;
+      queryParams.push(parseInt(exp_max));
+    }
+    query += having;
+
     query += ` ORDER BY p.updated_at DESC`;
 
     const [rows] = await db.query(query, queryParams);
 
-    // Format data trả về chuẩn với Frontend Interface
     const candidates = rows.map(row => ({
       id: row.id,
-      name: row.name || 'Ứng viên ẩn danh', // Có thể ẩn tên nếu logic yêu cầu
+      name: row.name || 'Ứng viên',
       title: row.title || 'Chưa cập nhật',
-      exp: row.years_of_exp ? `${row.years_of_exp} years` : 'Chưa có KN',
+      exp: row.years_of_exp ? `${row.years_of_exp} năm` : 'Chưa có KN',
       location: row.location || 'Chưa cập nhật',
       skills: row.skills ? row.skills.split(',') : [],
       avatar: row.avatar || 'https://placehold.co/150'

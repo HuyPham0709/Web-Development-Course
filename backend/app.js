@@ -8,6 +8,7 @@ const mongoose = require("mongoose");
 const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
+
 // ─────────────────────────────────────────────────────────────
 // Routes
 // ─────────────────────────────────────────────────────────────
@@ -25,13 +26,16 @@ const favoriteRoutes = require("./routes/favoriteRoutes");
 const recommendationRoutes = require("./routes/recommendationRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const cvBuilderRoutes = require("./routes/cvBuilderRoutes");
+const candidateVisibilityRoutes = require('./routes/candidateVisibilityRoutes');
+const reportRoutes = require('./routes/reportRoutes'); // Route Report của Client
 
 // Admin Routes
 const adminRoutes = require("./routes/admin/adminRoutes");
 const adminUserRoutes = require("./routes/admin/Userroutes");
 const adminJobRoutes = require("./routes/admin/adminJobRoutes");
 const metadataRoutes = require("./routes/admin/metadataRoutes");
-const reportRoutes = require("./routes/admin/Reportroutes");
+const adminReportRoutes = require("./routes/admin/Reportroutes"); // Đổi tên thành adminReportRoutes để tránh trùng lặp
 
 // Middleware
 const {
@@ -58,7 +62,6 @@ mongoose
     console.log("✅ MongoDB connected successfully!");
 
     // Chỉ start server sau khi MongoDB đã connect
-    const server = http.createServer(app);
     socketUtils.init(server);
 
     server.listen(PORT, () => {
@@ -69,13 +72,13 @@ mongoose
     console.error("❌ MongoDB connection error:", err.message);
 
     // Vẫn start server dù MongoDB lỗi (MySQL vẫn hoạt động)
-    const server = http.createServer(app);
     socketUtils.init(server);
 
     server.listen(PORT, () => {
       console.log(`🚀 Server is running on port ${PORT} (without MongoDB)`);
     });
   });
+
 // ─────────────────────────────────────────────────────────────
 // Middlewares
 // ─────────────────────────────────────────────────────────────
@@ -179,6 +182,19 @@ app.use(
   messageRoutes
 );
 
+app.use(
+  "/api/cv-builder",
+  cvBuilderRoutes
+);
+
+app.use('/api/candidate', candidateVisibilityRoutes);
+
+// Thêm Route Report cho Client (Kết nối với frontend JobDetail.tsx)
+app.use(
+  "/api/reports", 
+  reportRoutes
+);
+
 // ─────────────────────────────────────────────────────────────
 // Admin Routes
 // ─────────────────────────────────────────────────────────────
@@ -205,7 +221,7 @@ app.use(
 
 app.use(
   "/api/admin/reports",
-  reportRoutes
+  adminReportRoutes // Sử dụng biến adminReportRoutes đã đổi tên ở trên
 );
 
 // ─────────────────────────────────────────────────────────────
@@ -254,22 +270,3 @@ app.use(
     });
   }
 );
-
-// ─────────────────────────────────────────────────────────────
-// Start Server
-// ─────────────────────────────────────────────────────────────
-
-// const server =
-//   http.createServer(app);
-
-// // Init Socket.io
-// socketUtils.init(server);
-
-// const PORT =
-//   process.env.PORT || 5000;
-
-// server.listen(PORT, () => {
-//   console.log(
-//     `🚀 Server is running on port ${PORT}`
-//   );
-// });

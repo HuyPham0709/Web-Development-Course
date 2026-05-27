@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useRef } from "react";
 import { ShieldCheck, MapPin, Heart, Zap, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { IJob } from "../../../types/job";
@@ -11,8 +11,10 @@ interface JobCardProps {
   index: number;
 }
 
-export const JobCard: React.FC<JobCardProps> = ({ job, isSaved, onToggleSave, index }) => {
+export const JobCard = memo(({ job, isSaved, onToggleSave, index }: JobCardProps) => {
   const navigate = useNavigate();
+  
+  const clickStart = useRef<{ x: number; y: number } | null>(null);
 
   const companyName = job.Company?.name || job.company_name || "Company";
   const companyLogo = job.Company?.logo_url || job.logo_url || "https://images.unsplash.com/photo-1760037028517-e5cc6e3ebd3e";
@@ -33,11 +35,33 @@ export const JobCard: React.FC<JobCardProps> = ({ job, isSaved, onToggleSave, in
     skillList = job.skills.split(",").map((s) => s.trim());
   }
 
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    clickStart.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    if (!clickStart.current) return;
+    
+    const diffX = Math.abs(e.clientX - clickStart.current.x);
+    const diffY = Math.abs(e.clientY - clickStart.current.y);
+    
+    if (diffX < 5 && diffY < 5) {
+      navigate(`/job/${job.id}`);
+    }
+    clickStart.current = null;
+  };
+
   return (
     <div
-      onClick={() => navigate(`/job/${job.id}`)}
-      // 1. NÂNG CẤP HOVER CARD: Thêm -translate-y-1.5 (nhấc lên), bóng màu xanh glow, viền rõ hơn
-      className="cursor-pointer group relative flex h-full w-full flex-col justify-between overflow-hidden rounded-3xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-blue-300 hover:shadow-2xl hover:shadow-blue-500/20 dark:border-white/10 dark:bg-white/5 dark:hover:border-blue-500/50 dark:hover:shadow-blue-500/20 dark:hover:bg-white/10"
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      /* SỬA ĐỔI CHÍNH Ở ĐÂY:
+        1. Đổi "group" -> "group/card" để cô lập sự kiện hover text.
+        2. Đổi "transition-colors duration-200" -> "transition-all duration-300 ease-out" giúp chuyển cảnh phóng to mượt mà.
+        3. Thêm "hover:scale-[1.02] hover:shadow-lg dark:hover:shadow-black/30" làm card to lên một chút và đổ bóng sâu hơn khi hover.
+      */
+      className="cursor-pointer group/card relative flex h-full w-full flex-col justify-between overflow-hidden rounded-3xl border border-gray-200 bg-white p-6 transition-all duration-300 ease-out hover:scale-[1.02] hover:shadow-lg hover:border-blue-400 hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:hover:border-blue-500/50 dark:hover:bg-white/10 dark:hover:shadow-black/30"
     >
       <div className="mb-6 flex items-start justify-between">
         <div className="flex items-center gap-4">
@@ -53,12 +77,13 @@ export const JobCard: React.FC<JobCardProps> = ({ job, isSaved, onToggleSave, in
           </div>
         </div>
         <button
-          onClick={(e) => {
+          onMouseDown={(e) => e.stopPropagation()}
+          onMouseUp={(e) => {
             e.stopPropagation();
             onToggleSave(job.id);
           }}
-          // Hiệu ứng nút Lưu tin mượt hơn khi scale
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-all duration-300 hover:scale-110 active:scale-95
+          onClick={(e) => e.stopPropagation()}
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-colors duration-200
             ${
               isSaved
                 ? "border-rose-200 bg-rose-50 text-rose-500 dark:bg-rose-950/40"
@@ -66,12 +91,23 @@ export const JobCard: React.FC<JobCardProps> = ({ job, isSaved, onToggleSave, in
             }
           `}
         >
-          <Heart size={18} fill={isSaved ? "currentColor" : "none"} className={isSaved ? "animate-pulse" : ""} />
+          <Heart size={18} fill={isSaved ? "currentColor" : "none"} />
         </button>
       </div>
 
       <div className="mb-6">
-        <h3 className="mb-2 text-xl font-bold text-gray-900 transition-colors group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400 line-clamp-2">
+        {/* SỬA ĐỔI CHÍNH Ở ĐÂY:
+          Đổi "group-hover:" -> "group-hover/card:" để chữ chỉ xanh khi chính card này được hover.
+        */}
+        <h3 
+          onMouseDown={(e) => e.stopPropagation()}
+          onMouseUp={(e) => {
+            e.stopPropagation();
+            navigate(`/job/${job.id}`);
+          }}
+          onClick={(e) => e.stopPropagation()}
+          className="mb-2 text-xl font-bold text-gray-900 transition-colors hover:text-blue-600 group-hover/card:text-blue-600 dark:text-white dark:hover:text-blue-400 dark:group-hover/card:text-blue-400 line-clamp-2 cursor-pointer"
+        >
           {job.title}
         </h3>
         <div className="mb-4 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
@@ -96,22 +132,21 @@ export const JobCard: React.FC<JobCardProps> = ({ job, isSaved, onToggleSave, in
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={(e) => {
+            onMouseDown={(e) => e.stopPropagation()}
+            onMouseUp={(e) => {
               e.stopPropagation();
               navigate(`/job/${job.id}`);
             }}
-            // 2. NÂNG CẤP NÚT QUICK APPLY: 
-            // - Dùng group/btn để điều khiển icon bên trong.
-            // - Thay đổi màu hover:from-blue-500 hover:to-purple-500 cho sáng hơn.
-            // - Thêm hover:shadow-[glow] và hiệu ứng nhấn (active:scale-95).
-            className="group/btn flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 py-3.5 font-semibold text-white transition-all duration-300 hover:scale-105 hover:from-blue-500 hover:to-purple-500 hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] active:scale-95"
+            onClick={(e) => e.stopPropagation()}
+            className="group/btn flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 py-3.5 font-semibold text-white transition-all duration-200 hover:brightness-110 active:scale-[0.98]"
           >
-            {/* 3. ICON HOVER: Khi di chuột vào nút, tia chớp sẽ phóng to một chút và chuyển sang màu vàng (hoặc có thể bỏ text-yellow-300 nếu bạn muốn giữ màu trắng) */}
-            <Zap size={18} className="transition-all duration-300 group-hover/btn:scale-125 group-hover/btn:text-yellow-300 group-hover/btn:rotate-12" /> 
+            <Zap size={18} className="transition-colors duration-200 group-hover/btn:text-yellow-300" /> 
             Quick Apply
           </button>
         </div>
       </div>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  return prevProps.isSaved === nextProps.isSaved && prevProps.job.id === nextProps.job.id;
+});

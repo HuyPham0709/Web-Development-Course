@@ -1,12 +1,12 @@
 // ==========================================
-// JobForm.tsx — Fixed & Unified (Đăng tin + Chỉnh sửa tin)
+// JobForm.tsx — Fixed & Unified (Post Job + Edit Job + Skills with Array of Strings)
 // ==========================================
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, Save, Send, AlertCircle, CheckCircle2 } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom"; // Thêm useParams để lấy ID bài viết
+import { useNavigate, useParams } from "react-router-dom";
 import { formatSalary } from "../../../utils/format";
 
-// Đảm bảo URL gọi đúng đến cổng Backend 5000 của bạn
+// Ensure this URL targets your correct Backend port 5000
 const BACKEND_URL = "http://localhost:5000/api";
 
 function getHeaders() {
@@ -20,6 +20,7 @@ function getHeaders() {
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Category { id: number; name: string; }
 interface Location { id: number; name: string; }
+// Không cần interface Skill nữa vì API skill hiện tại trả về mảng chuỗi string[]
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
 function Toast({ type, message }: { type: "success" | "error"; message: string }) {
@@ -114,6 +115,7 @@ interface FormState {
   description: string;
   requirements: string;
   benefits: string;
+  skills: string[]; // <-- Đổi thành mảng chuỗi (VD: ['React', 'NodeJS'])
 }
 
 const defaultForm: FormState = {
@@ -128,37 +130,41 @@ const defaultForm: FormState = {
   description: "",
   requirements: "",
   benefits: "",
+  skills: [], // <-- Khởi tạo mảng rỗng
 };
 
 export function JobForm() {
   const navigate = useNavigate();
-  const { id } = useParams(); // 👈 Lấy ID từ URL (nếu có, ví dụ /jobs/edit/231)
-  const isEditMode = !!id;     // Kiểm tra xem có phải đang chỉnh sửa không
+  const { id } = useParams();
+  const isEditMode = !!id;
 
   const [form, setForm] = useState<FormState>(defaultForm);
-  const [errors, setErrors] = useState<Partial<FormState>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [categories, setCategories] = useState<Category[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
+  const [availableSkills, setAvailableSkills] = useState<string[]>([]); // <-- Chứa danh sách skill string[] từ API
   const [loadingMeta, setLoadingMeta] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [animate, setAnimate] = useState(false);
 
-  // 1. Tải danh mục & địa điểm từ Backend (Fix lỗi 404 port 5173)
+  // 1. Load categories, locations, skills từ Backend
   useEffect(() => {
     Promise.all([
       fetch(`${BACKEND_URL}/categories`).then((r) => r.json()),
       fetch(`${BACKEND_URL}/locations`).then((r) => r.json()),
+      fetch(`${BACKEND_URL}/skills`).then((r) => r.json()),
     ])
-      .then(([catData, locData]) => {
+      .then(([catData, locData, skillData]) => {
         setCategories(catData.data || []);
         setLocations(locData.data || []);
+        setAvailableSkills(skillData.data || []); // <-- skillData.data hiện là ['React', 'NodeJS', ...]
       })
       .catch(console.error)
       .finally(() => setLoadingMeta(false));
   }, []);
 
-  // 2. 🌟 NEW: Nếu ở chế độ EDIT, tiến hành gọi API lấy thông tin tin cũ và gán vào form
+  // 2. Load thông tin Job nếu ở chế độ Edit
   useEffect(() => {
     if (isEditMode) {
       fetch(`${BACKEND_URL}/jobs/${id}`, { headers: getHeaders() })
@@ -166,6 +172,10 @@ export function JobForm() {
         .then((resData) => {
           if (resData.success && resData.data) {
             const job = resData.data;
+            
+            // Backend đang trả về GROUP_CONCAT dạng chuỗi, VD: "React,NodeJS"
+            const jobSkillsArray = job.skills ? job.skills.split(',').filter(Boolean) : [];
+
             setForm({
               title: job.title || "",
               category_id: String(job.category_id || ""),
@@ -178,12 +188,13 @@ export function JobForm() {
               description: job.description || "",
               requirements: job.requirements || "",
               benefits: job.benefits || "",
+              skills: jobSkillsArray, // <-- Gán mảng chuỗi kỹ năng
             });
           } else {
-            showToast("error", "Không tìm thấy dữ liệu tin tuyển dụng!");
+            showToast("error", "Job posting data not found!");
           }
         })
-        .catch(() => showToast("error", "Lỗi khi lấy thông tin tin cũ"));
+        .catch(() => showToast("error", "Error fetching previous job information"));
     }
   }, [id, isEditMode]);
 
@@ -198,12 +209,14 @@ export function JobForm() {
   const setRich = (field: keyof FormState) => (val: string) => setForm((f) => ({ ...f, [field]: val }));
 
   const validate = (): boolean => {
-    const e: Partial<FormState> = {};
-    if (!form.title.trim()) e.title = "Bắt buộc";
-    if (!form.category_id) e.category_id = "Bắt buộc";
-    if (!form.location_id) e.location_id = "Bắt buộc";
-    if (!form.description.trim()) e.description = "Bắt buộc";
-    if (!form.requirements.trim()) e.requirements = "Bắt buộc";
+    const e: Record<string, string> = {};
+    if (!form.title.trim()) e.title = "Required";
+    if (!form.category_id) e.category_id = "Required";
+    if (!form.location_id) e.location_id = "Required";
+    if (!form.description.trim()) e.description = "Required";
+    if (!form.requirements.trim()) e.requirements = "Required";
+    if (form.skills.length === 0) e.skills = "Please select at least one skill"; // <-- Validate mảng skills
+    
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -213,12 +226,15 @@ export function JobForm() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // 3. Xử lý lưu form (Hỗ trợ cả POST tạo mới lẫn PUT cập nhật)
+  // 3. Submit Data
   const handleSubmit = async () => {
-    if (!validate()) return;
+    if (!validate()) {
+      showToast("error", "Please fill in all required fields!");
+      return;
+    }
+    
     setSubmitting(true);
     try {
-      // Tự động chuyển đổi Method và URL dựa trên chế độ Đăng/Sửa tin
       const url = isEditMode ? `${BACKEND_URL}/jobs/${id}` : `${BACKEND_URL}/jobs/create`;
       const method = isEditMode ? "PUT" : "POST";
 
@@ -233,15 +249,16 @@ export function JobForm() {
           salary_max: Number(form.salary_max) || 0,
         }),
       });
+      
       const data = await res.json();
       if (data.success) {
-        showToast("success", isEditMode ? "Cập nhật tin thành công!" : "Đăng tin thành công! Đang chờ kiểm duyệt.");
+        showToast("success", isEditMode ? "Job updated successfully!" : "Job posted successfully! Pending review.");
         setTimeout(() => navigate("/employer/dashboard"), 1500);
       } else {
-        showToast("error", data.message || "Có lỗi xảy ra");
+        showToast("error", data.message || "An error occurred");
       }
     } catch {
-      showToast("error", "Không thể kết nối server");
+      showToast("error", "Cannot connect to the server");
     } finally {
       setSubmitting(false);
     }
@@ -258,21 +275,18 @@ export function JobForm() {
             </button>
             <div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-                {isEditMode ? "Chỉnh sửa tin tuyển dụng" : "Đăng tin tuyển dụng"}
+                {isEditMode ? "Edit Job Posting" : "Post a Job"}
               </h1>
               <p className="text-slate-500 dark:text-gray-400 text-sm mt-1">
-                {isEditMode ? "Cập nhật lại các thông tin cần thiết cho tin tuyển dụng." : "Điền đầy đủ thông tin để đăng tin mới."}
+                {isEditMode ? "Update the necessary information for this job posting." : "Fill in all the fields to create a new listing."}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3 self-end md:self-auto">
-            <button type="button" onClick={() => navigate(-1)} className="px-5 py-2.5 text-slate-600 dark:text-gray-400 font-medium hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors text-sm">Hủy</button>
-            <button type="button" disabled={submitting} className="px-5 py-2.5 text-blue-600 dark:text-blue-400 border border-blue-600 dark:border-blue-500/40 rounded-lg font-medium hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors flex items-center gap-2 text-sm disabled:opacity-50">
-              <Save className="w-4 h-4" /> Lưu nháp
-            </button>
+            <button type="button" onClick={() => navigate(-1)} className="px-5 py-2.5 text-slate-600 dark:text-gray-400 font-medium hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors text-sm">Cancel</button>
             <button type="button" onClick={handleSubmit} disabled={submitting} className="px-5 py-2.5 bg-blue-600 dark:bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors flex items-center gap-2 text-sm shadow-sm disabled:opacity-50">
-              <Send className="w-4 h-4" /> {submitting ? "Đang gửi..." : isEditMode ? "Cập nhật tin" : "Đăng tin"}
+              <Send className="w-4 h-4" /> {submitting ? "Submitting..." : isEditMode ? "Update Job" : "Post Job"}
             </button>
           </div>
         </div>
@@ -281,25 +295,25 @@ export function JobForm() {
         <div className={`bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden transform transition-all duration-500 ease-out delay-75 ${animate ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}>
           <div className="p-6 md:p-8 flex flex-col gap-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Field label="Tên vị trí" required error={errors.title}>
-                <input type="text" value={form.title} onChange={set("title")} className={inputClass(!!errors.title)} placeholder="VD: Senior Frontend Developer" />
+              <Field label="Job Title" required error={errors.title}>
+                <input type="text" value={form.title} onChange={set("title")} className={inputClass(!!errors.title)} placeholder="e.g., Senior Frontend Developer" />
               </Field>
 
-              <Field label="Ngành nghề" required error={errors.category_id}>
+              <Field label="Category" required error={errors.category_id}>
                 <select value={form.category_id} onChange={set("category_id")} disabled={loadingMeta} className={selectClass(!!errors.category_id) + " disabled:opacity-60"}>
-                  <option value="">{loadingMeta ? "Đang tải..." : "Chọn ngành nghề"}</option>
+                  <option value="">{loadingMeta ? "Loading..." : "Select Category"}</option>
                   {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </Field>
 
-              <Field label="Địa điểm" required error={errors.location_id}>
+              <Field label="Location" required error={errors.location_id}>
                 <select value={form.location_id} onChange={set("location_id")} disabled={loadingMeta} className={selectClass(!!errors.location_id) + " disabled:opacity-60"}>
-                  <option value="">{loadingMeta ? "Đang tải..." : "Chọn địa điểm"}</option>
+                  <option value="">{loadingMeta ? "Loading..." : "Select Location"}</option>
                   {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                 </select>
               </Field>
 
-              <Field label="Hình thức" required>
+              <Field label="Job Type" required>
                 <select value={form.job_type} onChange={set("job_type")} className={selectClass()}>
                   <option value="full-time">Full-time</option>
                   <option value="part-time">Part-time</option>
@@ -308,9 +322,9 @@ export function JobForm() {
                 </select>
               </Field>
 
-              <Field label="Cấp độ kinh nghiệm" required error={errors.experience_level}>
+              <Field label="Experience Level" required error={errors.experience_level}>
                 <select value={form.experience_level} onChange={set("experience_level")} className={selectClass(!!errors.experience_level)}>
-                  <option value="">Chọn cấp độ</option>
+                  <option value="">Select Level</option>
                   <option value="intern">Intern</option>
                   <option value="fresher">Fresher</option>
                   <option value="junior">Junior</option>
@@ -319,11 +333,11 @@ export function JobForm() {
                 </select>
               </Field>
 
-              <Field label="Mức lương">
+              <Field label="Salary Range">
                 <div className="flex items-center gap-2">
-                  <input type="number" value={form.salary_min} onChange={set("salary_min")} className={inputClass()} placeholder="Tối thiểu" />
+                  <input type="number" value={form.salary_min} onChange={set("salary_min")} className={inputClass()} placeholder="Min" />
                   <span className="text-slate-500 dark:text-gray-400 flex-shrink-0">–</span>
-                  <input type="number" value={form.salary_max} onChange={set("salary_max")} className={inputClass()} placeholder="Tối đa" />
+                  <input type="number" value={form.salary_max} onChange={set("salary_max")} className={inputClass()} placeholder="Max" />
                   <select value={form.currency} onChange={set("currency")} className="w-24 px-3 py-2.5 rounded-lg border border-slate-300 dark:border-white/10 bg-white dark:bg-[#151D30] text-slate-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none flex-shrink-0">
                     <option value="VND">VND</option>
                     <option value="USD">USD</option>
@@ -331,18 +345,49 @@ export function JobForm() {
                 </div>
                 {form.salary_min.length > 0 && form.salary_max.length > 0 && (
                   <p className="text-xs text-slate-400 dark:text-gray-500 mt-1 font-medium">
-                    Hiển thị thực tế: <span className="text-blue-600 dark:text-blue-400 font-semibold">{formatSalary(form.salary_min, form.salary_max, form.currency)}</span>
+                    Actual display: <span className="text-blue-600 dark:text-blue-400 font-semibold">{formatSalary(form.salary_min, form.salary_max, form.currency)}</span>
                   </p>
                 )}
               </Field>
+
+              {/* Giao diện chọn Skills được sửa lại theo mảng chuỗi */}
+              <div className="md:col-span-2">
+                <Field label="Required Skills" required error={errors.skills}>
+                  <div className={`flex flex-wrap gap-2 p-3 bg-white dark:bg-[#151D30] border rounded-lg h-32 overflow-y-auto ${errors.skills ? 'border-red-400' : 'border-slate-300 dark:border-white/10'}`}>
+                    {loadingMeta ? (
+                      <span className="text-slate-500 text-sm">Loading skills...</span>
+                    ) : (
+                      availableSkills.map((skillName, index) => (
+                        <label key={index} className="flex items-center gap-2 text-sm text-slate-700 dark:text-gray-300 cursor-pointer p-1.5 hover:bg-slate-50 dark:hover:bg-white/5 rounded transition-colors">
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 bg-white dark:bg-[#151D30]"
+                            // Kiểm tra chuỗi thay vì id
+                            checked={form.skills.includes(skillName)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setForm(prev => ({ ...prev, skills: [...prev.skills, skillName] }));
+                              } else {
+                                setForm(prev => ({ ...prev, skills: prev.skills.filter(s => s !== skillName) }));
+                              }
+                            }}
+                          />
+                          {skillName}
+                        </label>
+                      ))
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">Select the relevant skills for this job.</p>
+                </Field>
+              </div>
             </div>
 
             <div className="w-full h-px bg-slate-200 dark:bg-white/5 transition-colors" />
 
             <div className="flex flex-col gap-6">
-              <RichTextEditor label="Mô tả công việc" required placeholder="Công việc hàng ngày sẽ làm gì?" value={form.description} onChange={setRich("description")} error={errors.description} />
-              <RichTextEditor label="Yêu cầu ứng viên" required placeholder="Cần những kỹ năng và kinh nghiệm gì?" value={form.requirements} onChange={setRich("requirements")} error={errors.requirements} />
-              <RichTextEditor label="Quyền lợi" placeholder="Những phúc lợi khi làm việc tại đây?" value={form.benefits} onChange={setRich("benefits")} />
+              <RichTextEditor label="Job Description" required placeholder="What are the daily tasks and responsibilities?" value={form.description} onChange={setRich("description")} error={errors.description} />
+              <RichTextEditor label="Candidate Requirements" required placeholder="What specific skills and experience are required?" value={form.requirements} onChange={setRich("requirements")} error={errors.requirements} />
+              <RichTextEditor label="Perks & Benefits" placeholder="What core benefits and perks are offered here?" value={form.benefits} onChange={setRich("benefits")} />
             </div>
           </div>
         </div>

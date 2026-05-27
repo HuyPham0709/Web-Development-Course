@@ -11,7 +11,7 @@ const SuccessToast = ({ onClose }: { onClose: () => void }) => {
         <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
           <Check className="w-5 h-5" strokeWidth={3.5} />
         </div>
-        <span className="font-medium">Hồ sơ đã được cập nhật!</span>
+        <span className="font-medium">Profile has been updated!</span>
         <button
           onClick={onClose}
           className="ml-auto text-white/70 hover:text-white p-1 rounded-lg hover:bg-white/10 transition"
@@ -88,16 +88,15 @@ export default function JobCriteria() {
       setTimeout(() => setShowSuccess(false), 2800);
     } catch (error) {
       console.error(error);
-      alert('Có lỗi xảy ra khi lưu tiêu chí');
+      alert('An error occurred while saving criteria');
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) {
-    return <div className="text-center py-12 text-gray-500 dark:text-gray-400">Đang tải...</div>;
+    return <div className="text-center py-12 text-gray-500 dark:text-gray-400">Loading...</div>;
   }
-
 
   return (
     <div className="bg-white dark:bg-[#0E1422] border border-gray-200 dark:border-white/10 rounded-3xl p-8 max-w-5xl mx-auto shadow-sm">
@@ -107,18 +106,18 @@ export default function JobCriteria() {
           <Briefcase className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Tiêu chí tìm việc</h2>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Cập nhật thông tin để nhận gợi ý việc làm phù hợp</p>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Job Criteria</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Update your preferences to receive relevant job recommendations</p>
         </div>
       </div>
 
       <div className="space-y-10">
         {/* Basic Information */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-5">Thông tin cơ bản</h3>
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-5">Basic Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Vị trí mong muốn</label>
+              <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Desired Position</label>
               <input
                 type="text"
                 name="desired_position"
@@ -130,22 +129,22 @@ export default function JobCriteria() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Ngành nghề</label>
+              <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Industry</label>
               <input
                 type="text"
                 name="industry"
                 value={formData.industry}
                 onChange={handleChange}
-                placeholder="Công nghệ thông tin, Marketing..."
+                placeholder="Information Technology, Marketing..."
                 className="w-full bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-5 py-3.5 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
               />
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Loại công việc</label>
+              <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Job Type</label>
               <select name="job_type" value={formData.job_type || ''} onChange={handleChange}
                 className="w-full bg-gray-50 dark:bg-[#111827] border border-gray-300 dark:border-white/10 rounded-2xl px-5 py-3.5 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all">
-                <option value="">Chọn loại công việc</option>
+                <option value="">Select job type</option>
                 <option value="full-time">Full-time</option>
                 <option value="part-time">Part-time</option>
                 <option value="contract">Contract</option>
@@ -155,17 +154,15 @@ export default function JobCriteria() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Kinh nghiệm</label>
+              <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Experience Level</label>
               <select name="experience_level" value={formData.experience_level || ''} onChange={handleChange}
                 className="w-full bg-gray-50 dark:bg-[#111827] border border-gray-300 dark:border-white/10 rounded-2xl px-5 py-3.5 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all">
-                <option value="">Chọn mức kinh nghiệm</option>
-                <option value="Thực tập sinh">Thực tập sinh</option>
-                <option value="Mới tốt nghiệp/ Chưa có kinh nghiệm">
-                  Mới tốt nghiệp/ Chưa có kinh nghiệm
-                </option>
-                <option value="Nhân viên">Nhân viên</option>
-                <option value="Trưởng nhóm">Trưởng nhóm</option>
-                <option value="Quản lý cấp cao">Quản lý cấp cao</option>
+                <option value="">Select experience level</option>
+                <option value="intern">Intern</option>
+                <option value="fresher">Fresher</option>
+                <option value="junior">Junior</option>
+                <option value="middle">Middle</option>
+                <option value="senior">Senior</option>
               </select>
             </div>
           </div>
@@ -173,30 +170,30 @@ export default function JobCriteria() {
 
         {/* Compensation */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-5">Mức lương mong muốn</h3>
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-5">Desired Salary</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Lương tối thiểu</label>
+              <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Minimum Salary</label>
               <input type="number" name="salary_min" value={formData.salary_min} onChange={handleChange}
-                placeholder="10.000.000" className="w-full bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-5 py-3.5 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                placeholder="10,000,000" className="w-full bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-5 py-3.5 focus:outline-none focus:ring-2 focus:ring-purple-500" />
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Lương tối đa</label>
+              <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Maximum Salary</label>
               <input type="number" name="salary_max" value={formData.salary_max} onChange={handleChange}
-                placeholder="30.000.000" className="w-full bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-5 py-3.5 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                placeholder="30,000,000" className="w-full bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-5 py-3.5 focus:outline-none focus:ring-2 focus:ring-purple-500" />
             </div>
           </div>
         </div>
 
         {/* Work Preferences */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-5">Điều kiện làm việc</h3>
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-5">Work Preferences</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Hình thức làm việc</label>
+              <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Workplace Type</label>
               <select name="workplace_type" value={formData.workplace_type || ''} onChange={handleChange}
                 className="w-full bg-gray-50 dark:bg-[#111827] border border-gray-300 dark:border-white/10 rounded-2xl px-5 py-3.5 focus:outline-none focus:ring-2 focus:ring-purple-500">
-                <option value="">Chọn hình thức</option>
+                <option value="">Select type</option>
                 <option value="remote">Remote</option>
                 <option value="onsite">On-site</option>
                 <option value="hybrid">Hybrid</option>
@@ -204,19 +201,19 @@ export default function JobCriteria() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Địa điểm mong muốn</label>
+              <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Preferred Location</label>
               <input type="text" name="preferred_location" value={formData.preferred_location} onChange={handleChange}
-                placeholder="TP.HCM, Hà Nội, Đà Nẵng..." className="w-full bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-5 py-3.5 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                placeholder="Ho Chi Minh City, Hanoi, Da Nang..." className="w-full bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-5 py-3.5 focus:outline-none focus:ring-2 focus:ring-purple-500" />
             </div>
           </div>
         </div>
 
         {/* Skills & Preferences */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-5">Kỹ năng & Mong muốn khác</h3>
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-5">Skills & Additional Preferences</h3>
           <div className="space-y-6">
             <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Kỹ năng</label>
+              <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Skills</label>
               <textarea name="skills" value={formData.skills || ''} onChange={handleChange} rows={3}
                 placeholder="React, TypeScript, TailwindCSS, Node.js..."
                 className="w-full bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y" />
@@ -224,22 +221,22 @@ export default function JobCriteria() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Ngôn ngữ</label>
+                <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Languages</label>
                 <input type="text" name="languages" value={formData.languages || ''} onChange={handleChange}
                   placeholder="English, Japanese, Korean..." className="w-full bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-5 py-3.5 focus:outline-none focus:ring-2 focus:ring-purple-500" />
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Công ty mong muốn</label>
+                <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Preferred Companies</label>
                 <input type="text" name="preferred_companies" value={formData.preferred_companies || ''} onChange={handleChange}
                   placeholder="VNG, FPT, Google, Meta..." className="w-full bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-5 py-3.5 focus:outline-none focus:ring-2 focus:ring-purple-500" />
               </div>
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Phúc lợi mong muốn</label>
+              <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Desired Benefits</label>
               <textarea name="benefits" value={formData.benefits || ''} onChange={handleChange} rows={2}
-                placeholder="Bảo hiểm y tế, thưởng hiệu suất, làm remote..." 
+                placeholder="Health insurance, performance bonus, remote work..." 
                 className="w-full bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-purple-500" />
             </div>
           </div>
@@ -248,7 +245,7 @@ export default function JobCriteria() {
         {/* Availability */}
         <div className="flex flex-wrap items-center gap-8">
           <div>
-            <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Có thể bắt đầu từ</label>
+            <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Available from</label>
             <input
               type="date"
               name="available_from"
@@ -278,7 +275,7 @@ export default function JobCriteria() {
         className="mt-10 w-full md:w-auto px-10 py-4 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 rounded-2xl text-white font-semibold flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-70"
       >
         <Save className="w-5 h-5" />
-        {saving ? 'Đang lưu...' : 'Lưu tiêu chí tìm việc'}
+        {saving ? 'Saving...' : 'Save Job Criteria'}
       </button>
 
       {showSuccess && <SuccessToast onClose={() => setShowSuccess(false)} />}

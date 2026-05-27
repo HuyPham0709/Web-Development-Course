@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "react-router-dom"; // Đã thêm import này để lấy query params từ URL
 import { 
   Search, 
   MapPin, 
   Briefcase, 
   Filter, 
-  Loader2, 
   X, 
   SlidersHorizontal,
   DollarSign,
@@ -12,7 +12,8 @@ import {
   CalendarDays,
   Grid,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ChevronDown
 } from "lucide-react";
 
 import { IJob, IJobFilters } from "../../../types/job";
@@ -27,18 +28,25 @@ interface IExtendedFilters extends IJobFilters {
 }
 
 export const Jobs: React.FC = () => {
-  // Main Filter State
-  const [filters, setFilters] = useState<IExtendedFilters>({
-    title: "",
-    location: "",
-    category_id: "",
-    type: "",
-    experience_level: "",
-    salary_min: 0,
-    page: 1,
-    limit: 12
-  });
+  // Khởi tạo hook quản lý URL query parameters
+  const [searchParams, setSearchParams] = useSearchParams();
 
+  // Main Filter State
+  const [filters, setFilters] = useState<IExtendedFilters>(
+    {
+      title: "",
+      location: "",
+      category_id: "",
+      type: "",
+      experience_level: "",
+      salary_min: 0,
+      page: 1,
+      limit: 12
+    }
+  );
+
+  // Local Immediate UI States for fast-changing controls
+  const [salarySlider, setSalarySlider] = useState<number>(0);
   const [searchInput, setSearchInput] = useState("");
 
   // Data States
@@ -54,11 +62,74 @@ export const Jobs: React.FC = () => {
   const [totalJobs, setTotalJobs] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
+  // State quản lý Dropdown Custom nào đang được mở mở rộng tự đóng khi mở cái khác
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+
+  // Ref to track the latest API Request ID to prevent Race Conditions
+  const apiRequestCountRef = useRef<number>(0);
+
+  // ĐỒNG BỘ HOÁ DỮ LIỆU TỪ URL PARAMETERS VÀO FILTER STATE
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    const categoryIdParam = searchParams.get("category_id");
+    const titleParam = searchParams.get("title");
+
+    setFilters(prev => {
+      const nextCategoryId = categoryIdParam ? Number(categoryIdParam) : "";
+      const nextTitle = titleParam || "";
+
+      // Chỉ cập nhật state nếu giá trị thực sự thay đổi để tránh lặp render vô hạn
+      if (prev.category_id !== nextCategoryId || prev.title !== nextTitle) {
+        return {
+          ...prev,
+          category_id: nextCategoryId,
+          title: nextTitle,
+          page: 1
+        };
+      }
+      return prev;
+    });
+
+    if (titleParam !== null) {
+      setSearchInput(titleParam);
+    }
+  }, [searchParams]);
+
+  // Sync Slider UI if filters are modified externally (like Reset All)
+  useEffect(() => {
+    if (filters.salary_min !== undefined) {
+      setSalarySlider(filters.salary_min);
+    }
+  }, [filters.salary_min]);
+
+  // Debounce logic for Salary Slider (Wait 250ms after user stops dragging)
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      if (salarySlider !== filters.salary_min) {
+        setFilters(prev => ({ 
+          ...prev, 
+          salary_min: salarySlider, 
+          page: 1 // Reset back to page 1 on filter alteration
+        }));
+      }
+    }, 250);
+
+    return () => clearTimeout(delayDebounce);
+  }, [salarySlider, filters.salary_min]);
+
   // Fetch Core Jobs
   const fetchJobsData = useCallback(async (currentFilters: IExtendedFilters) => {
+    const currentRequestVersion = ++apiRequestCountRef.current;
     setLoading(true);
+    
     try {
-      const response = await getJobs(currentFilters);
+      const [response] = await Promise.all([
+        getJobs(currentFilters),
+        new Promise(resolve => setTimeout(resolve, 500)) 
+      ]);
+      
+      if (currentRequestVersion !== apiRequestCountRef.current) return;
+
       if (response && response.data) {
         setJobs(response.data);
         
@@ -69,7 +140,9 @@ export const Jobs: React.FC = () => {
     } catch (error) {
       console.error("Error fetching jobs list:", error);
     } finally {
-      setLoading(false);
+      if (currentRequestVersion === apiRequestCountRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -84,7 +157,6 @@ export const Jobs: React.FC = () => {
         const token = localStorage.getItem("token");
         if (token) {
           const aiRes = await getRecommendations();
-          // Kiểm tra và đổ dữ liệu chuẩn backend trả về cho sidebar
           if (aiRes?.data?.success) {
             setAiRecommendations(aiRes.data.data);
           } else if (aiRes?.data) {
@@ -120,6 +192,8 @@ export const Jobs: React.FC = () => {
 
   const handleResetFilters = () => {
     setSearchInput("");
+    setSalarySlider(0);
+    setActiveDropdown(null);
     setFilters({
       title: "",
       location: "",
@@ -130,6 +204,7 @@ export const Jobs: React.FC = () => {
       page: 1,
       limit: 12
     });
+    setSearchParams({}); // Xóa bỏ toàn bộ query parameters trên thanh URL
   };
 
   const handleToggleSaveJob = (jobId: number) => {
@@ -149,15 +224,6 @@ export const Jobs: React.FC = () => {
     <div className="min-h-screen bg-[#F8FAFC] text-gray-900 transition-colors duration-300 dark:bg-[#070A13] dark:text-gray-100">
       <style>
         {`
-          @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-          .animate-fade-in-up {
-            animation: fadeInUp 0.5s ease-out forwards;
-            opacity: 0; 
-          }
-          /* Custom scrollbar cho khung gợi ý */
           .custom-scrollbar::-webkit-scrollbar {
             width: 5px;
           }
@@ -203,22 +269,53 @@ export const Jobs: React.FC = () => {
             
             <div className="h-px bg-gray-100 dark:bg-white/5 md:h-8 md:w-px md:self-center md:col-span-1 justify-self-center hidden md:block"></div>
 
+            {/* DROPDOWN CUSTOM: LOCATION (HEADER) */}
             <div className="relative flex items-center md:col-span-4 px-3">
-              <MapPin className="absolute left-4 text-purple-500" size={20} />
-              <select
-                value={filters.location}
-                onChange={(e) => handleInputChange("location", e.target.value)}
-                className="w-full appearance-none bg-transparent py-3 pl-9 pr-8 text-sm text-gray-700 outline-none cursor-pointer dark:text-gray-300"
+              <MapPin className="absolute left-4 text-purple-500 z-10" size={20} />
+              <button
+                type="button"
+                onClick={() => setActiveDropdown(activeDropdown === "location" ? null : "location")}
+                className="w-full flex items-center justify-between bg-transparent py-3 pl-9 pr-2 text-sm text-gray-700 outline-none cursor-pointer dark:text-gray-300 text-left"
               >
-                <option value="" className="dark:bg-[#0B0F19]">All Locations</option>
-                {locations.map((loc: any) => (
-                  <option key={loc.id} value={loc.name} className="dark:bg-[#0B0F19]">{loc.name}</option>
-                ))}
-              </select>
+                <span className="truncate">{filters.location || "All Locations"}</span>
+                <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${activeDropdown === "location" ? "rotate-180" : ""}`} />
+              </button>
+
+              {activeDropdown === "location" && (
+                <ul className="absolute left-0 right-0 top-full mt-2 max-h-60 overflow-y-auto rounded-2xl border border-gray-200 bg-white p-1.5 shadow-xl dark:border-white/10 dark:bg-[#0B0F19] z-50 custom-scrollbar animate-fade-in">
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleInputChange("location", "");
+                        setActiveDropdown(null);
+                      }}
+                      className={`w-full text-left px-3 py-2 text-sm rounded-xl transition-colors ${!filters.location ? "bg-blue-50 text-blue-600 font-semibold dark:bg-blue-500/20 dark:text-blue-400" : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5"}`}
+                    >
+                      All Locations
+                    </button>
+                  </li>
+                  {locations.map((loc: any) => (
+                    <li key={loc.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleInputChange("location", loc.name);
+                          setActiveDropdown(null);
+                        }}
+                        className={`w-full text-left px-3 py-2 text-sm rounded-xl transition-colors ${filters.location === loc.name ? "bg-blue-50 text-blue-600 font-semibold dark:bg-blue-500/20 dark:text-blue-400" : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5"}`}
+                      >
+                        {loc.name}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <div className="flex md:col-span-2 items-center justify-end px-2">
               <button
+                type="button"
                 onClick={() => setIsMobileFilterOpen(true)}
                 className="flex items-center justify-center gap-2 w-full rounded-2xl border border-gray-200 p-3 text-gray-600 hover:bg-gray-50 dark:border-white/10 dark:text-gray-300 dark:hover:bg-white/5 md:hidden transition-colors"
               >
@@ -227,6 +324,7 @@ export const Jobs: React.FC = () => {
               </button>
               
               <button 
+                type="button"
                 onClick={handleTriggerSearch}
                 className="hidden md:flex items-center justify-center gap-2 w-full rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 py-3 font-semibold text-white transition-all hover:opacity-95 shadow-md shadow-blue-500/10"
               >
@@ -236,13 +334,13 @@ export const Jobs: React.FC = () => {
           </div>
         </div>
 
-        {/* BODY LAYOUT - 2 CỘT ĐỒNG NHẤT (JOBS LIST & UNIFIED SIDEBAR) */}
+        {/* BODY LAYOUT */}
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-4 items-start">
           
-          {/* CỘT SIDEBAR TỔNG HỢP BÊN TRÁI: CHỨA CẢ BỘ LỌC NÂNG CAO VÀ VIỆC LÀM GỢI Ý (Chiếm 1 cột) */}
+          {/* SIDEBAR */}
           <aside className="sticky top-24 hidden lg:flex lg:flex-col gap-6 lg:col-span-1 overflow-x-hidden">
             
-            {/* 1. KHỐI BỘ LỌC NÂNG CAO (ADVANCED FILTERS) */}
+            {/* ADVANCED FILTERS */}
             <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-white/5 dark:bg-[#0B0F19]">
               <div className="flex items-center justify-between border-b border-gray-100 pb-4 dark:border-white/5">
                 <div className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
@@ -258,37 +356,94 @@ export const Jobs: React.FC = () => {
               </div>
 
               <div className="mt-5 space-y-6">
-                <div>
+                {/* DROPDOWN CUSTOM: CATEGORIES (DESKTOP) */}
+                <div className="relative">
                   <label className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 flex items-center gap-1.5 mb-2.5">
                     <Briefcase size={14} /> Categories
                   </label>
-                  <select
-                    value={filters.category_id}
-                    onChange={(e) => handleInputChange("category_id", e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-3 text-sm text-gray-700 outline-none transition-all focus:border-blue-500 dark:border-white/10 dark:bg-white/5 dark:text-gray-300 dark:focus:border-blue-500"
+                  <button
+                    type="button"
+                    onClick={() => setActiveDropdown(activeDropdown === "category" ? null : "category")}
+                    className="w-full flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50/50 p-3 text-sm text-gray-700 outline-none transition-all hover:border-gray-300 focus:border-blue-500 dark:border-white/10 dark:bg-white/5 dark:text-gray-300 dark:focus:border-blue-500 text-left"
                   >
-                    <option value="" className="dark:bg-[#0B0F19]">All Specialities</option>
-                    {categories.map((cat: any) => (
-                      <option key={cat.id} value={cat.id} className="dark:bg-[#0B0F19]">{cat.name}</option>
-                    ))}
-                  </select>
+                    <span className="truncate">
+                      {filters.category_id 
+                        ? categories.find(c => Number(c.id) === Number(filters.category_id))?.name || "All Specialities" 
+                        : "All Specialities"}
+                    </span>
+                    <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${activeDropdown === "category" ? "rotate-180" : ""}`} />
+                  </button>
+
+                  {activeDropdown === "category" && (
+                    <ul className="absolute left-0 right-0 top-full mt-2 max-h-60 overflow-y-auto rounded-2xl border border-gray-200 bg-white p-1.5 shadow-xl dark:border-white/10 dark:bg-[#0B0F19] z-50 custom-scrollbar animate-fade-in">
+                      <li>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleInputChange("category_id", "");
+                            setActiveDropdown(null);
+                          }}
+                          className={`w-full text-left px-3 py-2 text-sm rounded-xl transition-colors ${!filters.category_id ? "bg-blue-50 text-blue-600 font-semibold dark:bg-blue-500/20 dark:text-blue-400" : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5"}`}
+                        >
+                          All Specialities
+                        </button>
+                      </li>
+                      {categories.map((cat: any) => (
+                        <li key={cat.id}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleInputChange("category_id", cat.id);
+                              setActiveDropdown(null);
+                            }}
+                            className={`w-full text-left px-3 py-2 text-sm rounded-xl transition-colors ${Number(filters.category_id) === Number(cat.id) ? "bg-blue-50 text-blue-600 font-semibold dark:bg-blue-500/20 dark:text-blue-400" : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5"}`}
+                          >
+                            {cat.name}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
 
-                <div>
+                {/* DROPDOWN CUSTOM: JOB TYPE (DESKTOP) */}
+                <div className="relative">
                   <label className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 flex items-center gap-1.5 mb-2.5">
                     <CalendarDays size={14} /> Job Type
                   </label>
-                  <select
-                    value={filters.type}
-                    onChange={(e) => handleInputChange("type", e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-3 text-sm text-gray-700 outline-none transition-all focus:border-blue-500 dark:border-white/10 dark:bg-white/5 dark:text-gray-300 dark:focus:border-blue-500"
+                  <button
+                    type="button"
+                    onClick={() => setActiveDropdown(activeDropdown === "type" ? null : "type")}
+                    className="w-full flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50/50 p-3 text-sm text-gray-700 outline-none transition-all hover:border-gray-300 focus:border-blue-500 dark:border-white/10 dark:bg-white/5 dark:text-gray-300 dark:focus:border-blue-500 text-left"
                   >
-                    <option value="" className="dark:bg-[#0B0F19]">All Work Types</option>
-                    <option value="Full-time" className="dark:bg-[#0B0F19]">Full-time</option>
-                    <option value="Part-time" className="dark:bg-[#0B0F19]">Part-time</option>
-                    <option value="Contract" className="dark:bg-[#0B0F19]">Contract</option>
-                    <option value="Remote" className="dark:bg-[#0B0F19]">Remote</option>
-                  </select>
+                    <span className="truncate">{filters.type || "All Work Types"}</span>
+                    <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${activeDropdown === "type" ? "rotate-180" : ""}`} />
+                  </button>
+
+                  {activeDropdown === "type" && (
+                    <ul className="absolute left-0 right-0 top-full mt-2 max-h-60 overflow-y-auto rounded-2xl border border-gray-200 bg-white p-1.5 shadow-xl dark:border-white/10 dark:bg-[#0B0F19] z-50 custom-scrollbar animate-fade-in">
+                      {[
+                        { value: "", label: "All Work Types" },
+                        { value: "Full-time", label: "Full-time" },
+                        { value: "Part-time", label: "Part-time" },
+                        { value: "Contract", label: "Contract" },
+                        { value: "Remote", label: "Remote" }
+                      ].map((t) => (
+                        <li key={t.value}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleInputChange("type", t.value);
+                              setActiveDropdown(null);
+                            }}
+                            className={`w-full text-left px-3 py-2 text-sm rounded-xl transition-colors ${filters.type === t.value ? "bg-blue-50 text-blue-600 font-semibold dark:bg-blue-500/20 dark:text-blue-400" : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5"}`}
+                          >
+                            {t.label}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
 
                 <div className="pt-4 border-t border-gray-100 dark:border-white/5 space-y-6">
@@ -307,6 +462,7 @@ export const Jobs: React.FC = () => {
                         const isActive = filters.experience_level === lvl.value;
                         return (
                           <button
+                            type="button"
                             key={lvl.value}
                             onClick={() => handleInputChange("experience_level", isActive ? "" : lvl.value)}
                             className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
@@ -330,17 +486,17 @@ export const Jobs: React.FC = () => {
                       <input 
                         type="range" 
                         min="0" 
-                        max="100000000"
-                        step="5000000"
-                        value={filters.salary_min || 0}
-                        onChange={(e) => handleInputChange("salary_min", Number(e.target.value))}
+                        max="3200"
+                        step="400"
+                        value={salarySlider}
+                        onChange={(e) => setSalarySlider(Number(e.target.value))}
                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-blue-600"
                       />
                     </div>
                     <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 mt-2 font-medium">
                       <span>Any</span>
-                      <span className={filters.salary_min && filters.salary_min > 0 ? "text-blue-600 dark:text-blue-400 font-bold" : ""}>
-                        {filters.salary_min ? `${filters.salary_min / 1000000}M VND+` : "Negotiable"}
+                      <span className={salarySlider > 0 ? "text-blue-600 dark:text-blue-400 font-bold" : ""}>
+                        {salarySlider > 0 ? `${salarySlider} $+` : "Negotiable"}
                       </span>
                     </div>
                   </div>
@@ -348,18 +504,17 @@ export const Jobs: React.FC = () => {
               </div>
             </div>
 
-            {/* 2. COMPONENT VIỆC LÀM GỢI Ý (RECOMMENDED JOBS ASIDE) */}
+            {/* RECOMMENDED JOBS ASIDE */}
             <RecommendedJobsAside 
               recommendedJobs={aiRecommendations}
               openModal={(type) => {
                 console.log("Trigger open modal type from profile card:", type);
               }}
             />
-
           </aside>
 
-          {/* KHU VỰC CHÍNH BÊN PHẢI: MAIN JOBS LIST GRID COMPONENT (Chiếm 3 cột) */}
-          <main className="lg:col-span-3 space-y-5">
+          {/* MAIN JOBS LIST AREA */}
+          <main className="lg:col-span-3 space-y-5 min-h-[600px]">
             <div className="flex items-center justify-between bg-white dark:bg-[#0B0F19] rounded-2xl px-5 py-3.5 border border-gray-100 dark:border-white/5 shadow-sm">
               <div className="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center gap-2">
                 <Grid size={16} className="text-purple-500" />
@@ -367,10 +522,34 @@ export const Jobs: React.FC = () => {
               </div>
             </div>
 
+            {/* RENDER LOGIC */}
             {loading ? (
-              <div className="flex h-72 w-full flex-col items-center justify-center gap-3 rounded-3xl border border-gray-200 bg-white dark:border-white/5 dark:bg-[#0B0F19]">
-                <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
-                <p className="text-sm font-medium text-gray-400">Scanning matching career paths...</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                {Array.from({ length: filters.limit || 12 }).map((_, idx) => (
+                  <div 
+                    key={idx} 
+                    style={{ animationDelay: `${idx * 100}ms` }}
+                    className="flex flex-col h-[340px] bg-white dark:bg-[#0B0F19] rounded-3xl p-6 border border-gray-100 dark:border-white/5 justify-between animate-pulse"
+                  >
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 bg-gray-200/80 dark:bg-gray-800 rounded-2xl" />
+                        <div className="space-y-2 flex-1">
+                          <div className="h-4 bg-gray-200/80 dark:bg-gray-800 rounded w-2/3" />
+                          <div className="h-3 bg-gray-200/80 dark:bg-gray-800 rounded w-1/2" />
+                        </div>
+                      </div>
+                      <div className="space-y-2 pt-2">
+                        <div className="h-3 bg-gray-200/80 dark:bg-gray-800 rounded w-full" />
+                        <div className="h-3 bg-gray-200/80 dark:bg-gray-800 rounded w-5/6" />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-4 border-t border-gray-100 dark:border-white/5">
+                      <div className="h-7 bg-gray-200/80 dark:bg-gray-800 rounded-xl w-20" />
+                      <div className="h-7 bg-gray-200/80 dark:bg-gray-800 rounded-xl w-24" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : jobs.length === 0 ? (
               <div className="flex flex-col items-center justify-center text-center py-16 px-4 rounded-3xl border border-dashed border-gray-200 bg-white dark:border-white/10 dark:bg-[#0B0F19]">
@@ -382,6 +561,7 @@ export const Jobs: React.FC = () => {
                   Try adjusting your search keywords or tweaking the advanced filters on the right.
                 </p>
                 <button
+                  type="button"
                   onClick={handleResetFilters}
                   className="mt-5 rounded-xl border border-blue-500 px-5 py-2 text-sm font-semibold text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-all"
                 >
@@ -394,8 +574,7 @@ export const Jobs: React.FC = () => {
                   {jobs.map((job, idx) => (
                     <div 
                       key={job.id} 
-                      className="animate-fade-in-up flex flex-col h-full hover:scale-[1.01] hover:shadow-lg hover:shadow-gray-100/30 transition-all duration-300 rounded-3xl dark:hover:shadow-none bg-white dark:bg-[#0B0F19] p-1 border border-gray-100 dark:border-white/5"
-                      style={{ animationDelay: `${idx * 80}ms` }}
+                      className="flex flex-col h-full hover:scale-[1.01] hover:shadow-lg hover:shadow-gray-100/30 transition-all duration-300 rounded-3xl dark:hover:shadow-none bg-white dark:bg-[#0B0F19] p-1 border border-gray-100 dark:border-white/5"
                     >
                       <JobCard
                         index={idx}
@@ -418,6 +597,7 @@ export const Jobs: React.FC = () => {
                     </div>
                     <div className="flex flex-1 sm:justify-end justify-center gap-2">
                       <button
+                        type="button"
                         onClick={() => handlePageChange((filters.page || 1) - 1)}
                         disabled={filters.page === 1}
                         className="flex items-center justify-center gap-1 px-3 py-2 rounded-xl border border-gray-200 text-sm font-medium bg-white disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-[#0B0F19] dark:text-gray-300 transition-colors"
@@ -433,6 +613,7 @@ export const Jobs: React.FC = () => {
                             <React.Fragment key={pageNumber}>
                               {showEllipsis && <span className="px-2 py-2 text-gray-400">...</span>}
                               <button
+                                type="button"
                                 onClick={() => handlePageChange(pageNumber)}
                                 className={`h-9 w-9 flex items-center justify-center rounded-xl text-sm font-semibold transition-all ${
                                   filters.page === pageNumber
@@ -447,6 +628,7 @@ export const Jobs: React.FC = () => {
                         })}
 
                       <button
+                        type="button"
                         onClick={() => handlePageChange((filters.page || 1) + 1)}
                         disabled={filters.page === totalPages}
                         className="flex items-center justify-center gap-1 px-3 py-2 rounded-xl border border-gray-200 text-sm font-medium bg-white disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-[#0B0F19] dark:text-gray-300 transition-colors"
@@ -463,7 +645,7 @@ export const Jobs: React.FC = () => {
         </div>
       </div>
 
-      {/* MOBILE DRAWER FILTER (Giữ nguyên cấu trúc cho giao diện Mobile) */}
+      {/* MOBILE DRAWER FILTER */}
       {isMobileFilterOpen && (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm lg:hidden animate-fade-in">
           <div className="h-full w-full max-w-xs bg-white p-6 shadow-2xl dark:bg-[#0B0F19] overflow-y-auto flex flex-col justify-between">
@@ -473,6 +655,7 @@ export const Jobs: React.FC = () => {
                   <Filter size={18} /> Filters Panel
                 </h2>
                 <button 
+                  type="button"
                   onClick={() => setIsMobileFilterOpen(false)} 
                   className="rounded-full p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5"
                 >
@@ -481,37 +664,94 @@ export const Jobs: React.FC = () => {
               </div>
 
               <div className="mt-6 space-y-6">
-                <div>
+                {/* DROPDOWN CUSTOM: CATEGORIES (MOBILE) */}
+                <div className="relative">
                   <label className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 block mb-2">
                     Categories
                   </label>
-                  <select
-                    value={filters.category_id}
-                    onChange={(e) => handleInputChange("category_id", e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm dark:border-white/10 dark:bg-white/5"
+                  <button
+                    type="button"
+                    onClick={() => setActiveDropdown(activeDropdown === "mobile_category" ? null : "mobile_category")}
+                    className="w-full flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700 dark:border-white/10 dark:bg-white/5 dark:text-gray-300 text-left"
                   >
-                    <option value="">All Specialities</option>
-                    {categories.map((cat: any) => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
+                    <span className="truncate">
+                      {filters.category_id 
+                        ? categories.find(c => Number(c.id) === Number(filters.category_id))?.name || "All Specialities" 
+                        : "All Specialities"}
+                    </span>
+                    <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${activeDropdown === "mobile_category" ? "rotate-180" : ""}`} />
+                  </button>
+
+                  {activeDropdown === "mobile_category" && (
+                    <ul className="absolute left-0 right-0 top-full mt-2 max-h-48 overflow-y-auto rounded-2xl border border-gray-200 bg-white p-1.5 shadow-xl dark:border-white/10 dark:bg-[#0B0F19] z-50 custom-scrollbar animate-fade-in">
+                      <li>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleInputChange("category_id", "");
+                            setActiveDropdown(null);
+                          }}
+                          className={`w-full text-left px-3 py-2 text-sm rounded-xl transition-colors ${!filters.category_id ? "bg-blue-50 text-blue-600 font-semibold dark:bg-blue-500/20 dark:text-blue-400" : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5"}`}
+                        >
+                          All Specialities
+                        </button>
+                      </li>
+                      {categories.map((cat: any) => (
+                        <li key={cat.id}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleInputChange("category_id", cat.id);
+                              setActiveDropdown(null);
+                            }}
+                            className={`w-full text-left px-3 py-2 text-sm rounded-xl transition-colors ${Number(filters.category_id) === Number(cat.id) ? "bg-blue-50 text-blue-600 font-semibold dark:bg-blue-500/20 dark:text-blue-400" : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5"}`}
+                          >
+                            {cat.name}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
 
-                <div>
+                {/* DROPDOWN CUSTOM: JOB TYPE (MOBILE) */}
+                <div className="relative">
                   <label className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 block mb-2">
                     Job Type
                   </label>
-                  <select
-                    value={filters.type}
-                    onChange={(e) => handleInputChange("type", e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm dark:border-white/10 dark:bg-white/5"
+                  <button
+                    type="button"
+                    onClick={() => setActiveDropdown(activeDropdown === "mobile_type" ? null : "mobile_type")}
+                    className="w-full flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700 dark:border-white/10 dark:bg-white/5 dark:text-gray-300 text-left"
                   >
-                    <option value="">All Work Types</option>
-                    <option value="Full-time">Full-time</option>
-                    <option value="Part-time">Part-time</option>
-                    <option value="Contract">Contract</option>
-                    <option value="Remote">Remote</option>
-                  </select>
+                    <span className="truncate">{filters.type || "All Work Types"}</span>
+                    <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${activeDropdown === "mobile_type" ? "rotate-180" : ""}`} />
+                  </button>
+
+                  {activeDropdown === "mobile_type" && (
+                    <ul className="absolute left-0 right-0 top-full mt-2 max-h-48 overflow-y-auto rounded-2xl border border-gray-200 bg-white p-1.5 shadow-xl dark:border-white/10 dark:bg-[#0B0F19] z-50 custom-scrollbar animate-fade-in">
+                      {[
+                        { value: "", label: "All Work Types" },
+                        { value: "Full-time", label: "Full-time" },
+                        { value: "Part-time", label: "Part-time" },
+                        { value: "Contract", label: "Contract" },
+                        { value: "Remote", label: "Remote" }
+                      ].map((t) => (
+                        <li key={t.value}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleInputChange("type", t.value);
+                              setActiveDropdown(null);
+                            }}
+                            className={`w-full text-left px-3 py-2 text-sm rounded-xl transition-colors ${filters.type === t.value ? "bg-blue-50 text-blue-600 font-semibold dark:bg-blue-500/20 dark:text-blue-400" : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5"}`}
+                          >
+                            {t.label}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
 
                 <div>
@@ -529,6 +769,7 @@ export const Jobs: React.FC = () => {
                       const isActive = filters.experience_level === lvl.value;
                       return (
                         <button
+                          type="button"
                           key={lvl.value}
                           onClick={() => handleInputChange("experience_level", isActive ? "" : lvl.value)}
                           className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
@@ -551,16 +792,16 @@ export const Jobs: React.FC = () => {
                   <input 
                     type="range" 
                     min="0" 
-                    max="100000000"
-                    step="5000000"
-                    value={filters.salary_min || 0}
-                    onChange={(e) => handleInputChange("salary_min", Number(e.target.value))}
+                    max="3200"
+                    step="400"
+                    value={salarySlider}
+                    onChange={(e) => setSalarySlider(Number(e.target.value))}
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-blue-600"
                   />
                   <div className="flex justify-between items-center text-xs text-gray-500 mt-2 font-medium">
                     <span>Any</span>
-                    <span className={filters.salary_min && filters.salary_min > 0 ? "text-blue-600 dark:text-blue-400 font-bold" : ""}>
-                      {filters.salary_min ? `${filters.salary_min / 1000000}M VND+` : "Negotiable"}
+                    <span className={salarySlider > 0 ? "text-blue-600 dark:text-blue-400 font-bold" : ""}>
+                      {salarySlider > 0 ? `${salarySlider} $+` : "Negotiable"}
                     </span>
                   </div>
                 </div>
@@ -569,6 +810,7 @@ export const Jobs: React.FC = () => {
 
             <div className="mt-8 pt-4 border-t border-gray-100 dark:border-white/5 space-y-2">
               <button
+                type="button"
                 onClick={() => {
                   handleResetFilters();
                   setIsMobileFilterOpen(false);
@@ -578,6 +820,7 @@ export const Jobs: React.FC = () => {
                 Reset All
               </button>
               <button
+                type="button"
                 onClick={() => setIsMobileFilterOpen(false)}
                 className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 py-3 text-sm font-semibold text-white shadow-md"
               >

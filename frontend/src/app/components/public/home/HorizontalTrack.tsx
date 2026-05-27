@@ -1,4 +1,4 @@
-import React, { useRef, useState, MouseEvent } from "react";
+import React, { useRef, useState, MouseEvent, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface HorizontalTrackProps {
@@ -16,45 +16,66 @@ export const HorizontalTrack: React.FC<HorizontalTrackProps> = ({
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
+  
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
+  const frameId = useRef<number | null>(null);
 
-  // Xử lý Click mũi tên
+  // Click mũi tên dịch chuyển mượt (Giữ nguyên)
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
-      const scrollAmount = direction === "left" ? -400 : 400; // Cuộn 400px mỗi lần bấm
+      const scrollAmount = direction === "left" ? -400 : 400;
       scrollRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
     }
   };
 
-  // Xử lý Kéo thả chuột (Drag to scroll)
   const handleMouseDown = (e: MouseEvent) => {
+    if (!scrollRef.current) return;
     setIsDragging(true);
-    setStartX(e.pageX - (scrollRef.current?.offsetLeft || 0));
-    setScrollLeft(scrollRef.current?.scrollLeft || 0);
+    startXRef.current = e.pageX - scrollRef.current.offsetLeft;
+    scrollLeftRef.current = scrollRef.current.scrollLeft;
   };
 
-  const handleMouseLeave = () => setIsDragging(false);
-  const handleMouseUp = () => setIsDragging(false);
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+    if (frameId.current) cancelAnimationFrame(frameId.current);
+  };
+  
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    if (frameId.current) cancelAnimationFrame(frameId.current);
+  };
 
   const handleMouseMove = (e: MouseEvent) => {
     if (!isDragging || !scrollRef.current) return;
     e.preventDefault();
+
     const x = e.pageX - scrollRef.current.offsetLeft;
-    const walk = (x - startX) * 1.5; // Tốc độ kéo chuột
-    scrollRef.current.scrollLeft = scrollLeft - walk;
+    const walk = (x - startXRef.current) * 1.5; // Tốc độ lướt theo tay
+
+    if (frameId.current) cancelAnimationFrame(frameId.current);
+    
+    frameId.current = requestAnimationFrame(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollLeft = scrollLeftRef.current - walk;
+      }
+    });
   };
 
-  // Xử lý Infinite Scroll ngang (nếu muốn cuộn đến cuối tự load thêm)
   const handleScroll = () => {
     if (!scrollRef.current || !onLoadMore || !hasMore || isLoading) return;
     const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
     
-    // Nếu cuộn cách mép phải 150px thì gọi API load thêm
     if (scrollWidth - scrollLeft - clientWidth < 150) {
       onLoadMore();
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (frameId.current) cancelAnimationFrame(frameId.current);
+    };
+  }, []);
 
   return (
     <div className="relative group w-full">
@@ -67,12 +88,14 @@ export const HorizontalTrack: React.FC<HorizontalTrackProps> = ({
         <ChevronLeft size={28} />
       </button>
 
-      {/* Container cuộn ngang chứa danh sách JobCard */}
+      {/* CONTAINER CHÍNH - ĐÃ XOÁ BỎ HOÀN TOÀN SNAP VÀ TỐI ƯU DRAG HOVER */}
       <div
         ref={scrollRef}
-        className={`flex w-full gap-6 overflow-x-auto scroll-smooth py-6 px-4 pb-8 ${
-          isDragging ? "cursor-grabbing select-none" : "cursor-grab"
-        } snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}
+        className={`flex w-full gap-6 overflow-x-auto py-6 px-4 pb-8 select-none transition-colors duration-200
+          ${isDragging ? "cursor-grabbing [&>*]:pointer-events-none" : "cursor-grab"} 
+          [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]
+        `}
+        style={{ willChange: isDragging ? "scroll-position" : "auto" }}
         onMouseDown={handleMouseDown}
         onMouseLeave={handleMouseLeave}
         onMouseUp={handleMouseUp}
@@ -81,9 +104,9 @@ export const HorizontalTrack: React.FC<HorizontalTrackProps> = ({
       >
         {children}
 
-        {/* Loading Spinner hiển thị ở cuối hàng ngang */}
+        {/* Loading Spinner */}
         {isLoading && (
-          <div className="flex w-32 shrink-0 items-center justify-center snap-end">
+          <div className="flex w-32 shrink-0 items-center justify-center">
             <span className="relative flex h-4 w-4">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-600 opacity-75"></span>
               <span className="relative inline-flex h-4 w-4 rounded-full bg-blue-600"></span>
