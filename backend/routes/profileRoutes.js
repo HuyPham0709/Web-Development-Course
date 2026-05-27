@@ -2,10 +2,10 @@
 const express = require('express');
 const router = express.Router();
 const profileController = require('../controllers/ProfileController');
-const { verifyToken } = require('../middlewares/authMiddleware'); // dùng đúng tên export
+const { verifyToken, authorizeRole } = require('../middlewares/authMiddleware'); // dùng đúng tên export
 const upload = require('../middlewares/uploadMiddleware');        // multer đã cấu hình
 
-router.get('/search-cv', profileController.searchCandidates); // Đẩy lên trên đầu
+router.get('/search-cv', verifyToken, authorizeRole(['employer']), profileController.searchCandidates); // Đẩy lên trên đầu
 router.get('/:userId', profileController.getProfile);
 
 // Lưu toàn bộ profile (personalInfo + experiences + education + skills)

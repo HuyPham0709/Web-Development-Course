@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Briefcase,
   Bell,
@@ -63,17 +63,24 @@ export const Navbar = () => {
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-
   const [chatUnreadCount, setChatUnreadCount] = useState<number>(0);
 
+  // ======================================================================
+  // Xử lý hiển thị NavLinks chính xác theo từng vai trò (Role)
+  // ======================================================================
   const getNavLinks = () => {
-    const baseLinks = [{ name: "Home", path: "/" }];
-    if (!isLoggedIn) return baseLinks;
+    if (!isLoggedIn) {
+      return [
+        { name: "Home", path: "/" },
+        { name: "Jobs", path: "/jobs" },
+      ];
+    }
+    
     const userRole = user.role?.toLowerCase();
 
     if (userRole === "employer") {
       return [
-        ...baseLinks,
+        { name: "Home", path: "/" },
         { name: "Dashboard", path: "/employer/dashboard" },
         { name: "CV Search", path: "/employer/cv-search" },
       ];
@@ -81,17 +88,21 @@ export const Navbar = () => {
 
     if (userRole === "candidate") {
       return [
-        ...baseLinks,
+        { name: "Home", path: "/" },
+        { name: "Jobs", path: "/jobs" },
         { name: "My Applications", path: "/applications" },
-        { name: "Settings", path: "/settings" },
       ];
     }
-    return baseLinks;
+
+    return [
+      { name: "Home", path: "/" },
+      { name: "Jobs", path: "/jobs" },
+    ];
   };
 
   const navLinks = getNavLinks();
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
@@ -100,29 +111,30 @@ export const Navbar = () => {
       });
       if (response.data.success) {
         const systemNotifs = response.data.data.filter(
-          (n: any) => n.link_url !== "/chat",
+          (n: any) => n.link_url !== "/chat"
         );
         setNotifications(systemNotifs);
       }
     } catch (error) {
       console.error("Error fetching notifications:", error);
     }
-  };
+  }, []);
 
   // 🔥 ACCURATE DATABASE SYNC LOGIC
-  const checkUnreadChat = async () => {
+  const checkUnreadChat = useCallback(async () => {
     if (!isLoggedIn || !user.id) return;
 
+    if (window.location.pathname === "/chat") {
+      setChatUnreadCount(0);
+      return;
+    }
+    
     try {
       const response = await chatService.getConversations();
-      
-      // Destructure array safely to prevent crashing
       const dataList = Array.isArray(response) ? response : response?.data || [];
 
       if (dataList && dataList.length > 0) {
         const total = dataList.reduce((sum: number, conv: any) => {
-          // Since the backend already ensures unreadCount matches the other user's unread messages count,
-          // we no longer need complex if(senderId !== user.id) conditions. Simply aggregate them!
           return sum + Number(conv.unreadCount ?? conv.unread_count ?? 0);
         }, 0);
 
@@ -134,14 +146,18 @@ export const Navbar = () => {
     } catch (error) {
       console.error("Error checking unread messages:", error);
     }
-  };
+  }, [isLoggedIn, user.id]);
 
-  // Listen for badge update events emitted from the Chat component
+  // Handler for incoming chat messages
+  const handleChatTrigger = useCallback(() => {
+    checkUnreadChat();
+  }, [checkUnreadChat]);
+
+  // Lắng nghe sự kiện Chat từ Window Event phát ra
   useEffect(() => {
     if (!isLoggedIn) return;
 
     const handleChatCountUpdate = (e: any) => {
-      // Using any for e to avoid CustomEvent type definition errors
       if (e.detail && typeof e.detail.count === "number") {
         setChatUnreadCount(e.detail.count);
       } else {
@@ -150,12 +166,15 @@ export const Navbar = () => {
     };
 
     window.addEventListener("update-chat-count", handleChatCountUpdate);
+    window.addEventListener("incoming-chat-msg", handleChatTrigger);
+    
     return () => {
       window.removeEventListener("update-chat-count", handleChatCountUpdate);
+      window.removeEventListener("incoming-chat-msg", handleChatTrigger);
     };
-  }, [isLoggedIn, user.id]);
+  }, [isLoggedIn, checkUnreadChat, handleChatTrigger]);
 
-  // Realtime Socket Connection
+  // Xử lý Socket Realtime kết nối tới Backend
   useEffect(() => {
     if (isLoggedIn && user.id) {
       const socket = io(BASE_URL);
@@ -169,9 +188,15 @@ export const Navbar = () => {
         }
       });
 
-      // Whenever any chat event occurs -> Recall API to sync total unread counts
       socket.on("receive_message", () => checkUnreadChat());
-      socket.on("update_unread_total", () => checkUnreadChat());
+      
+      socket.on("update_unread_total", (data: any) => {
+        console.log("📩 [SOCKET] Nhận tín hiệu update_unread_total thành công:", data);
+        checkUnreadChat();
+        if (window.location.pathname !== "/chat") {
+          setChatUnreadCount((prevCount) => prevCount + 1);
+        }
+      });
 
       return () => {
         socket.off("receive_notification");
@@ -180,18 +205,18 @@ export const Navbar = () => {
         socket.disconnect();
       };
     }
-  }, [isLoggedIn, user.id]);
+  }, [isLoggedIn, user.id, checkUnreadChat]);
 
   useEffect(() => {
     if (showNotifications && isLoggedIn) {
       fetchNotifications();
     }
-  }, [showNotifications, isLoggedIn]);
+  }, [showNotifications, isLoggedIn, fetchNotifications]);
 
   useEffect(() => {
     if (!isLoggedIn) return;
     checkUnreadChat();
-  }, [location.pathname, isLoggedIn]);
+  }, [location.pathname, isLoggedIn, checkUnreadChat]);
 
   const handleMarkAsRead = async (id: string, linkUrl: string | null) => {
     if (isProcessing) return;
@@ -205,14 +230,14 @@ export const Navbar = () => {
       setIsProcessing(true);
       setNotifications((prev) =>
         prev.map((item) =>
-          item._id === id ? { ...item, is_read: true } : item,
-        ),
+          item._id === id ? { ...item, is_read: true } : item
+        )
       );
       try {
         await axios.put(
           `${BASE_URL}/api/notifications/${id}/read`,
           {},
-          { headers: { Authorization: `Bearer ${token}` } },
+          { headers: { Authorization: `Bearer ${token}` } }
         );
       } catch (error) {
         console.error("Error updating read status:", error);
@@ -235,10 +260,10 @@ export const Navbar = () => {
       await axios.put(
         `${BASE_URL}/api/notifications/read-all`,
         {},
-        { headers: { Authorization: `Bearer ${token}` } },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       setNotifications((prev) =>
-        prev.map((item) => ({ ...item, is_read: true })),
+        prev.map((item) => ({ ...item, is_read: true }))
       );
     } catch (error) {
       console.error("Error marking all as read:", error);
@@ -255,7 +280,7 @@ export const Navbar = () => {
         try {
           const parsedUser = JSON.parse(savedUserStr);
           setUser({
-            id: parsedUser.id || parsedUser._id || "", // Normalize to the correct id property
+            id: parsedUser.id || parsedUser._id || "",
             name: parsedUser.full_name || parsedUser.name || "",
             avatarUrl: toFullUrl(parsedUser.avatar_url),
             role: parsedUser.role || "",
@@ -302,14 +327,11 @@ export const Navbar = () => {
       fetchNotifications();
       checkUnreadChat();
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, fetchNotifications, checkUnreadChat]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowNotifications(false);
       }
     }
@@ -350,6 +372,7 @@ export const Navbar = () => {
             </span>
           </Link>
 
+          {/* Desktop Links Menu */}
           <div className="hidden items-center gap-1 md:flex">
             {navLinks.map((link) => {
               const isActive = location.pathname === link.path;
@@ -371,6 +394,7 @@ export const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Theme Toggle */}
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="relative flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors dark:text-gray-400 dark:hover:bg-white/10 overflow-hidden"
@@ -379,21 +403,18 @@ export const Navbar = () => {
             <Sun
               size={20}
               className={`absolute text-amber-400 transition-all duration-500 ease-in-out ${
-                theme === "dark"
-                  ? "rotate-0 scale-100 opacity-100"
-                  : "-rotate-90 scale-0 opacity-0"
+                theme === "dark" ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-0 opacity-0"
               }`}
             />
             <Moon
               size={20}
               className={`absolute transition-all duration-500 ease-in-out ${
-                theme === "dark"
-                  ? "rotate-90 scale-0 opacity-0"
-                  : "rotate-0 scale-100 opacity-100"
+                theme === "dark" ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"
               }`}
             />
           </button>
 
+          {/* Messages Link */}
           {isLoggedIn && (
             <Link
               to="/chat"
@@ -414,6 +435,7 @@ export const Navbar = () => {
             </Link>
           )}
 
+          {/* Notifications Dropdown */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowNotifications(!showNotifications)}
@@ -428,21 +450,14 @@ export const Navbar = () => {
             {showNotifications && (
               <div className="absolute right-0 mt-3 w-80 rounded-2xl border border-gray-200 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-[#0B0F19]">
                 <div className="px-4 py-2.5 border-b border-gray-100 dark:border-white/5 flex items-center justify-between">
-                  <span className="font-semibold text-sm text-gray-900 dark:text-white">
-                    Notifications
-                  </span>
-                  <span
-                    onClick={handleMarkAllRead}
-                    className="text-xs text-blue-600 dark:text-blue-400 font-medium cursor-pointer hover:underline"
-                  >
+                  <span className="font-semibold text-sm text-gray-900 dark:text-white">Notifications</span>
+                  <span onClick={handleMarkAllRead} className="text-xs text-blue-600 dark:text-blue-400 font-medium cursor-pointer hover:underline">
                     Mark all read
                   </span>
                 </div>
                 <div className="max-h-[300px] overflow-y-auto pt-1">
                   {notifications.length === 0 ? (
-                    <p className="text-xs text-gray-400 text-center py-6">
-                      No notifications.
-                    </p>
+                    <p className="text-xs text-gray-400 text-center py-6">No notifications.</p>
                   ) : (
                     notifications.map((notif) => (
                       <div
@@ -456,18 +471,14 @@ export const Navbar = () => {
                             : ""
                         }`}
                       >
-                        {!notif.is_read && (
-                          <div className="mt-1.5 flex h-2 w-2 shrink-0 rounded-full bg-blue-600"></div>
-                        )}
+                        {!notif.is_read && <div className="mt-1.5 flex h-2 w-2 shrink-0 rounded-full bg-blue-600"></div>}
                         <div className="flex-1">
                           <p
                             className={`text-sm text-gray-900 dark:text-white ${notif.is_read ? "font-normal" : "font-semibold"}`}
                           >
                             {notif.title}
                           </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
-                            {notif.message}
-                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{notif.message}</p>
                           <p className="text-[10px] text-gray-400 mt-1">
                             {notif.created_at
                               ? new Date(notif.created_at).toLocaleTimeString(
@@ -485,6 +496,7 @@ export const Navbar = () => {
             )}
           </div>
 
+          {/* User Profile Dropdown */}
           {isLoggedIn ? (
             <DropdownMenu>
               <DropdownMenuTrigger className="outline-none">
@@ -496,43 +508,28 @@ export const Navbar = () => {
                     </AvatarFallback>
                   </Avatar>
                   <div className="hidden flex-col items-start text-left md:flex">
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white leading-none max-w-[100px] truncate">
-                      {user.name}
-                    </span>
-                    <span className="text-[10px] text-gray-400 mt-0.5 capitalize">
-                      {user.role}
-                    </span>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white leading-none max-w-[100px] truncate">{user.name}</span>
+                    <span className="text-[10px] text-gray-400 mt-0.5 capitalize">{user.role}</span>
                   </div>
-                  <ChevronDown
-                    size={14}
-                    className="text-gray-400 hidden md:block"
-                  />
+                  <ChevronDown size={14} className="text-gray-400 hidden md:block" />
                 </div>
               </DropdownMenuTrigger>
 
-              <DropdownMenuContent
-                align="end"
-                className="w-56 rounded-2xl p-1.5 border border-gray-200 bg-white shadow-xl dark:border-white/10 dark:bg-[#0B0F19]"
-              >
+              <DropdownMenuContent align="end" className="w-56 rounded-2xl p-1.5 border border-gray-200 bg-white shadow-xl dark:border-white/10 dark:bg-[#0B0F19]">
                 <div className="px-3 py-2">
                   <p className="text-xs text-gray-400">Signed in as</p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white truncate mt-0.5">
-                    {user.name}
-                  </p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white truncate mt-0.5">{user.name}</p>
                 </div>
                 <DropdownMenuSeparator className="bg-gray-100 dark:bg-white/5" />
 
                 {!isEmployer && (
                   <DropdownMenuItem className="p-1 cursor-pointer focus:bg-transparent">
-                    <Link
-                      to="/profile"
-                      className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group"
-                    >
+                    <Link to="/profile" className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group">
                       <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-green-500/10 dark:group-hover:bg-green-500/20 transition-colors">
                         <User className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400" />
                       </div>
                       <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
-                        Personal Profile
+                        Hồ sơ cá nhân
                       </span>
                     </Link>
                   </DropdownMenuItem>
@@ -540,25 +537,19 @@ export const Navbar = () => {
 
                 {isEmployer && (
                   <DropdownMenuItem className="p-1 cursor-pointer focus:bg-transparent">
-                    <Link
-                      to="/employer/profile"
-                      className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group"
-                    >
+                    <Link to="/employer/profile" className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group">
                       <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-blue-500/10 dark:group-hover:bg-blue-500/20 transition-colors">
                         <Briefcase className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
                       </div>
                       <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
-                        Company Profile
+                        Hồ sơ công ty
                       </span>
                     </Link>
                   </DropdownMenuItem>
                 )}
 
                 <DropdownMenuItem className="p-1 cursor-pointer focus:bg-transparent">
-                  <Link
-                    to={isEmployer ? "/employer/dashboard" : "/settings"}
-                    className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group"
-                  >
+                  <Link to={isEmployer ? "/employer/dashboard" : "/settings"} className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group">
                     <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-blue-500/10 dark:group-hover:bg-blue-500/20 transition-colors">
                       <Settings className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
                     </div>
@@ -570,35 +561,26 @@ export const Navbar = () => {
 
                 <DropdownMenuSeparator className="bg-gray-100 dark:bg-white/5" />
 
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  className="p-1 cursor-pointer focus:bg-transparent"
-                >
+                <DropdownMenuItem onClick={handleLogout} className="p-1 cursor-pointer focus:bg-transparent">
                   <div className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group">
                     <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-red-500/10 dark:group-hover:bg-red-500/20 transition-colors">
                       <LogOut className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400" />
                     </div>
                     <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-red-600 dark:group-hover:text-red-400">
-                      Log Out
+                      Đăng xuất
                     </span>
                   </div>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Link
-              to="/auth"
-              className="text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors dark:text-gray-300 dark:hover:text-white px-2"
-            >
+            <Link to="/auth" className="text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors dark:text-gray-300 dark:hover:text-white px-2">
               Sign In
             </Link>
           )}
 
           {isLoggedIn && isEmployer && (
-            <Link
-              to="/employer/jobs/new"
-              className="hidden rounded-full bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-2 text-sm font-medium text-white shadow-md transition-all hover:opacity-90 md:block"
-            >
+            <Link to="/employer/jobs/new" className="hidden rounded-full bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-2 text-sm font-medium text-white shadow-md transition-all hover:opacity-90 md:block">
               Post a Job
             </Link>
           )}
@@ -612,6 +594,7 @@ export const Navbar = () => {
         </div>
       </div>
 
+      {/* Mobile Menu Links */}
       {mobileMenuOpen && (
         <div className="border-t border-gray-100 bg-white px-6 py-4 space-y-3 md:hidden shadow-inner dark:border-white/5 dark:bg-[#0B0F19]">
           {navLinks.map((link) => {

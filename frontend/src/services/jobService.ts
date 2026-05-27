@@ -1,15 +1,25 @@
 import { api } from "./api";
-
+import { IJobFilters, IPaginatedResponse, IJob } from "../types/job";
 // 1. Lấy thông tin chi tiết 1 Job theo ID (Đã có sẵn của bạn)
 export const getJobById = async (id: string) => {
   const res = await api.get(`/api/jobs/${id}`);
   return res.data.data;
 };
 
-// 2. Lấy danh sách công việc kèm các tham số lọc tìm kiếm (title, location, type, category_id)
-export const getJobs = async (params?: { title?: string; location?: string; type?: string; category_id?: string }) => {
+// 2. Lấy danh sách công việc có hỗ trợ phân trang (Pagination/Infinite Scroll)
+export const getJobs = async (params?: IJobFilters): Promise<IPaginatedResponse<IJob>> => {
   const res = await api.get("/api/jobs", { params });
-  return res.data.data || res.data; // Phòng hờ cấu trúc trả về tùy thuộc backend tuyển dụng
+  
+  // Giả định backend trả về { data: [...], meta: { hasMore: true } }
+  // Nếu backend hiện tại chỉ trả về mảng, ta bọc lại cho đúng chuẩn Interface Frontend
+  if (Array.isArray(res.data.data || res.data)) {
+    return {
+      data: res.data.data || res.data,
+      meta: res.data.meta || { hasMore: false } // Dự phòng nếu backend chưa có meta
+    };
+  }
+  
+  return res.data;
 };
 
 // 3. Lấy danh sách danh mục ngành nghề (Categories)

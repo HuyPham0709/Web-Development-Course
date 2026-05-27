@@ -8,6 +8,7 @@ import App from "./App";
 import Home from "./pages/public/Home";
 import JobDetail from "./pages/public/JobDetail";
 import Auth from "./pages/auth/Auth";
+import { Jobs } from "./pages/public/Jobs"; // <-- THÊM COMPONENT MỚI Ở ĐÂY
 
 // CANDIDATE PAGES
 import ProfileDashboard from "./pages/candidate/ProfileDashboard";
@@ -54,8 +55,6 @@ const ProtectedRoute = ({ allowedRole }: { allowedRole: string }) => {
     return <Outlet />;
   } catch (error) {
     console.error("Lỗi parse user:", error);
-
-    value_cleanup();
     return <Navigate to="/auth" replace />;
   }
 };
@@ -94,8 +93,16 @@ export const router = createBrowserRouter([
         element: <Auth />,
       },
       {
+        path: "jobs", // <-- TUYẾN ĐƯỜNG XEM TẤT CẢ VIỆC LÀM
+        element: <Jobs />,
+      },
+      {
         path: "job/:id",
         element: <JobDetail />,
+      },
+      {
+        path: "company/:id",
+        element: <CompanyProfile />,
       },
 
       // ==========================================
@@ -105,7 +112,7 @@ export const router = createBrowserRouter([
         element: <RequireAuth />,
         children: [
           { path: "settings", element: <Settings /> },
-          { path: "chat", element: <Chat /> }, // Chat dùng chung nên để ở đây
+          { path: "chat", element: <Chat /> }, 
         ],
       },
 
@@ -117,7 +124,6 @@ export const router = createBrowserRouter([
         children: [
           { path: "profile", element: <ProfileDashboard /> },
           { path: "applications", element: <MyApplications /> },
-          // Hứng link từ thông báo cũ bị lệch nếu có
           { path: "profile/applications", element: <MyApplications /> },
         ],
       },
@@ -148,10 +154,13 @@ export const router = createBrowserRouter([
             path: "employer/jobs/edit/:id",
             element: <JobForm />,
           },
-
           {
             path: "employer/cv-search",
             element: <CVSearch />,
+          },
+          {
+            path: "employer/profile",
+            element: <CompanyProfile />,
           },
         ],
       },

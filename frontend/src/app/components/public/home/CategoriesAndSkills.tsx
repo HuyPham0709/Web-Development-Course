@@ -13,6 +13,20 @@ const cardGradients = [
   { color: "from-amber-500 to-orange-500", glowColor: "group-hover:shadow-amber-500/10" }
 ];
 
+// BỘ TỪ ĐIỂN DỊCH DATABASE SANG TIẾNG ANH CHO FRONTEND
+const categoryTranslations: Record<string, string> = {
+  "Công nghệ thông tin": "Information Technology",
+  "Marketing": "Marketing",
+  "Kế toán": "Accounting",
+  "Thiết kế": "Design",
+  "Nhân sự": "Human Resources",
+  "Kinh doanh": "Business",
+  "Kỹ thuật": "Engineering",
+  "Y tế": "Healthcare",
+  "Giáo dục": "Education",
+  "Logistics": "Logistics"
+};
+
 export function CategoriesAndSkills() {
   const [categories, setCategories] = useState([]);
   const [skills, setSkills] = useState([]);
@@ -60,11 +74,12 @@ export function CategoriesAndSkills() {
               IconComponent = (LucideIcons as any)[cat.icon_url];
             }
 
+            // ÁP DỤNG DỊCH TÊN DANH MỤC Ở ĐÂY
+            const displayCategoryName = categoryTranslations[cat.name] || cat.name;
+
             return (
               <div
                 key={cat.id || idx}
-                // Thêm overflow-hidden nếu bạn muốn ánh sáng gọn gàng bên trong card, 
-                // hoặc giữ nguyên nếu muốn ánh sáng tràn nhẹ ra viền ngoài cho ảo diệu.
                 className={`group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 hover:shadow-xl ${gradient.glowColor} dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20`}
               >
                 <div>
@@ -73,9 +88,9 @@ export function CategoriesAndSkills() {
                     <IconComponent size={22} />
                   </div>
                   
-                  {/* Tên danh mục */}
+                  {/* Tên danh mục (Đã dịch sang tiếng Anh) */}
                   <h3 className="mt-6 text-lg font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                    {cat.name}
+                    {displayCategoryName}
                   </h3>
                 </div>
 
@@ -84,7 +99,7 @@ export function CategoriesAndSkills() {
                   {cat.job_count || 0} jobs
                 </p>
 
-                {/* THAY ĐỔI Ở ĐÂY: Hiệu ứng đốm sáng mờ ảo ở MÉP PHẢI khi hover chuột vào */}
+                {/* Hiệu ứng đốm sáng */}
                 <div 
                   className={`absolute -right-8 top-1/2 -translate-y-1/2 w-24 h-32 rounded-full bg-gradient-to-br ${gradient.color} opacity-0 blur-[35px] transition-opacity duration-300 group-hover:opacity-20 dark:group-hover:opacity-25 -z-10`}
                 ></div>

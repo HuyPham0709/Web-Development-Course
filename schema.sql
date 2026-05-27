@@ -1,5 +1,5 @@
 -- ==========================================================
--- DATABASE: job_finder_db (Phiên bản Sạch & Nguyên khối 100%)
+-- DATABASE: job_finder_db (Clean & 100% Monolithic Version)
 -- ==========================================================
 
 SET FOREIGN_KEY_CHECKS = 0;
@@ -8,7 +8,7 @@ USE job_finder_db;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ==========================================================
--- 1. DANH MỤC HỆ THỐNG
+-- 1. SYSTEM CATEGORIES
 -- ==========================================================
 
 CREATE TABLE Categories (
@@ -33,7 +33,7 @@ CREATE TABLE Skills (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ==========================================================
--- 2. THỰC THỂ CHÍNH (Companies & Users)
+-- 2. MAIN ENTITIES (Companies & Users)
 -- ==========================================================
 
 CREATE TABLE Companies (
@@ -73,7 +73,7 @@ CREATE TABLE Users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ==========================================================
--- 3. HỒ SƠ CHI TIẾT (Profiles, Education, Work_Experience)
+-- 3. DETAILED PROFILES (Profiles, Education, Work_Experience)
 -- ==========================================================
 
 CREATE TABLE Profiles (
@@ -120,7 +120,7 @@ CREATE TABLE Work_Experience (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ==========================================================
--- 4. QUẢN LÝ VIỆC LÀM (Jobs & Bảng liên kết Kỹ năng)
+-- 4. JOB MANAGEMENT (Jobs & Skill Mapping Tables)
 -- ==========================================================
 
 CREATE TABLE Jobs (
@@ -171,7 +171,7 @@ CREATE TABLE Job_Skills (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ==========================================================
--- 5. NGHIỆP VỤ KẾT NỐI & TƯƠNG TÁC
+-- 5. CONNECTION & INTERACTION OPERATIONS
 -- ==========================================================
 
 CREATE TABLE Applications (
@@ -235,7 +235,7 @@ CREATE TABLE Reports (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ==========================================================
--- 6. TIÊU CHÍ TÌM VIỆC & GHI CHÚ
+-- 6. JOB SEARCH CRITERIA & NOTES
 -- ==========================================================
 
 CREATE TABLE JobCriteria (
@@ -251,7 +251,7 @@ CREATE TABLE JobCriteria (
     preferred_salary_type VARCHAR(50) NULL,        
     preferred_location VARCHAR(255) NULL,
     workplace_type VARCHAR(100) NULL,
-    skills TEXT NULL COMMENT 'Danh sách kỹ năng cách nhau bởi dấu phẩy hoặc JSON',
+    skills TEXT NULL COMMENT 'Comma-separated list of skills or JSON',
     languages TEXT NULL,                           
     preferred_companies TEXT NULL,                 
     benefits TEXT NULL,                            
@@ -282,3 +282,23 @@ CREATE TABLE Application_Notes (
     FOREIGN KEY (author_id) REFERENCES Users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ALTER TABLE Users ADD COLUMN phone VARCHAR(20) NULL;
+
+-- 1. Thêm cột bật/tắt cho phép NTD tìm bạn (trong bảng Profiles)
+ALTER TABLE Profiles 
+ADD COLUMN allow_employer_search BOOLEAN DEFAULT FALSE,
+ADD INDEX idx_allow_employer_search (allow_employer_search);
+
+use job_finder_db ;
+-- 2. Bảng lưu lịch sử NTD xem profile ứng viên
+CREATE TABLE IF NOT EXISTS Employer_Profile_Views (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    employer_id INT NOT NULL,
+    candidate_id INT NOT NULL,
+    viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_notified TINYINT DEFAULT 0,
+    view_date DATE GENERATED ALWAYS AS (DATE(viewed_at)) STORED,
+    FOREIGN KEY (employer_id) REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (candidate_id) REFERENCES Users(id) ON DELETE CASCADE,
+    INDEX idx_candidate (candidate_id),
+    UNIQUE KEY uk_view_per_day (employer_id, candidate_id, view_date)
+);

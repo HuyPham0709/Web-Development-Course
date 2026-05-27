@@ -22,10 +22,11 @@ export default function Home() {
         {/* Truyền giá trị mặc định để thanh tìm kiếm hiển thị đúng từ URL */}
         <NewHero initialTitle={title} initialLocation={location} initialCategoryId={categoryId} />
         
-        <CategoriesAndSkills />
-        
-        {/* Lắng nghe thay đổi từ URL để tự kích hoạt lại luồng API bên trong */}
+        {/* ĐÃ CHUYỂN LÊN TRÊN: Lắng nghe thay đổi từ URL để tự kích hoạt lại luồng API bên trong */}
         <LiveJobFeed titleFilter={title} locationFilter={location} categoryFilter={categoryId} />
+        
+        {/* ĐÃ CHUYỂN XUỐNG DƯỚI: Browse by Category */}
+        <CategoriesAndSkills />
         
         <TopEmployers />
         
