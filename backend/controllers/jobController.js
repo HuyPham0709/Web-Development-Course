@@ -61,18 +61,22 @@ exports.getAllJobs = async (req, res) => {
     try {
         const { 
             title, location, category_id, type, experience_level, salary_min, 
-            page, limit 
+            page, limit, company_id // <-- THÊM company_id VÀO ĐÂY
         } = req.query;
 
-        // 1. Ép kiểu rõ ràng về số nguyên (Integer)
         const pageNum = parseInt(page, 10) || 1;
-        const limitNum = parseInt(limit, 10) || 12; // Đồng bộ mặc định 12 giống Frontend
+        const limitNum = parseInt(limit, 10) || 12; 
         const offsetNum = (pageNum - 1) * limitNum;
 
-        // 2. Tạo phần điều kiện lọc chung (WHERE Clause) để dùng cho cả câu lệnh COUNT và SELECT dữ liệu
         let whereClause = ` WHERE j.deleted_at IS NULL AND j.status = 'approved'`;
         const params = [];
         
+        // THÊM ĐIỀU KIỆN LỌC COMPANY_ID (Để Frontend gọi trực tiếp jobs của công ty)
+        if (company_id) {
+            whereClause += ` AND j.company_id = ?`;
+            params.push(company_id);
+        }
+
         if (title) {
             whereClause += ` AND j.title LIKE ?`; 
             params.push(`%${title}%`);
@@ -98,7 +102,6 @@ exports.getAllJobs = async (req, res) => {
             params.push(Number(salary_min));
         }
 
-        // 3. TÍNH TỔNG SỐ ĐỐI TƯỢNG (Không có LIMIT/OFFSET) để phục vụ tính số trang ở Frontend
         let countQuery = `
             SELECT COUNT(DISTINCT j.id) as total 
             FROM Jobs j
@@ -108,11 +111,11 @@ exports.getAllJobs = async (req, res) => {
         const [countRows] = await db.execute(countQuery, params);
         const totalItems = countRows[0].total;
 
-        // 4. TRUY VẤN DỮ LIỆU THẬT (Có phân trang)
         let dataQuery = `
             SELECT 
                 j.id, j.title, j.job_type, j.experience_level, 
                 j.salary_min, j.salary_max, j.created_at, j.status,
+                j.company_id, /* <--- THÊM j.company_id VÀO ĐÂY ĐỂ TRẢ VỀ FRONTEND */
                 c.name as company_name, 
                 c.logo_url, 
                 c.is_verified,
@@ -130,18 +133,15 @@ exports.getAllJobs = async (req, res) => {
         `;
 
         const [rows] = await db.execute(dataQuery, params);
-
-        // Kiểm tra xem có còn trang tiếp theo hay không
         const hasMore = offsetNum + rows.length < totalItems;
 
-        // 5. TRẢ VỀ RESPONSE (Bổ sung trường total trong meta)
         res.status(200).json({ 
             success: true, 
             data: rows,
             meta: {
                 page: pageNum,
                 limit: limitNum,
-                total: totalItems, // <--- CỰC KỲ QUAN TRỌNG: Gửi tổng số công việc về cho Frontend
+                total: totalItems, 
                 hasMore: hasMore
             }
         });
