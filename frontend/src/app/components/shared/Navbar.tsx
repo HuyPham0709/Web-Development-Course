@@ -58,7 +58,7 @@ export const Navbar = () => {
     name: "",
     avatarUrl: "",
     role: "",
-    id: "", // Chuẩn hóa chỉ dùng id
+    id: "", // Standardized to only use id
   });
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -105,43 +105,43 @@ export const Navbar = () => {
         setNotifications(systemNotifs);
       }
     } catch (error) {
-      console.error("Lỗi lấy thông báo:", error);
+      console.error("Error fetching notifications:", error);
     }
   };
 
-  // 🔥 LOGIC ĐỒNG BỘ CHUẨN XÁC TỪ DATABASE 
+  // 🔥 ACCURATE DATABASE SYNC LOGIC
   const checkUnreadChat = async () => {
     if (!isLoggedIn || !user.id) return;
 
     try {
       const response = await chatService.getConversations();
       
-      // Bóc tách mảng chống crash
+      // Destructure array safely to prevent crashing
       const dataList = Array.isArray(response) ? response : response?.data || [];
 
       if (dataList && dataList.length > 0) {
         const total = dataList.reduce((sum: number, conv: any) => {
-          // Vì backend đã đảm bảo unreadCount LÀ SỐ TIN NHẮN CHƯA ĐỌC CỦA ĐỐI PHƯƠNG
-          // Ta không cần điều kiện if(senderId !== user.id) phức tạp nữa. Cứ cộng dồn thôi!
+          // Since the backend already ensures unreadCount matches the other user's unread messages count,
+          // we no longer need complex if(senderId !== user.id) conditions. Simply aggregate them!
           return sum + Number(conv.unreadCount ?? conv.unread_count ?? 0);
         }, 0);
 
-        console.log("🔥 [Navbar] Tổng tin nhắn chưa đọc:", total);
+        console.log("🔥 [Navbar] Total unread messages:", total);
         setChatUnreadCount(total);
       } else {
         setChatUnreadCount(0);
       }
     } catch (error) {
-      console.error("Lỗi kiểm tra tin nhắn chưa đọc:", error);
+      console.error("Error checking unread messages:", error);
     }
   };
 
-  // Lắng nghe tín hiệu cập nhật badge từ component Chat
+  // Listen for badge update events emitted from the Chat component
   useEffect(() => {
     if (!isLoggedIn) return;
 
     const handleChatCountUpdate = (e: any) => {
-      // Dùng any cho e để tránh lỗi Type của CustomEvent
+      // Using any for e to avoid CustomEvent type definition errors
       if (e.detail && typeof e.detail.count === "number") {
         setChatUnreadCount(e.detail.count);
       } else {
@@ -155,7 +155,7 @@ export const Navbar = () => {
     };
   }, [isLoggedIn, user.id]);
 
-  // Kết nối Socket Realtime
+  // Realtime Socket Connection
   useEffect(() => {
     if (isLoggedIn && user.id) {
       const socket = io(BASE_URL);
@@ -169,7 +169,7 @@ export const Navbar = () => {
         }
       });
 
-      // Bất cứ khi nào có event liên quan tin nhắn -> Gọi API lấy lại tổng số lượng
+      // Whenever any chat event occurs -> Recall API to sync total unread counts
       socket.on("receive_message", () => checkUnreadChat());
       socket.on("update_unread_total", () => checkUnreadChat());
 
@@ -215,7 +215,7 @@ export const Navbar = () => {
           { headers: { Authorization: `Bearer ${token}` } },
         );
       } catch (error) {
-        console.error("Lỗi cập nhật trạng thái đọc:", error);
+        console.error("Error updating read status:", error);
       } finally {
         setIsProcessing(false);
       }
@@ -241,7 +241,7 @@ export const Navbar = () => {
         prev.map((item) => ({ ...item, is_read: true })),
       );
     } catch (error) {
-      console.error("Lỗi cập nhật đọc tất cả:", error);
+      console.error("Error marking all as read:", error);
     }
   };
 
@@ -255,13 +255,13 @@ export const Navbar = () => {
         try {
           const parsedUser = JSON.parse(savedUserStr);
           setUser({
-            id: parsedUser.id || parsedUser._id || "", // Chuẩn hóa về đúng trường id
+            id: parsedUser.id || parsedUser._id || "", // Normalize to the correct id property
             name: parsedUser.full_name || parsedUser.name || "",
             avatarUrl: toFullUrl(parsedUser.avatar_url),
             role: parsedUser.role || "",
           });
         } catch (e) {
-          console.error("Lỗi parse user từ localStorage:", e);
+          console.error("Error parsing user from localStorage:", e);
         }
       } else {
         setIsLoggedIn(false);
@@ -471,7 +471,7 @@ export const Navbar = () => {
                           <p className="text-[10px] text-gray-400 mt-1">
                             {notif.created_at
                               ? new Date(notif.created_at).toLocaleTimeString(
-                                  "vi-VN",
+                                  "en-US",
                                   { hour: "2-digit", minute: "2-digit" },
                                 )
                               : ""}
@@ -532,7 +532,7 @@ export const Navbar = () => {
                         <User className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400" />
                       </div>
                       <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
-                        Hồ sơ cá nhân
+                        Personal Profile
                       </span>
                     </Link>
                   </DropdownMenuItem>
@@ -548,7 +548,7 @@ export const Navbar = () => {
                         <Briefcase className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
                       </div>
                       <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
-                        Hồ sơ công ty
+                        Company Profile
                       </span>
                     </Link>
                   </DropdownMenuItem>
@@ -563,7 +563,7 @@ export const Navbar = () => {
                       <Settings className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
                     </div>
                     <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
-                      {isEmployer ? "Dashboard" : "Cài đặt"}
+                      {isEmployer ? "Dashboard" : "Settings"}
                     </span>
                   </Link>
                 </DropdownMenuItem>
@@ -579,7 +579,7 @@ export const Navbar = () => {
                       <LogOut className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400" />
                     </div>
                     <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-red-600 dark:group-hover:text-red-400">
-                      Đăng xuất
+                      Log Out
                     </span>
                   </div>
                 </DropdownMenuItem>

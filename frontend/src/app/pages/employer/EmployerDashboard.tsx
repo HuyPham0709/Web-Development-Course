@@ -5,7 +5,7 @@ import { applicationService } from '../../../services/applicationService';
 import { Job, Stats } from '../../../types/application';
 import { timeAgo, formatSalary } from '../../../utils/format';
 
-// ── Modal xem lý do từ chối ──────────────────────────────────────────────────
+// ── Rejection Reason Modal ──────────────────────────────────────────────────
 function RejectionModal({ reason, onClose }: { reason: string; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -13,7 +13,7 @@ function RejectionModal({ reason, onClose }: { reason: string; onClose: () => vo
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-white/10">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <AlertCircle className="w-5 h-5 text-orange-500" />
-            Lý do từ chối
+            Rejection Reason
           </h2>
           <button onClick={onClose}
             className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors">
@@ -23,13 +23,13 @@ function RejectionModal({ reason, onClose }: { reason: string; onClose: () => vo
         <div className="px-6 py-5">
           {reason
             ? <p className="text-slate-700 dark:text-gray-300 leading-relaxed">{reason}</p>
-            : <p className="text-slate-400 dark:text-gray-500 italic">Admin không để lại lý do cụ thể.</p>
+            : <p className="text-slate-400 dark:text-gray-500 italic">The admin did not provide a specific reason.</p>
           }
         </div>
         <div className="flex justify-end px-6 py-4 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-[#0E1422]/40">
           <button onClick={onClose}
             className="px-4 py-2 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-700 dark:text-gray-300 font-medium rounded-lg text-sm transition-colors">
-            Đóng
+            Close
           </button>
         </div>
       </div>
@@ -57,7 +57,7 @@ export default function EmployerDashboard() {
         setJobs(res.data.data || []);
         setStats(res.data.stats || { total_jobs: 0, total_applications: 0 });
       })
-      .catch(err => setError(err.response?.data?.message || 'Lỗi khi tải dữ liệu'))
+      .catch(err => setError(err.response?.data?.message || 'Error loading data'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -85,21 +85,21 @@ export default function EmployerDashboard() {
       const res = await applicationService.toggleJobStatus(job_id);
       setJobs(prev => prev.map(j => j.id === job_id ? { ...j, status: res.data.new_status } : j));
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Lỗi cập nhật trạng thái');
+      alert(err.response?.data?.message || 'Error updating status');
     } finally {
       setTogglingId(null);
     }
   };
 
   const handleDeleteJob = async (job_id: number) => {
-    if (!window.confirm('Bạn có chắc muốn xóa tin này không?')) return;
+    if (!window.confirm('Are you sure you want to delete this job posting?')) return;
     setOpenMenuId(null);
     try {
       await applicationService.deleteJob(job_id);
       setJobs(prev => prev.filter(j => j.id !== job_id));
       setStats(prev => ({ ...prev, total_jobs: prev.total_jobs - 1 }));
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Lỗi khi xóa tin');
+      alert(err.response?.data?.message || 'Error deleting job posting');
     }
   };
 
@@ -108,12 +108,12 @@ export default function EmployerDashboard() {
       case 'pending':
         return [
           {
-            label: 'Chỉnh sửa tin',
+            label: 'Edit job',
             icon: <Pencil className="w-4 h-4 text-blue-500 dark:text-blue-400" />,
             onClick: () => { setOpenMenuId(null); navigate(`/employer/jobs/edit/${job.id}`); },
           },
           {
-            label: 'Xóa tin',
+            label: 'Delete job',
             icon: <Trash2 className="w-4 h-4 text-red-500 dark:text-red-400" />,
             danger: true,
             onClick: () => handleDeleteJob(job.id),
@@ -122,7 +122,7 @@ export default function EmployerDashboard() {
       case 'approved':
         return [
           {
-            label: 'Đóng tin',
+            label: 'Close job',
             icon: <XCircle className="w-4 h-4 text-red-500 dark:text-red-400" />,
             danger: true,
             onClick: () => handleToggleJobStatus(job.id),
@@ -131,7 +131,7 @@ export default function EmployerDashboard() {
       case 'closed':
         return [
           {
-            label: 'Mở lại tin',
+            label: 'Reopen job',
             icon: <RefreshCw className="w-4 h-4 text-green-500 dark:text-green-400" />,
             onClick: () => handleToggleJobStatus(job.id),
           },
@@ -139,12 +139,12 @@ export default function EmployerDashboard() {
       case 'rejected':
         return [
           {
-            label: 'Xem lý do từ chối',
+            label: 'View rejection reason',
             icon: <AlertCircle className="w-4 h-4 text-orange-500 dark:text-orange-400" />,
             onClick: () => { setOpenMenuId(null); setRejectionModal(job.rejection_reason || ''); },
           },
           {
-            label: 'Chỉnh sửa & gửi lại',
+            label: 'Edit & resubmit',
             icon: <Pencil className="w-4 h-4 text-blue-500 dark:text-blue-400" />,
             onClick: () => { setOpenMenuId(null); navigate(`/employer/jobs/edit/${job.id}`); },
           },
@@ -172,7 +172,7 @@ export default function EmployerDashboard() {
     return (
       <div className="flex h-screen items-center justify-center gap-2 text-blue-600 dark:text-blue-400 dark:bg-[#0E1422] transition-colors duration-300">
         <Loader2 className="w-8 h-8 animate-spin" />
-        <span className="text-gray-400 text-sm">Đang tải dữ liệu tổng quan...</span>
+        <span className="text-gray-400 text-sm">Loading dashboard data...</span>
       </div>
     );
   }
@@ -234,7 +234,7 @@ export default function EmployerDashboard() {
                 <thead>
                   <tr className="bg-gray-50/50 dark:bg-[#0E1422]/40 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider border-b border-gray-100 dark:border-white/5">
                     <th className="px-6 py-4 font-semibold">Job Title</th>
-                    <th className="px-6 py-4 font-semibold">Lương</th>
+                    <th className="px-6 py-4 font-semibold">Salary</th>
                     <th className="px-6 py-4 font-semibold">Status</th>
                     <th className="px-6 py-4 font-semibold">Applications</th>
                     <th className="px-6 py-4 font-semibold">Posted</th>
@@ -245,7 +245,7 @@ export default function EmployerDashboard() {
                   {jobs.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">
-                        Chưa có tin tuyển dụng nào.
+                        No job postings available.
                       </td>
                     </tr>
                   ) : jobs.map(job => {
@@ -263,12 +263,12 @@ export default function EmployerDashboard() {
                           </div>
                         </td>
 
-                        {/* 🛠️ CHỈNH LƯƠNG: Trả về {salary} trực tiếp, không cộng đuôi "M" thủ công */}
+                        {/* 🛠️ SALARY CONFIG: Returns {salary} directly, no manual "M" suffix added */}
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
                           {formatSalary(job.salary_min, job.salary_max, job.currency)}
                         </td>
 
-                        {/* 🛠️ CHỈNH XEM LÝ DO: Click trực tiếp nhãn "Rejected" để xem lý do từ chối nhanh */}
+                        {/* 🛠️ REJECTION REASON CONFIG: Click directly on "Rejected" label to view reason quickly */}
                         <td className="px-6 py-4">
                           <span
                             onClick={() => {
@@ -278,7 +278,7 @@ export default function EmployerDashboard() {
                             }}
                             className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border transition-colors 
                               ${cfg.badgeClass} ${job.status === 'rejected' ? 'cursor-pointer hover:brightness-95 dark:hover:brightness-110' : ''}`}
-                            title={job.status === 'rejected' ? 'Bấm để xem lý do từ chối' : undefined}
+                            title={job.status === 'rejected' ? 'Click to view rejection reason' : undefined}
                           >
                             <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${cfg.dotColor}`} />
                             {cfg.label}
@@ -318,7 +318,7 @@ export default function EmployerDashboard() {
                               <div className="absolute right-0 mt-1 w-52 bg-white dark:bg-[#151D30] border border-gray-200 dark:border-white/10 rounded-xl shadow-lg z-20 overflow-hidden py-1">
                                 <div className="px-4 py-2 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-[#0E1422]/40">
                                   <span className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">
-                                    Trạng thái: {cfg.label}
+                                    Status: {cfg.label}
                                   </span>
                                 </div>
                                 {actions.map((action, idx) => (
@@ -346,7 +346,7 @@ export default function EmployerDashboard() {
         </div>
       </div>
 
-      {/* FAB Mobile */}
+      {/* Mobile FAB */}
       <div className="sm:hidden fixed bottom-6 right-6 z-50">
         <button onClick={() => navigate('/employer/jobs/new')}
           className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(37,99,235,0.3)] dark:shadow-[0_8px_20px_rgba(59,130,246,0.2)] transition-transform hover:scale-105 active:scale-95">
