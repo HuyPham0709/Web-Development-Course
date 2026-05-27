@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "react-router-dom"; // Đã thêm import này để lấy query params từ URL
 import { 
   Search, 
   MapPin, 
@@ -27,6 +28,9 @@ interface IExtendedFilters extends IJobFilters {
 }
 
 export const Jobs: React.FC = () => {
+  // Khởi tạo hook quản lý URL query parameters
+  const [searchParams, setSearchParams] = useSearchParams();
+
   // Main Filter State
   const [filters, setFilters] = useState<IExtendedFilters>(
     {
@@ -63,6 +67,33 @@ export const Jobs: React.FC = () => {
 
   // Ref to track the latest API Request ID to prevent Race Conditions
   const apiRequestCountRef = useRef<number>(0);
+
+  // ĐỒNG BỘ HOÁ DỮ LIỆU TỪ URL PARAMETERS VÀO FILTER STATE
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    const categoryIdParam = searchParams.get("category_id");
+    const titleParam = searchParams.get("title");
+
+    setFilters(prev => {
+      const nextCategoryId = categoryIdParam ? Number(categoryIdParam) : "";
+      const nextTitle = titleParam || "";
+
+      // Chỉ cập nhật state nếu giá trị thực sự thay đổi để tránh lặp render vô hạn
+      if (prev.category_id !== nextCategoryId || prev.title !== nextTitle) {
+        return {
+          ...prev,
+          category_id: nextCategoryId,
+          title: nextTitle,
+          page: 1
+        };
+      }
+      return prev;
+    });
+
+    if (titleParam !== null) {
+      setSearchInput(titleParam);
+    }
+  }, [searchParams]);
 
   // Sync Slider UI if filters are modified externally (like Reset All)
   useEffect(() => {
@@ -173,6 +204,7 @@ export const Jobs: React.FC = () => {
       page: 1,
       limit: 12
     });
+    setSearchParams({}); // Xóa bỏ toàn bộ query parameters trên thanh URL
   };
 
   const handleToggleSaveJob = (jobId: number) => {
