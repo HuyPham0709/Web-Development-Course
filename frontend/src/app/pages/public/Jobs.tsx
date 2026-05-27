@@ -349,12 +349,12 @@ export const Jobs: React.FC = () => {
             </div>
 
             {/* 2. COMPONENT VIỆC LÀM GỢI Ý (RECOMMENDED JOBS ASIDE) */}
-            <RecommendedJobsAside 
+            {/* <RecommendedJobsAside 
               recommendedJobs={aiRecommendations}
               openModal={(type) => {
                 console.log("Trigger open modal type from profile card:", type);
               }}
-            />
+            /> */}
 
           </aside>
 
