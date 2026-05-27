@@ -1,6 +1,6 @@
 -- ==========================================================
 -- FILE: seed.sql (Mock Data for Job Board System - APPEND ONLY)
--- Tùy chọn: Chèn thêm dữ liệu, KHÔNG xóa dữ liệu cũ
+-- Optional: Insert additional data, DO NOT delete old data
 -- ==========================================================
 
 USE job_finder_db;
@@ -84,14 +84,15 @@ INSERT IGNORE INTO Profiles (user_id, full_name, phone, gender, title, location,
 -- 5. JOB POSTINGS
 -- ==========================================
 INSERT IGNORE INTO Jobs (id, company_id, posted_by, category_id, location_id, title, slug, salary_min, salary_max, job_type, experience_level, description, requirements, benefit, status) VALUES
-(200, 200, 200, 1, 2, 'AI Engineer (Python, TensorFlow)', 'ai-engineer-200', 30000000, 50000000, 'full-time', 'senior', 'Research and develop machine learning models for core AI systems.', '• Practical experience with Python, TensorFlow\n• Deep Learning knowledge', '• Premium healthcare insurance\n• 13th-month salary', 'approved'),
-(201, 200, 200, 1, 2, 'Blockchain Developer', 'blockchain-dev-201', 40000000, 80000000, 'full-time', 'senior', 'Develop Smart Contracts and DeFi decentralized application architecture.', '• Solid experience with Solidity, Rust\n• Previous experience with DApps', '• High project progress bonus\n• Flexible working hours', 'approved'),
-(202, 201, 201, 6, 1, 'B2B Sales Executive', 'b2b-sales-202', 15000000, 30000000, 'full-time', 'junior', 'Find business partners and exploit large commercial market segments.', '• Over 2 years of B2B Sales experience\n• Good persuasion skills', '• High commission rate\n• Personal laptop provided', 'approved'),
-(203, 202, 201, 1, 1, 'Senior Frontend Engineer', 'senior-frontend-engineer', 35000000, 55000000, 'full-time', 'senior', 'Build large web application interfaces, optimize smooth page loading using React.', '• Over 5 years of experience with React, Webpack\n• Small team management skills', '• Excellent year-end performance bonus\n• Daily free tea and snacks', 'approved'),
-(204, 203, 200, 2, 2, 'Product Manager', 'product-manager', 40000000, 65000000, 'full-time', 'middle', 'Manage the roadmap and define development features of the product platform.', '• Over 3 years of PM experience in software\n• Good English communication', '• Fully remote working environment support\n• Company trip twice a year', 'approved'),
-(205, 204, 200, 4, 4, 'UX/UI Designer', 'uxui-designer', 20000000, 35000000, 'contract', 'middle', 'Design Wireframes, build seamless user experiences on Mobile App.', '• Proficient in Figma, Adobe XD\n• Good real-world product portfolio', '• Extremely flexible working hours\n• Holiday bonuses', 'approved'),
-(206, 205, 200, 1, 5, 'Data Scientist', 'data-scientist', 45000000, 75000000, 'full-time', 'senior', 'Build complex academic statistical models, mine user data insights.', '• Proficient in Python, R, advanced SQL\n• Strong problem-solving mindset', '• Monthly lucky bonus\n• VIP periodic health check', 'approved'),
-(207, 206, 200, 1, 5, 'Backend Developer (Node.js)', 'backend-developer', 25000000, 45000000, 'full-time', 'middle', 'Build and optimize Microservices systems handling large concurrent data.', '• In-depth Node.js / Express foundation experience\n• Database optimization skills', '• Bi-annual salary review\n• New Macbook Pro provided', 'approved');
+(200, 200, 200, 1, 2, 'AI Engineer (Python, TensorFlow)', 'ai-engineer-200', 1200, 2000, 'full-time', 'senior', 'Research and develop machine learning models for core AI systems.', '• Practical experience with Python, TensorFlow\n• Deep Learning knowledge', '• Premium healthcare insurance\n• 13th-month salary', 'approved'),
+(201, 200, 200, 1, 2, 'Blockchain Developer', 'blockchain-dev-201', 1600, 3200, 'full-time', 'senior', 'Develop Smart Contracts and DeFi decentralized application architecture.', '• Solid experience with Solidity, Rust\n• Previous experience with DApps', '• High project progress bonus\n• Flexible working hours', 'approved'),
+(202, 201, 201, 6, 1, 'B2B Sales Executive', 'b2b-sales-202', 600, 1200, 'full-time', 'junior', 'Find business partners and exploit large commercial market segments.', '• Over 2 years of B2B Sales experience\n• Good persuasion skills', '• High commission rate\n• Personal laptop provided', 'approved'),
+(203, 202, 201, 1, 1, 'Senior Frontend Engineer', 'senior-frontend-engineer', 1400, 2200, 'full-time', 'senior', 'Build large web application interfaces, optimize smooth page loading using React.', '• Over 5 years of experience with React, Webpack\n• Small team management skills', '• Excellent year-end performance bonus\n• Daily free tea and snacks', 'approved'),
+(204, 203, 200, 2, 2, 'Product Manager', 'product-manager', 1600, 2600, 'full-time', 'middle', 'Manage the roadmap and define development features of the product platform.', '• Over 3 years of PM experience in software\n• Good English communication', '• Fully remote working environment support\n• Company trip twice a year', 'approved'),
+(205, 204, 200, 4, 4, 'UX/UI Designer', 'uxui-designer', 800, 1400, 'contract', 'middle', 'Design Wireframes, build seamless user experiences on Mobile App.', '• Proficient in Figma, Adobe XD\n• Good real-world product portfolio', '• Extremely flexible working hours\n• Holiday bonuses', 'approved'),
+(206, 205, 200, 1, 5, 'Data Scientist', 'data-scientist', 1800, 3000, 'full-time', 'senior', 'Build complex academic statistical models, mine user data insights.', '• Proficient in Python, R, advanced SQL\n• Strong problem-solving mindset', '• Monthly lucky bonus\n• VIP periodic health check', 'approved'),
+(207, 206, 200, 1, 5, 'Backend Developer (Node.js)', 'backend-developer', 1000, 1800, 'full-time', 'middle', 'Build and optimize Microservices systems handling large concurrent data.', '• In-depth Node.js / Express foundation experience\n• Database optimization skills', '• Bi-annual salary review\n• New Macbook Pro provided', 'approved');
+
 -- ==========================================
 -- 6. JOB SKILLS & SAMPLE APPLICATIONS
 -- ==========================================
@@ -131,9 +132,9 @@ VALUES
     'full-time', 
     'Team Leader', 
     'Senior / Lead',
-    35000000, 
-    60000000, 
-    'VND',
+    1400, 
+    2400, 
+    'USD',
     'Ho Chi Minh City', 
     'hybrid', 
     'Agile, Scrum, JIRA, Team Management',
@@ -149,9 +150,9 @@ VALUES
     'internship', 
     'Intern', 
     'Intern',
-    4000000, 
-    8000000, 
-    'VND',
+    160, 
+    320, 
+    'USD',
     'Hanoi', 
     'office', 
     'HTML5, CSS3, JavaScript, Basic ReactJS',
@@ -167,8 +168,9 @@ VALUES
     'full-time', 
     'Fresh Graduate / No Experience', 
     'Fresher / Entry',
-    12000000, 18000000, 
-    'VND',
+    480, 
+    720, 
+    'USD',
     'Da Nang', 
     'remote', 
     'SQL, Advanced Microsoft Excel, Power BI, Dashboard Tuning',

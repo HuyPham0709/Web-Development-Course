@@ -7,7 +7,7 @@ import { STATUSES, STATUS_LABEL, STATUS_COLORS } from '../../../constants/status
 import { getInitials, formatDateVN } from '../../../utils/format';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 
-// BỔ SUNG: Cấu hình URL Backend để xử lý ảnh ứng viên
+// ADDED: Backend URL configuration to handle candidate avatars
 const BASE_URL = 'http://localhost:5000';
 
 const toFullUrl = (url: string | null | undefined): string => {
@@ -23,22 +23,22 @@ export default function CandidateManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
-  const [filterJob, setFilterJob] = useState('Tất cả');
+  const [filterJob, setFilterJob] = useState('All');
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   
-  // ĐÃ THÊM: State kiểm soát hiệu ứng lướt lên khi load trang
+  // ADDED: State to control smooth slide-up animation on page load
   const [animate, setAnimate] = useState(false);
 
   useEffect(() => {
     applicationService.getEmployerApplications()
       .then(res => setCandidates(res.data.data))
-      .catch(err => setError(err.response?.data?.message || 'Lỗi khi tải danh sách ứng viên'))
+      .catch(err => setError(err.response?.data?.message || 'Error loading candidate list'))
       .finally(() => {
         setLoading(false);
       });
   }, []);
 
-  // ĐÃ THÊM: Kích hoạt animation ngay sau khi loading tắt
+  // ADDED: Trigger animation immediately after loading finishes
   useEffect(() => {
     if (!loading) {
       const timer = setTimeout(() => setAnimate(true), 60);
@@ -54,18 +54,18 @@ export default function CandidateManagement() {
         c.application_id === application_id ? { ...c, status: newStatus } : c
       ));
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Lỗi cập nhật trạng thái');
+      alert(err.response?.data?.message || 'Error updating status');
     } finally {
       setUpdatingId(null);
     }
   };
 
-  const jobOptions = ['Tất cả', ...Array.from(new Set(candidates.map(c => c.job_title)))];
-  const filtered = candidates.filter(c => filterJob === 'Tất cả' || c.job_title === filterJob);
+  const jobOptions = ['All', ...Array.from(new Set(candidates.map(c => c.job_title)))];
+  const filtered = candidates.filter(c => filterJob === 'All' || c.job_title === filterJob);
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center gap-2 text-gray-400 dark:bg-[#0E1422] transition-colors duration-300">
-      <Loader2 className="w-5 h-5 animate-spin text-blue-600 dark:text-blue-400" /><span className="dark:text-gray-400">Đang tải...</span>
+      <Loader2 className="w-5 h-5 animate-spin text-blue-600 dark:text-blue-400" /><span className="dark:text-gray-400">Loading...</span>
     </div>
   );
 
@@ -75,14 +75,14 @@ export default function CandidateManagement() {
     </div>
   );
 
-  // Mảng delay để tạo hiệu ứng gợn sóng (stagger) cho 4 cột Kanban
+  // Delay array to create a stagger ripple effect for the 4 Kanban columns
   const delays = ['delay-75', 'delay-150', 'delay-200', 'delay-300'];
 
   return (
     <div className="min-h-screen bg-gray-50/50 dark:bg-[#0E1422] py-8 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col">
         
-        {/* 1. Header - Lên đầu tiên */}
+        {/* 1. Header - Appears first */}
         <div className={`mb-6 transform transition-all duration-500 ease-out ${
           animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
         }`}>
@@ -93,7 +93,7 @@ export default function CandidateManagement() {
           </div>
         </div>
 
-        {/* 2. Toolbar - Lên thứ hai với một chút delay */}
+        {/* 2. Toolbar - Appears second with a slight delay */}
         <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 transform transition-all duration-500 ease-out delay-75 ${
           animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
         }`}>
@@ -114,7 +114,7 @@ export default function CandidateManagement() {
           </div>
         </div>
 
-        {/* 3. Main Content (Kanban hoặc Table) */}
+        {/* 3. Main Content (Kanban or Table) */}
         {viewMode === 'kanban' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pb-8">
             {STATUSES.map((status, index) => {
@@ -128,7 +128,7 @@ export default function CandidateManagement() {
                     animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
                   } ${isRejected ? 'col-span-1 md:col-span-2 lg:col-span-4 mt-4' : 'w-full'}`}
                 >
-                  {/* Tiêu đề cột & Badge đếm số lượng */}
+                  {/* Column Title & Count Badge */}
                   <div className="flex items-center justify-between mb-4 px-1">
                     <h3 className={`font-bold text-sm uppercase tracking-wider ${isRejected ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-300'}`}>
                       {STATUS_LABEL[status]}
@@ -140,7 +140,7 @@ export default function CandidateManagement() {
                     </span>
                   </div>
 
-                  {/* Khung chứa Card ứng viên */}
+                  {/* Container for Candidate Cards */}
                   <div className={`flex flex-col gap-4 rounded-2xl p-3 transition-colors ${
                     isRejected 
                       ? 'bg-red-50/30 dark:bg-red-950/10 border border-dashed border-red-200 dark:border-red-500/20 min-h-[180px]' 
@@ -151,7 +151,7 @@ export default function CandidateManagement() {
                         <div key={candidate.application_id} className="bg-white dark:bg-[#0E1422] p-4 rounded-xl border border-gray-200 dark:border-white/10 dark:hover:border-white/20 shadow-sm hover:shadow-md transition-all group">
                           <div className="flex justify-between items-start mb-3">
                             <Link to={`/employer/candidate/${candidate.application_id}`} className="flex items-center gap-3 hover:opacity-80">
-                              {/* ĐÃ SỬA: Thay thế khối div cũ bằng component Avatar đồng bộ với Navbar */}
+                              {/* FIXED: Replaced old div block with Avatar component synchronized with Navbar */}
                               <Avatar className="w-10 h-10 border border-gray-200 dark:border-white/10 shrink-0">
                                 <AvatarImage 
                                   src={toFullUrl(candidate.avatar_url || candidate.avatar)} 
@@ -186,7 +186,7 @@ export default function CandidateManagement() {
                             </div>
                             <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
                               <Calendar className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-                              <span>Nộp {formatDateVN(candidate.applied_at)}</span>
+                              <span>Applied {formatDateVN(candidate.applied_at)}</span>
                             </div>
                           </div>
                           <div className="pt-3 border-t border-gray-100 dark:border-white/10 flex items-center justify-between transition-colors">
@@ -207,7 +207,7 @@ export default function CandidateManagement() {
                           ? 'border-red-200/60 dark:border-red-500/20 text-red-400 bg-white/50 dark:bg-transparent' 
                           : 'border-gray-200 dark:border-white/10 text-gray-400 dark:text-gray-500'
                       }`}>
-                        Không có ứng viên
+                        No candidates found
                       </div>
                     )}
                   </div>
@@ -224,10 +224,10 @@ export default function CandidateManagement() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-gray-50/50 dark:bg-white/5 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider transition-colors">
-                    <th className="px-6 py-4 font-semibold">Ứng viên</th>
-                    <th className="px-6 py-4 font-semibold">Vị trí</th>
-                    <th className="px-6 py-4 font-semibold">Ngày nộp</th>
-                    <th className="px-6 py-4 font-semibold">Trạng thái</th>
+                    <th className="px-6 py-4 font-semibold">Candidate</th>
+                    <th className="px-6 py-4 font-semibold">Position</th>
+                    <th className="px-6 py-4 font-semibold">Applied Date</th>
+                    <th className="px-6 py-4 font-semibold">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-white/10 text-sm">
@@ -235,7 +235,7 @@ export default function CandidateManagement() {
                     <tr key={candidate.application_id} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
                       <td className="px-6 py-4">
                         <Link to={`/employer/candidate/${candidate.application_id}`} className="flex items-center gap-3 hover:opacity-80 group">
-                          {/* ĐÃ SỬA: Thay thế khối div cũ bằng component Avatar đồng bộ với Navbar */}
+                          {/* FIXED: Replaced old div block with Avatar component synchronized with Navbar */}
                           <Avatar className="w-9 h-9 border border-gray-200 dark:border-white/10 shrink-0">
                             <AvatarImage 
                               src={toFullUrl(candidate.avatar_url || candidate.avatar)} 
@@ -270,7 +270,7 @@ export default function CandidateManagement() {
                     </tr>
                   ))}
                   {filtered.length === 0 && (
-                    <tr><td colSpan={4} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">Chưa có ứng viên nào.</td></tr>
+                    <tr><td colSpan={4} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">No candidates found.</td></tr>
                   )}
                 </tbody>
               </table>

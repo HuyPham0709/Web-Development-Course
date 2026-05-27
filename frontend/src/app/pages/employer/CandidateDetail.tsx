@@ -15,12 +15,12 @@ export default function CandidateDetail() {
   const [newNote, setNewNote] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // State kiểm soát hiệu ứng lướt chào sân mượt mà
+  // State to control smooth entrance animation
   const [animate, setAnimate] = useState(false);
 
   const steps = ['Pending', 'Reviewed', 'Interview', 'Hired'];
 
-  // FIX 1: ĐƯA BIẾN BACKEND URL LÊN ĐẦU ĐỂ TRÁNH LỖI SỬ DỤNG TRƯỚC KHI KHAI BÁO (UNDEFINED)
+  // FIX 1: MOVE BACKEND URL VARIABLE TO TOP TO AVOID USE-BEFORE-DECLARATION ERROR (UNDEFINED)
   const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function CandidateDetail() {
 
     const fetchData = async () => {
       try {
-        // FIX 2: GIỮ NGUYÊN CHUỖI ID (M_ID CỦA MONGODB), KHÔNG ÉP SANG NUMBER GÂY LỖI URL THÀNH NaN
+        // FIX 2: KEEP ID STRING AS IS (MONGODB _ID), DO NOT CAST TO NUMBER TO AVOID NaN URL ERROR
         const [detailRes, notesRes] = await Promise.all([
           applicationService.getApplicationById(id),
           applicationService.getNotes(id as any)
@@ -36,7 +36,7 @@ export default function CandidateDetail() {
         setCandidate(detailRes.data.data);
         setNotes(notesRes.data.data || []);
       } catch (error) {
-        console.error("Lỗi fetch data:", error);
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
@@ -45,7 +45,7 @@ export default function CandidateDetail() {
     fetchData();
   }, [id]);
 
-  // Kích hoạt animation ngay sau khi tắt loading
+  // Trigger animation immediately after loading finishes
   useEffect(() => {
     if (!loading) {
       const timer = setTimeout(() => setAnimate(true), 60);
@@ -56,13 +56,13 @@ export default function CandidateDetail() {
   const handleAddNote = async () => {
     if (!newNote.trim() || !id) return;
     try {
-      // FIX 3: BỎ Number(id) ĐỂ TRÁNH GỬI URL DẠNG /NaN/ LÊN BACKEND
+      // FIX 3: REMOVE Number(id) TO AVOID SENDING /NaN/ URL TO BACKEND
       const res = await applicationService.addNote(id as any, newNote);
       setNotes([...notes, res.data.data]);
       setNewNote('');
     } catch (error) {
-      console.error("Lỗi thêm note:", error);
-      alert("Không thể thêm ghi chú lúc này.");
+      console.error("Error adding note:", error);
+      alert("Cannot add note at this time.");
     }
   };
 
@@ -80,13 +80,13 @@ export default function CandidateDetail() {
 
     try {
       if (applicationService.updateStatus) {
-        // FIX 4: BỎ Number(id) ĐỂ TƯƠNG THÍCH VỚI ID CHUỖI CỦA MONGODB
+        // FIX 4: REMOVE Number(id) FOR COMPATIBILITY WITH MONGODB STRING ID
         await applicationService.updateStatus(id as any, backendStatus);
       }
     } catch (error) {
-      console.error("Lỗi cập nhật trạng thái:", error);
+      console.error("Error updating status:", error);
       setCandidate({ ...candidate, status: oldStatus });
-      alert("Lỗi 400: Không thể cập nhật trạng thái do sai định dạng Backend.");
+      alert("Error 400: Cannot update status due to incorrect Backend format.");
     }
   };
 
@@ -94,7 +94,7 @@ export default function CandidateDetail() {
     return (
       <div className="flex h-screen items-center justify-center gap-2 text-blue-600 dark:text-blue-400 dark:bg-[#0E1422] transition-colors duration-300">
         <Loader2 className="w-8 h-8 animate-spin" />
-        <span className="text-gray-400 text-sm">Đang tải hồ sơ...</span>
+        <span className="text-gray-400 text-sm">Loading profile...</span>
       </div>
     );
   }
@@ -102,7 +102,7 @@ export default function CandidateDetail() {
   if (!candidate) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-500 dark:text-gray-400 dark:bg-[#0E1422] transition-colors duration-300">
-        <div className="text-center py-12">Không tìm thấy ứng viên.</div>
+        <div className="text-center py-12">Candidate not found.</div>
       </div>
     );
   }
@@ -118,7 +118,7 @@ export default function CandidateDetail() {
     default: activeStep = 0;
   }
 
-  // Thêm dải màu hỗ trợ Dark Mode cho các Status Badge
+  // Add color schemes to support Dark Mode for Status Badges
   const getStatusColor = (status?: string) => {
     switch (status?.toLowerCase()) {
       case 'pending': return 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/30';
@@ -131,7 +131,7 @@ export default function CandidateDetail() {
     }
   };
 
-  const displayName = candidate.full_name || candidate.candidate_name || 'Ứng viên';
+  const displayName = candidate.full_name || candidate.candidate_name || 'Candidate';
   const cvFile = candidate.cv_url || '';
   const cvLink = cvFile.startsWith('http')
     ? cvFile
@@ -139,7 +139,7 @@ export default function CandidateDetail() {
 
   const cleanCvFile = cvFile;
 
-  // LOGIC XỬ LÝ AVATAR ĐỒNG BỘ HOÀN TOÀN TỪ CVSearch.tsx
+  // AVATAR HANDLING LOGIC FULLY SYNCED FROM CVSearch.tsx
   const rawAvatar = candidate.avatar_url || candidate.avatar;
 
   const avatarSrc = rawAvatar
@@ -192,7 +192,7 @@ export default function CandidateDetail() {
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white mt-2">{displayName}</h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1.5 mt-1">
                   <Briefcase className="w-4 h-4 text-gray-400" />
-                  {candidate.job_title || 'Ứng viên'}
+                  {candidate.job_title || 'Candidate'}
                 </p>
               </div>
 
@@ -238,7 +238,7 @@ export default function CandidateDetail() {
               <div>
                 <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Bio</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                  {candidate.bio || 'Chưa có thông tin giới thiệu.'}
+                  {candidate.bio || 'No bio provided.'}
                 </p>
               </div>
 
@@ -327,7 +327,7 @@ export default function CandidateDetail() {
                   <iframe src={cvLink} className="w-full h-full border-0 absolute inset-0 z-10 dark:opacity-90" title="CV Viewer" />
                 ) : (
                   <div className="flex items-center justify-center h-full text-gray-400 dark:text-gray-500 text-sm">
-                    Chưa có file đính kèm
+                    No attachment available
                   </div>
                 )}
               </div>
@@ -347,7 +347,7 @@ export default function CandidateDetail() {
                     <div key={note.id} className="bg-gray-50 dark:bg-[#0E1422]/30 p-4 rounded-xl border border-gray-100 dark:border-white/5 text-sm transition-colors">
                       <div className="flex justify-between items-center mb-2">
                         <span className="font-bold text-gray-900 dark:text-white">{note.username || note.display_name || 'HR Team'}</span>
-                        <span className="text-xs text-gray-400 dark:text-gray-500">{new Date(note.created_at).toLocaleString('vi-VN')}</span>
+                        <span className="text-xs text-gray-400 dark:text-gray-500">{new Date(note.created_at).toLocaleString('en-US')}</span>
                       </div>
                       <p className="text-gray-700 dark:text-gray-300">{note.content}</p>
                     </div>
