@@ -281,6 +281,7 @@ CREATE TABLE Application_Notes (
     FOREIGN KEY (application_id) REFERENCES Applications(id) ON DELETE CASCADE,
     FOREIGN KEY (author_id) REFERENCES Users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE Users ADD COLUMN phone VARCHAR(20) NULL;
 
 -- 1. Thêm cột bật/tắt cho phép NTD tìm bạn (trong bảng Profiles)
 ALTER TABLE Profiles 

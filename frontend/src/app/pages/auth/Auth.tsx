@@ -11,6 +11,7 @@ import {
   Loader2,
   Sun,
   Moon,
+  Phone, // <-- Đã thêm icon Phone từ lucide-react
 } from "lucide-react";
 import { motion } from "motion/react";
 import { Link, useNavigate } from "react-router-dom";
@@ -66,7 +67,6 @@ export default function AuthPage() {
 
   // --- STATES & UI CONTROLS ---
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
-  // view điều khiển màn hình hiển thị: "auth" (Đăng nhập/Đăng ký), "forgot" (Quên MK), "reset" (Đặt lại MK)
   const [view, setView] = useState<"auth" | "forgot" | "reset">("auth");
   const [role, setRole] = useState<"candidate" | "employer">("candidate");
   const [showPassword, setShowPassword] = useState(false);
@@ -76,6 +76,7 @@ export default function AuthPage() {
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
+    phone: "", // <-- Thêm trường phone vào state
     password: "",
     confirmPassword: "",
     newPassword: "",
@@ -94,7 +95,8 @@ export default function AuthPage() {
   const handleTabChange = (tab: "login" | "register") => {
     setActiveTab(tab);
     setError("");
-    setFormData({ fullName: "", email: "", password: "", confirmPassword: "", newPassword: "" });
+    // Reset lại cả trường phone khi chuyển tab
+    setFormData({ fullName: "", email: "", phone: "", password: "", confirmPassword: "", newPassword: "" });
     setShowOTP(false);
     setView("auth");
   };
@@ -104,7 +106,8 @@ export default function AuthPage() {
     setError("");
 
     if (activeTab === "register") {
-      if (!formData.fullName || !formData.email || !formData.password) {
+      // Validate thêm điều kiện trường phone không được rỗng
+      if (!formData.fullName || !formData.email || !formData.phone || !formData.password) {
         setError("Vui lòng điền đầy đủ các thông tin bắt buộc.");
         return;
       }
@@ -152,6 +155,7 @@ export default function AuthPage() {
             username: formData.fullName,
             name: formData.fullName,
             email: formData.email,
+            phone: formData.phone, // <-- Đã truyền phone lên API đăng ký
             password: formData.password,
             role: role,
           },
@@ -208,7 +212,6 @@ export default function AuthPage() {
     }
   };
 
-  // --- LUỒNG XỬ LÝ QUÊN MẬT KHẨU ---
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -227,7 +230,7 @@ export default function AuthPage() {
           icon: "success",
         });
         setOtpCode("");
-        setView("reset"); // Chuyển sang màn hình nhập mật khẩu mới và OTP
+        setView("reset");
       }
     } catch (err: any) {
       const msg = err.response?.data?.message || "Có lỗi xảy ra!";
@@ -237,7 +240,6 @@ export default function AuthPage() {
     }
   };
 
-  // --- LUỒNG XỬ LÝ ĐẶT LẠI MẬT KHẨU ---
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -376,7 +378,6 @@ export default function AuthPage() {
 
           {/* RENDERING DỰA TRÊN TRẠNG THÁI VIEW VÀ OTP */}
           {showOTP ? (
-            /* CASE 1: Đăng ký thành công -> Màn hình nhập OTP kích hoạt Mail */
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -468,7 +469,6 @@ export default function AuthPage() {
               </form>
             </motion.div>
           ) : view === "forgot" ? (
-            /* CASE 2: Màn hình nhập Email yêu cầu gửi mã Quên mật khẩu */
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -522,7 +522,6 @@ export default function AuthPage() {
               </form>
             </motion.div>
           ) : view === "reset" ? (
-            /* CASE 3: Màn hình Điền mã OTP nhận từ Mail + Điền Mật khẩu mới */
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -547,7 +546,6 @@ export default function AuthPage() {
               </div>
 
               <form onSubmit={handleResetPassword} className="space-y-4">
-                {/* Ô Nhập mã OTP Khôi phục mật khẩu */}
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 dark:text-gray-500 transition-colors duration-300">
                     <User size={18} />
@@ -562,7 +560,6 @@ export default function AuthPage() {
                   />
                 </div>
 
-                {/* Ô Nhập mật khẩu mới */}
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 dark:text-gray-500 transition-colors duration-300">
                     <Lock size={18} />
@@ -686,19 +683,37 @@ export default function AuthPage() {
               {/* Main Auth Form */}
               <form onSubmit={handleSubmit} className="space-y-4">
                 {activeTab === "register" && (
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 dark:text-gray-500 transition-colors duration-300">
-                      <User size={18} />
+                  <>
+                    {/* Ô Nhập Full Name */}
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 dark:text-gray-500 transition-colors duration-300">
+                        <User size={18} />
+                      </div>
+                      <input
+                        type="text"
+                        name="fullName"
+                        value={formData.fullName}
+                        onChange={handleChange}
+                        placeholder="Full Name"
+                        className="w-full rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0B0F19]/50 py-3.5 pl-11 pr-4 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all focus:border-[#0052FF] focus:ring-1 focus:ring-[#0052FF]/50"
+                      />
                     </div>
-                    <input
-                      type="text"
-                      name="fullName"
-                      value={formData.fullName}
-                      onChange={handleChange}
-                      placeholder="Full Name"
-                      className="w-full rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0B0F19]/50 py-3.5 pl-11 pr-4 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all focus:border-[#0052FF] focus:ring-1 focus:ring-[#0052FF]/50"
-                    />
-                  </div>
+
+                    {/* 🌟 ĐÃ THÊM: Ô Nhập Số điện thoại hiển thị khi Đăng ký */}
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 dark:text-gray-500 transition-colors duration-300">
+                        <Phone size={18} />
+                      </div>
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        placeholder="Phone Number"
+                        className="w-full rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0B0F19]/50 py-3.5 pl-11 pr-4 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all focus:border-[#0052FF] focus:ring-1 focus:ring-[#0052FF]/50"
+                      />
+                    </div>
+                  </>
                 )}
 
                 <div className="relative">
@@ -791,7 +806,6 @@ export default function AuthPage() {
                     </span>
                   </label>
 
-                  {/* Thay thế liên kết bằng việc đổi state view thay vì điều hướng Route */}
                   <button
                     type="button"
                     onClick={() => { setView("forgot"); setError(""); }}

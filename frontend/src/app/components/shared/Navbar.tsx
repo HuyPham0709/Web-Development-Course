@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Briefcase,
   Bell,
@@ -25,24 +25,23 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 
-// Import chatService để lấy số tin nhắn chưa đọc chuẩn từ Database
-import { chatService } from '../../../services/chatService'; 
+import { chatService } from "../../../services/chatService";
 
-const BASE_URL = "http://localhost:5000";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const toFullUrl = (url: string | null | undefined): string => {
-  if (!url) return '';
-  if (url.startsWith('http') || url.startsWith('data:')) return url;
+  if (!url) return "";
+  if (url.startsWith("http") || url.startsWith("data:")) return url;
   return `${BASE_URL}${url}`;
 };
 
 interface NotificationItem {
-  _id: string;        
+  _id: string;
   title: string;
-  message: string;    
-  created_at: string; 
-  is_read: boolean;   
-  link_url: string | null; 
+  message: string;
+  created_at: string;
+  is_read: boolean;
+  link_url: string | null;
 }
 
 export const Navbar = () => {
@@ -59,21 +58,17 @@ export const Navbar = () => {
     name: "",
     avatarUrl: "",
     role: "",
-    id: "",
+    id: "", // Standardized to only use id
   });
 
-  // State thông báo của Cái chuông
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  
-  // State quản lý số đếm tin nhắn chưa đọc độc lập của nút Chat
   const [chatUnreadCount, setChatUnreadCount] = useState<number>(0);
 
   // ======================================================================
-  // ✅ ĐÃ CẬP NHẬT: Xử lý hiển thị NavLinks chính xác theo từng vai trò (Role)
+  // Xử lý hiển thị NavLinks chính xác theo từng vai trò (Role)
   // ======================================================================
   const getNavLinks = () => {
-    // Trường hợp 1: Chưa đăng nhập (Khách vãng lai) -> Xem Home và Tất cả việc làm
     if (!isLoggedIn) {
       return [
         { name: "Home", path: "/" },
@@ -83,7 +78,6 @@ export const Navbar = () => {
     
     const userRole = user.role?.toLowerCase();
 
-    // Trường hợp 2: Tài khoản Nhà tuyển dụng (Employer) -> Xem Dashboard quản lý, tìm CV ứng viên
     if (userRole === "employer") {
       return [
         { name: "Home", path: "/" },
@@ -92,7 +86,6 @@ export const Navbar = () => {
       ];
     }
 
-    // Trường hợp 3: Tài khoản Ứng viên (Candidate) -> Xem Home, Danh sách Jobs, Đơn ứng tuyển và Cài đặt
     if (userRole === "candidate") {
       return [
         { name: "Home", path: "/" },
@@ -101,7 +94,6 @@ export const Navbar = () => {
       ];
     }
 
-    // Dự phòng mặc định
     return [
       { name: "Home", path: "/" },
       { name: "Jobs", path: "/jobs" },
@@ -110,8 +102,7 @@ export const Navbar = () => {
 
   const navLinks = getNavLinks();
 
-  // Lấy thông báo hệ thống cho Cái chuông (đã lọc bỏ chat từ API backend nếu có)
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
@@ -119,49 +110,69 @@ export const Navbar = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.data.success) {
-        const systemNotifs = response.data.data.filter((n: any) => n.link_url !== "/chat");
+        const systemNotifs = response.data.data.filter(
+          (n: any) => n.link_url !== "/chat"
+        );
         setNotifications(systemNotifs);
       }
     } catch (error) {
-      console.error("Lỗi lấy thông báo từ API:", error);
+      console.error("Error fetching notifications:", error);
     }
-  };
+  }, []);
 
-  // Hàm lấy số lượng tin nhắn chưa đọc từ api chatService
-  const fetchUnreadChatCount = async () => {
+  // 🔥 ACCURATE DATABASE SYNC LOGIC
+  const checkUnreadChat = useCallback(async () => {
+    if (!isLoggedIn || !user.id) return;
+
     if (window.location.pathname === "/chat") {
       setChatUnreadCount(0);
       return;
     }
+    
     try {
-      const data = await chatService.getConversations();
-      if (data) {
-        const total = data.reduce((sum: number, conv: any) => {
-          const count = conv.unreadCount !== undefined ? conv.unreadCount : (conv.unread_count || 0);
-          return sum + count;
+      const response = await chatService.getConversations();
+      const dataList = Array.isArray(response) ? response : response?.data || [];
+
+      if (dataList && dataList.length > 0) {
+        const total = dataList.reduce((sum: number, conv: any) => {
+          return sum + Number(conv.unreadCount ?? conv.unread_count ?? 0);
         }, 0);
+
+        console.log("🔥 [Navbar] Total unread messages:", total);
         setChatUnreadCount(total);
+      } else {
+        setChatUnreadCount(0);
       }
     } catch (error) {
-      console.error("Lỗi lấy số tin nhắn chưa đọc:", error);
+      console.error("Error checking unread messages:", error);
     }
-  };
+  }, [isLoggedIn, user.id]);
+
+  // Handler for incoming chat messages
+  const handleChatTrigger = useCallback(() => {
+    checkUnreadChat();
+  }, [checkUnreadChat]);
 
   // Lắng nghe sự kiện Chat từ Window Event phát ra
   useEffect(() => {
     if (!isLoggedIn) return;
 
-    const handleChatTrigger = () => {
-      if (window.location.pathname !== "/chat") {
-        fetchUnreadChatCount();
+    const handleChatCountUpdate = (e: any) => {
+      if (e.detail && typeof e.detail.count === "number") {
+        setChatUnreadCount(e.detail.count);
+      } else {
+        checkUnreadChat();
       }
     };
 
+    window.addEventListener("update-chat-count", handleChatCountUpdate);
     window.addEventListener("incoming-chat-msg", handleChatTrigger);
+    
     return () => {
+      window.removeEventListener("update-chat-count", handleChatCountUpdate);
       window.removeEventListener("incoming-chat-msg", handleChatTrigger);
     };
-  }, [isLoggedIn]);
+  }, [isLoggedIn, checkUnreadChat, handleChatTrigger]);
 
   // Xử lý Socket Realtime kết nối tới Backend
   useEffect(() => {
@@ -177,8 +188,11 @@ export const Navbar = () => {
         }
       });
 
+      socket.on("receive_message", () => checkUnreadChat());
+      
       socket.on("update_unread_total", (data: any) => {
         console.log("📩 [SOCKET] Nhận tín hiệu update_unread_total thành công:", data);
+        checkUnreadChat();
         if (window.location.pathname !== "/chat") {
           setChatUnreadCount((prevCount) => prevCount + 1);
         }
@@ -187,22 +201,22 @@ export const Navbar = () => {
       return () => {
         socket.off("receive_notification");
         socket.off("update_unread_total");
+        socket.off("receive_message");
         socket.disconnect();
       };
     }
-  }, [isLoggedIn, user.id]);
+  }, [isLoggedIn, user.id, checkUnreadChat]);
 
   useEffect(() => {
     if (showNotifications && isLoggedIn) {
       fetchNotifications();
     }
-  }, [showNotifications, isLoggedIn]);
+  }, [showNotifications, isLoggedIn, fetchNotifications]);
 
   useEffect(() => {
-    if (location.pathname === "/chat") {
-      setChatUnreadCount(0);
-    }
-  }, [location.pathname]);
+    if (!isLoggedIn) return;
+    checkUnreadChat();
+  }, [location.pathname, isLoggedIn, checkUnreadChat]);
 
   const handleMarkAsRead = async (id: string, linkUrl: string | null) => {
     if (isProcessing) return;
@@ -226,7 +240,7 @@ export const Navbar = () => {
           { headers: { Authorization: `Bearer ${token}` } }
         );
       } catch (error) {
-        console.error("Lỗi cập nhật trạng thái đọc:", error);
+        console.error("Error updating read status:", error);
       } finally {
         setIsProcessing(false);
       }
@@ -252,7 +266,7 @@ export const Navbar = () => {
         prev.map((item) => ({ ...item, is_read: true }))
       );
     } catch (error) {
-      console.error("Lỗi cập nhật đọc tất cả:", error);
+      console.error("Error marking all as read:", error);
     }
   };
 
@@ -272,7 +286,7 @@ export const Navbar = () => {
             role: parsedUser.role || "",
           });
         } catch (e) {
-          console.error("Lỗi parse user từ localStorage:", e);
+          console.error("Error parsing user from localStorage:", e);
         }
       } else {
         setIsLoggedIn(false);
@@ -311,9 +325,9 @@ export const Navbar = () => {
   useEffect(() => {
     if (isLoggedIn) {
       fetchNotifications();
-      fetchUnreadChatCount();
+      checkUnreadChat();
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, fetchNotifications, checkUnreadChat]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -412,9 +426,10 @@ export const Navbar = () => {
               title="Messages"
             >
               <MessageSquare size={20} />
+
               {chatUnreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-white dark:ring-[#0B0F19] animate-pulse">
-                  {chatUnreadCount > 9 ? "9+" : chatUnreadCount}
+                <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white dark:ring-[#0B0F19]">
+                  {chatUnreadCount > 99 ? "99+" : chatUnreadCount}
                 </span>
               )}
             </Link>
@@ -447,19 +462,30 @@ export const Navbar = () => {
                     notifications.map((notif) => (
                       <div
                         key={notif._id}
-                        onClick={() => handleMarkAsRead(notif._id, notif.link_url)}
+                        onClick={() =>
+                          handleMarkAsRead(notif._id, notif.link_url)
+                        }
                         className={`p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors flex gap-3 items-start ${
-                          !notif.is_read ? "bg-blue-50/60 dark:bg-blue-950/20" : ""
+                          !notif.is_read
+                            ? "bg-blue-50/60 dark:bg-blue-950/20"
+                            : ""
                         }`}
                       >
                         {!notif.is_read && <div className="mt-1.5 flex h-2 w-2 shrink-0 rounded-full bg-blue-600"></div>}
                         <div className="flex-1">
-                          <p className={`text-sm text-gray-900 dark:text-white ${notif.is_read ? "font-normal" : "font-semibold"}`}>
+                          <p
+                            className={`text-sm text-gray-900 dark:text-white ${notif.is_read ? "font-normal" : "font-semibold"}`}
+                          >
                             {notif.title}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{notif.message}</p>
                           <p className="text-[10px] text-gray-400 mt-1">
-                            {notif.created_at ? new Date(notif.created_at).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) : ""}
+                            {notif.created_at
+                              ? new Date(notif.created_at).toLocaleTimeString(
+                                  "en-US",
+                                  { hour: "2-digit", minute: "2-digit" },
+                                )
+                              : ""}
                           </p>
                         </div>
                       </div>
@@ -502,7 +528,9 @@ export const Navbar = () => {
                       <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-green-500/10 dark:group-hover:bg-green-500/20 transition-colors">
                         <User className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400" />
                       </div>
-                      <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">Hồ sơ cá nhân</span>
+                      <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
+                        Hồ sơ cá nhân
+                      </span>
                     </Link>
                   </DropdownMenuItem>
                 )}
@@ -513,7 +541,9 @@ export const Navbar = () => {
                       <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-blue-500/10 dark:group-hover:bg-blue-500/20 transition-colors">
                         <Briefcase className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
                       </div>
-                      <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">Hồ sơ công ty</span>
+                      <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
+                        Hồ sơ công ty
+                      </span>
                     </Link>
                   </DropdownMenuItem>
                 )}
@@ -524,7 +554,7 @@ export const Navbar = () => {
                       <Settings className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
                     </div>
                     <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
-                      {isEmployer ? "Dashboard" : "Cài đặt"}
+                      {isEmployer ? "Dashboard" : "Settings"}
                     </span>
                   </Link>
                 </DropdownMenuItem>
@@ -536,7 +566,9 @@ export const Navbar = () => {
                     <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-red-500/10 dark:group-hover:bg-red-500/20 transition-colors">
                       <LogOut className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400" />
                     </div>
-                    <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-red-600 dark:group-hover:text-red-400">Đăng xuất</span>
+                    <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-red-600 dark:group-hover:text-red-400">
+                      Đăng xuất
+                    </span>
                   </div>
                 </DropdownMenuItem>
               </DropdownMenuContent>

@@ -64,12 +64,18 @@ exports.getConversations = async (req, res, next) => {
                     }
                 }
 
-                // 🔥 ĐỒNG BỘ NAVBAR: Nếu mình KHÔNG PHẢI là người gửi cuối cùng, hiển thị số tin chưa đọc từ DB
-                const dynamicUnreadCount = String(conv.lastSenderId) !== String(userId) ? (conv.unreadCount || 0) : 0;
+                // 🔥 LOGIC ĐỒNG BỘ CHUẨN XÁC 100%: 
+                // Đếm trực tiếp các tin nhắn thuộc phòng chat này, KHÔNG PHẢI do mình gửi, và CÒN CHƯA ĐỌC.
+                // (Nếu Model Message của bạn dùng trường `is_read` thay vì `isRead`, hãy sửa lại chữ isRead bên dưới nhé)
+                const realUnreadCount = await Message.countDocuments({
+                    conversationId: conv._id,
+                    senderId: { $ne: String(userId) }, // Của người khác gửi
+                    isRead: false                      // Trạng thái chưa đọc
+                });
 
                 return {
                     ...conv,
-                    unreadCount: dynamicUnreadCount, // Trả về cho frontend xử lý số đếm
+                    unreadCount: realUnreadCount, // Trả về con số chính xác nhất cho Navbar hiển thị
                     targetUser
                 };
             })
@@ -90,13 +96,26 @@ exports.getMessages = async (req, res, next) => {
         const { conversationId } = req.params;
         const userId = req.user.id;
 
-        // 🔥 GIỐNG APPLY: Khi người dùng bấm vào xem tin nhắn, reset số tin chưa đọc của phòng này về 0 trong DB
+        // 1. Reset unreadCount trong Collection Conversation
         await Conversation.updateOne(
-            { _id: conversationId, lastSenderId: { $ne: String(userId) } },
+            { _id: conversationId },
             { $set: { unreadCount: 0 } }
         );
 
+        // 2. 🔥 FIX QUAN TRỌNG: Phải đánh dấu toàn bộ tin nhắn của đối phương là "đã đọc" (isRead: true)
+        // Nếu không làm bước này, hàm đếm countDocuments ở trên sẽ luôn ra kết quả > 0
+        await Message.updateMany(
+            { 
+                conversationId: conversationId, 
+                senderId: { $ne: String(userId) },
+                isRead: false 
+            },
+            { $set: { isRead: true } }
+        );
+
+        // Lấy danh sách tin nhắn để hiển thị
         const messages = await Message.find({ conversationId }).sort({ createdAt: 1 });
+        
         res.status(200).json({ success: true, data: messages });
     } catch (error) {
         next(error);
@@ -127,42 +146,37 @@ exports.sendMessage = async (req, res, next) => {
             });
         }
 
-        // 2. Lưu tin nhắn mới vào MongoDB
+        // 2. Lưu tin nhắn mới vào MongoDB (Set rõ trạng thái là chưa đọc)
         const newMessage = await Message.create({
             conversationId: conversation._id,
             senderId: String(senderId),
             text,
-            fileUrl
+            fileUrl,
+            isRead: false // Mặc định tin nhắn mới là chưa đọc
         });
 
-        // 3. 🔥 KIẾN TRÚC BỀN VỮNG: Cập nhật người gửi cuối và cộng dồn số tin nhắn chưa đọc vào DB
+        // 3. Logic phụ (Giữ nguyên của bạn để caching unreadCount nếu cần)
+        if (conversation.lastSenderId && String(conversation.lastSenderId) !== String(senderId)) {
+            conversation.unreadCount = 1;
+        } else {
+            conversation.unreadCount = (conversation.unreadCount || 0) + 1;
+        }
+
         conversation.lastMessage = newMessage._id;
         conversation.lastSenderId = String(senderId);
-        conversation.unreadCount = (conversation.unreadCount || 0) + 1;
         await conversation.save();
 
-        // ======================================================================
-        // ✅ CẦU NỐI REALTIME: Bắn tín hiệu sang file Socket để gửi ngay cho người nhận
-        // ======================================================================
+        // ✅ CẦU NỐI REALTIME
         try {
-            // Gửi trực tiếp nội dung vào khung chat của đối phương (nếu đang mở ô chat)
+            // Gửi tin nhắn cho người nhận
             socketModule.emitToUser(receiverId, 'receive_message', {
-                conversationId: conversation._id,
-                senderId: String(senderId),
-                receiverId: String(receiverId),
-                text,
-                fileUrl,
-                createdAt: newMessage.createdAt
+                ...newMessage._doc // Gửi toàn bộ data tin nhắn
             });
 
-            // Kích hoạt lệnh tăng chấm đỏ tin nhắn chưa đọc độc lập trên Navbar đối phương
-            socketModule.emitToUser(receiverId, 'update_unread_total', {
-                userId: String(receiverId),
-                conversationId: conversation._id,
-                currentUnread: conversation.unreadCount
-            });
+            // Kích hoạt cập nhật unread (Chỉ gửi cho người nhận)
+            socketModule.emitToUser(receiverId, 'update_unread_total');
 
-            // Gửi gói thông báo đẩy lên Quả chuông (nếu muốn)
+            // Gửi gói thông báo đẩy lên Quả chuông
             const chatNotificationPayload = {
                 _id: `chat_msg_${Date.now()}`,
                 title: "Tin nhắn mới",
@@ -180,6 +194,38 @@ exports.sendMessage = async (req, res, next) => {
         res.status(201).json({ success: true, data: newMessage });
     } catch (error) {
         console.error("Lỗi khi chạy sendMessage API:", error);
+        next(error);
+    }
+};
+
+// ======================================================================
+// [DELETE] Xóa cuộc trò chuyện và tất cả tin nhắn liên quan
+// ======================================================================
+exports.deleteConversation = async (req, res, next) => {
+    try {
+        const { conversationId } = req.params;
+        const userId = req.user.id;
+
+        const conversation = await Conversation.findOne({
+            _id: conversationId,
+            participants: { $in: [String(userId), userId] }
+        });
+
+        if (!conversation) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Không tìm thấy cuộc trò chuyện hoặc bạn không có quyền xóa." 
+            });
+        }
+
+        await Message.deleteMany({ conversationId });
+        await Conversation.findByIdAndDelete(conversationId);
+
+        res.status(200).json({ 
+            success: true, 
+            message: "Xóa đoạn chat thành công." 
+        });
+    } catch (error) {
         next(error);
     }
 };
