@@ -302,3 +302,5 @@ CREATE TABLE IF NOT EXISTS Employer_Profile_Views (
     INDEX idx_candidate (candidate_id),
     UNIQUE KEY uk_view_per_day (employer_id, candidate_id, view_date)
 );
+DROP TABLE messages;
+DROP TABLE notifications;
