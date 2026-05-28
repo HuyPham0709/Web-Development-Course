@@ -87,7 +87,7 @@ exports.getAllJobs = async (req, res) => {
     try {
         const { 
             title, location, category_id, type, experience_level, salary_min, salary, 
-            page, limit, company_id // <-- THÊM company_id VÀO ĐÂY
+            page, limit, company_id, sort 
         } = req.query;
 
         const pageNum = parseInt(page, 10) || 1;
@@ -97,12 +97,10 @@ exports.getAllJobs = async (req, res) => {
         let whereClause = ` WHERE j.deleted_at IS NULL AND j.status = 'approved'`;
         const params = [];
         
-        // THÊM ĐIỀU KIỆN LỌC COMPANY_ID (Để Frontend gọi trực tiếp jobs của công ty)
         if (company_id) {
             whereClause += ` AND j.company_id = ?`;
             params.push(company_id);
         }
-
         if (title) {
             whereClause += ` AND j.title LIKE ?`; 
             params.push(`%${title}%`);
@@ -124,13 +122,11 @@ exports.getAllJobs = async (req, res) => {
             params.push(experience_level);
         }
         
-        // LOGIC CŨ: Xử lý slider lương tối thiểu (Từ trang Jobs)
         if (salary_min && Number(salary_min) > 0) {
             whereClause += ` AND j.salary_max >= ?`; 
             params.push(Number(salary_min));
         }
 
-        // THÊM MỚI: Xử lý chuỗi khoảng lương (Từ dropdown trang Hero - VD: "1000-2000" hoặc "3000+")
         if (salary) {
             if (salary.includes('-')) {
                 const parts = salary.split('-');
@@ -145,6 +141,28 @@ exports.getAllJobs = async (req, res) => {
             }
         }
 
+        // 🌟 TỐI ƯU LOGIC SẮP XẾP (ORDER BY) AN TOÀN
+        let orderByClause = `ORDER BY j.created_at DESC`; // Mặc định là mới nhất
+        
+        if (sort) {
+            switch (sort) {
+                case 'salary_desc':
+                    // Ưu tiên lương max lớn nhất -> lương min lớn nhất -> ngày đăng mới nhất
+                    orderByClause = `ORDER BY j.salary_max DESC, j.salary_min DESC, j.created_at DESC`;
+                    break;
+                case 'salary_asc':
+                    orderByClause = `ORDER BY j.salary_min ASC, j.salary_max ASC, j.created_at DESC`;
+                    break;
+                case 'oldest':
+                    orderByClause = `ORDER BY j.created_at ASC`;
+                    break;
+                // Có thể thêm các case khác trong tương lai ở đây
+                default:
+                    // Giữ nguyên mặc định nếu sort gửi lên không hợp lệ
+                    break;
+            }
+        }
+
         let countQuery = `
             SELECT COUNT(DISTINCT j.id) as total 
             FROM Jobs j
@@ -154,11 +172,12 @@ exports.getAllJobs = async (req, res) => {
         const [countRows] = await db.execute(countQuery, params);
         const totalItems = countRows[0].total;
 
+        // 🌟 ÁP DỤNG CÂU LỆNH ORDER BY ĐỘNG VÀO QUERY
         let dataQuery = `
             SELECT 
                 j.id, j.title, j.job_type, j.experience_level, 
                 j.salary_min, j.salary_max, j.created_at, j.status,
-                j.company_id, /* <--- THÊM j.company_id VÀO ĐÂY ĐỂ TRẢ VỀ FRONTEND */
+                j.company_id, 
                 c.name as company_name, 
                 c.logo_url, 
                 c.is_verified,
@@ -171,7 +190,7 @@ exports.getAllJobs = async (req, res) => {
             LEFT JOIN Skills s ON js.skill_id = s.id
             ${whereClause}
             GROUP BY j.id 
-            ORDER BY j.created_at DESC 
+            ${orderByClause} /* <--- ĐÃ THAY THẾ ORDER BY CỨNG BẰNG BIẾN */
             LIMIT ${limitNum} OFFSET ${offsetNum}
         `;
 

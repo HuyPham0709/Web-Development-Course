@@ -89,8 +89,10 @@ export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter, salar
   }, []);
 
   return (
-    <section className="w-full bg-white py-20 relative transition-colors duration-300 dark:bg-[#0B0F19]">
-     <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-50 dark:opacity-10 dark:bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)] pointer-events-none"></div>
+    // 🌟 ĐÃ ĐỔI THÀNH pb-0 ĐỂ LIỀN MẠCH VỚI SECTION DƯỚI
+    <section className="w-full bg-white pt-20 pb-0 relative transition-colors duration-300 dark:bg-[#0B0F19]">
+      {/* 🌟 ĐÃ ĐỔI MASK THÀNH LINEAR XUỐNG ĐỂ LƯỚI KHÔNG BỊ ĐỨT ĐOẠN */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:linear-gradient(to_bottom,transparent_0%,#000_20%,#000_100%)] opacity-50 dark:opacity-10 dark:bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)] pointer-events-none"></div>
       
       <div className="relative mx-auto max-w-7xl px-6">
         <div className="mb-12 flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
@@ -122,13 +124,11 @@ export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter, salar
           </div>
         </div>
 
-        {/* ĐOẠN RENDER CHUẨN UX */}
         {loading ? (
           <HorizontalTrack onLoadMore={() => {}} hasMore={false} isLoading={false}>
             {Array.from({ length: 10 }).map((_, idx) => (
               <div 
                 key={`skeleton-${idx}`}
-                // Hiệu ứng chớp đuổi gợn sóng (Staggered Effect) cấp Enterprise
                 style={{ animationDelay: `${idx * 120}ms` }}
                 className="w-[280px] sm:w-[320px] shrink-0 self-stretch pointer-events-auto flex flex-col h-[340px] bg-white dark:bg-[#0B0F19] rounded-3xl p-6 border border-gray-100 dark:border-white/5 justify-between animate-pulse"
               >
@@ -159,7 +159,6 @@ export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter, salar
             {jobs.map((job, idx) => (
               <div 
                 key={`${job.id}-${idx}`}
-                // ĐÃ SỬA: Bỏ `opacity: 0` inline nguy hiểm, thay bằng class transition an toàn của Tailwind
                 className="w-[280px] sm:w-[320px] shrink-0 self-stretch pointer-events-auto transition-all duration-300"
               >
                 <JobCard 
