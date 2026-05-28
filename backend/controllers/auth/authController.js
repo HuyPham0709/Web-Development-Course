@@ -375,6 +375,7 @@ exports.googleLogin = async (req, res) => {
 
     const { email, name, picture } = googleResponse.data;
 
+    // ✅ CHỈNH SỬA 1: Đơn giản hóa câu lệnh SELECT, chỉ lấy thông tin Users và Profiles gốc
     const [users] = await db.execute(
       `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name
        FROM Users u
@@ -395,8 +396,12 @@ exports.googleLogin = async (req, res) => {
         autoUsername = `${autoUsername}_${Math.floor(1000 + Math.random() * 9000)}`;
       }
 
+      // LẦN ĐẦU ĐĂNG KÝ: Giữ nguyên cấu trúc INSERT cũ để tránh lỗi cấu trúc database (nếu các trường đó đặt NOT NULL)
       const [result] = await db.execute(
-        "INSERT INTO Users (username, email, password, role, is_verified, avatar_url, display_name) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        `INSERT INTO Users 
+          (username, email, password, role, is_verified, avatar_url, display_name, 
+           google_name, google_avatar_url, use_custom_name, use_custom_avatar) 
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)`,
         [
           autoUsername,
           email,
@@ -405,6 +410,8 @@ exports.googleLogin = async (req, res) => {
           1,
           picture,
           name,
+          name,       
+          picture,    
         ],
       );
 
@@ -417,51 +424,34 @@ exports.googleLogin = async (req, res) => {
             `Công ty của ${name}`,
           ]);
           companyId = companyResult.insertId;
-          
-          // FIX LỖI: Cập nhật ngược company_id cho tài khoản Employer tạo qua Google
           await db.execute("UPDATE Users SET company_id = ? WHERE id = ?", [companyId, userId]);
         } else {
+          // ✅ LẦN ĐẦU ĐĂNG KÝ: Lưu tên và ảnh mặc định từ Google vào bảng Profiles
           await db.execute(
             "INSERT INTO Profiles (user_id, full_name, avatar_url) VALUES (?, ?, ?)",
             [userId, name, picture],
           );
         }
       } catch (subError) {
-        console.error(
-          "Lỗi tạo Profile phụ (Tài khoản gốc vẫn an toàn):",
-          subError.message,
-        );
+        console.error("Lỗi tạo Profile phụ:", subError.message);
       }
 
       user = {
         id: userId,
+        username: autoUsername,
         email,
         role: role || "candidate",
-        username: autoUsername,
         company_id: companyId,
-        avatar_url: picture,
         full_name: name,
         profile_avatar: picture,
       };
     } else {
+      // ✅ CHỈNH SỬA 2: Nếu user ĐÃ TỒN TẠI, TUYỆT ĐỐI KHÔNG ghi đè dữ liệu Google lên nữa!
+      // Bỏ hoàn toàn câu lệnh UPDATE đè dữ liệu cũ. Giữ nguyên những gì user đã sửa trong DB.
       await db.execute(
-        "UPDATE Users SET avatar_url = ?, display_name = ?, is_verified = 1 WHERE id = ?",
-        [picture || user.avatar_url, name || user.display_name, user.id],
+        `UPDATE Users SET is_verified = 1 WHERE id = ?`,
+        [user.id],
       );
-
-      try {
-        if (user.role !== "employer") {
-          await db.execute(
-            "UPDATE Profiles SET avatar_url = ?, full_name = ? WHERE user_id = ?",
-            [picture || user.profile_avatar, name || user.full_name, user.id],
-          );
-        }
-      } catch (subError) {
-        console.error("Lỗi đồng bộ bảng Profiles phụ:", subError.message);
-      }
-
-      user.avatar_url = picture || user.avatar_url;
-      user.full_name = name || user.full_name;
     }
 
     const token = jwt.sign(
@@ -470,16 +460,17 @@ exports.googleLogin = async (req, res) => {
       { expiresIn: "1d" },
     );
 
+    // ✅ CHỈNH SỬA 3: Lấy thẳng dữ liệu từ Profiles ra dùng, không check toggle chọn 1 trong 2 nữa
     return res.status(200).json({
       success: true,
       token: token,
       user: {
         id: user.id,
         username: user.username,
-        full_name: user.full_name || user.username,
+        full_name: user.full_name || user.username, // Nếu có full_name trong Profiles thì dùng, không thì fallback về username
         role: user.role,
-        company_id: user.company_id, // FIX LỖI: Trả về company_id của tài khoản Google đăng nhập
-        avatar_url: user.avatar_url || user.profile_avatar || null,
+        company_id: user.company_id,
+        avatar_url: user.profile_avatar || user.avatar_url || null, // Lấy avatar trong Profiles làm chuẩn
       },
     });
   } catch (error) {
@@ -490,7 +481,6 @@ exports.googleLogin = async (req, res) => {
     });
   }
 };
-
 // --- BƯỚC 1: KIỂM TRA MẬT KHẨU VÀ GỬI OTP (ADMIN) ---
 exports.adminLogin = async (req, res) => {
   const { email, password } = req.body;

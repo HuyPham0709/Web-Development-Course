@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const ctrl = require('../../controllers/admin/Reportcontroller');
+const ctrl = require('../../controllers/admin/reportController');
 const { verifyToken, authorizeRole } = require('../../middlewares/authMiddleware');
 
 router.get('/', verifyToken, authorizeRole(['admin']), ctrl.getReports);

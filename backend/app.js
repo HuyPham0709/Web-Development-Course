@@ -54,7 +54,7 @@ const notificationRoutes = require("./routes/social/notificationRoutes");
 const messageRoutes = require("./routes/social/messageRoutes");
 
 // Client Report (Nằm ngay trong thư mục routes gốc)
-const reportRoutes = require("./routes/reportRoutes"); 
+const routes = require('./routes/index');
 
 // Phân hệ Admin Routes (Đã sửa lại viết hoa/thường theo đúng file tree)
 const adminRoutes = require("./routes/admin/adminRoutes");
@@ -72,7 +72,7 @@ const socketUtils = require("./utils/socket");
 // ─────────────────────────────────────────────────────────────
 
 // Router tổng hợp (Có file routes/index.js nên dòng này hoạt động bình thường)
-app.use("/api", require("./routes/index"));
+// app.use("/api", require("./routes/index"));
 
 // Chi tiết các phân hệ Route chính (Client)
 app.use("/api/auth", authRoutes);
@@ -90,7 +90,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/messages", messageRoutes);       
 app.use("/api/cv-builder", cvBuilderRoutes);     
 app.use("/api/candidate", candidateVisibilityRoutes);
-app.use("/api/reports", reportRoutes);           
+app.use('/api', routes);         
 
 // Phân hệ Admin Routes
 app.use("/api/admin", adminRoutes);

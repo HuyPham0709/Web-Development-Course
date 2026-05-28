@@ -7,7 +7,7 @@ const router = express.Router();
 // Lưu ý: Hãy kiểm tra chính xác thư mục chứa messageController của bạn 
 // là '../controllers/' hay '../controllers/social/' để tránh lỗi Cannot find module
 const messageController = require('../../controllers/social/messageController');
-const chatbotController = require('../../controllers/chatbotController');
+const chatbotController = require('../../controllers/social/chatbotController');
 const { verifyToken, authorizeRole } = require('../../middlewares/authMiddleware');
 
 // ─────────────────────────────────────────────────────────────
