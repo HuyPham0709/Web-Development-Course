@@ -1,4 +1,4 @@
-const db = require('../config/db');
+const db = require('../../config/db');
 
 // 1. API Đăng tin tuyển dụng
 exports.createJob = async (req, res) => {

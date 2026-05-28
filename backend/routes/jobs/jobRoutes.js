@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken, authorizeRole } = require('../middlewares/authMiddleware');
-const jobController = require('../controllers/jobController');
+const { verifyToken, authorizeRole } = require('../../middlewares/authMiddleware');
+const jobController = require("../../controllers/jobs/jobController");
 
 // ==========================================
 // 1. CÁC ROUTE CỐ ĐỊNH (TĨNH) - PHẢI ĐỂ TRÊN CÙNG

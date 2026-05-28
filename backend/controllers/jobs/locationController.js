@@ -1,4 +1,4 @@
-const db = require('../config/db');
+const db = require('../../config/db');
 
 exports.getAllLocations = async (req, res) => {
     try {

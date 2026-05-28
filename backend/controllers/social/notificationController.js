@@ -1,4 +1,4 @@
-const Notification = require("../models/Notification");
+const Notification = require("../../models/Notification");
 
 // 1. Lấy danh sách thông báo từ MongoDB
 exports.getNotifications = async (req, res) => {

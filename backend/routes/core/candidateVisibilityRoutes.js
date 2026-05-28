@@ -1,13 +1,13 @@
-// backend/routes/candidateVisibilityRoutes.js
+// backend/routes/core/candidateVisibilityRoutes.js
 const express = require('express');
 const router = express.Router();
-const pool = require('../config/db'); // Đường dẫn tới file kết nối database của bạn
-const { verifyToken, authorizeRole } = require('../middlewares/authMiddleware');
+const promisePool = require('../../config/db');
+const { verifyToken, authorizeRole } = require('../../middlewares/authMiddleware');
 
 // GET: Lấy trạng thái hiển thị của ứng viên
 router.get('/visibility', verifyToken, authorizeRole(['candidate']), async (req, res) => {
   try {
-    const [rows] = await pool.query(
+    const [rows] = await promisePool.query(
       `SELECT allow_employer_search FROM Profiles WHERE user_id = ?`,
       [req.user.id]
     );
@@ -31,7 +31,8 @@ router.put('/visibility', verifyToken, authorizeRole(['candidate']), async (req,
       return res.status(400).json({ success: false, error: 'Invalid value' });
     }
 
-    await pool.query(
+    // ĐÃ SỬA: Đổi từ pool.query thành promisePool.query
+    await promisePool.query(
       `UPDATE Profiles SET allow_employer_search = ? WHERE user_id = ?`,
       [allow_employer_search, req.user.id]
     );
@@ -46,7 +47,8 @@ router.put('/visibility', verifyToken, authorizeRole(['candidate']), async (req,
 // GET: Lấy danh sách nhà tuyển dụng đã xem profile
 router.get('/profile-views', verifyToken, authorizeRole(['candidate']), async (req, res) => {
   try {
-    const [views] = await pool.query(
+    // ĐÃ SỬA: Đổi từ pool.query thành promisePool.query
+    const [views] = await promisePool.query(
       `SELECT 
         v.employer_id,
         c.name AS company_name,
@@ -61,8 +63,8 @@ router.get('/profile-views', verifyToken, authorizeRole(['candidate']), async (r
       [req.user.id]
     );
 
-    // Đánh dấu đã thông báo
-    await pool.query(
+    // ĐÃ SỬA: Đổi từ pool.query thành promisePool.query
+    await promisePool.query(
       `UPDATE Employer_Profile_Views SET is_notified = 1 
        WHERE candidate_id = ? AND is_notified = 0`,
       [req.user.id]

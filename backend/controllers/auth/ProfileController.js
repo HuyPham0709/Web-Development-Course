@@ -1,10 +1,10 @@
 // backend/controllers/ProfileController.js
-const db = require('../config/db');
+const db = require('../../config/db');
 const path = require('path');
 const fs = require('fs');
 
 // Import hàm upload từ file config mới tách
-const { uploadToCloudinary } = require('../config/cloudinary');
+const { uploadToCloudinary } = require('../../config/cloudinary');
 
 const formatDate = (date) => {
     if (!date) return null;
@@ -472,7 +472,7 @@ exports.deleteCV = async (req, res) => {
         // Nếu là link Cloudinary thì gọi API Cloudinary để xóa
         if (cvUrl.includes('cloudinary.com')) {
             const publicId = getCloudinaryPublicId(cvUrl);
-            const { cloudinary } = require('../config/cloudinary');
+            const { cloudinary } = require('../../config/cloudinary');
             await cloudinary.uploader.destroy(publicId);
         } else {
             // Logic cũ xóa file local (giữ lại phòng trường hợp DB còn link cũ)
