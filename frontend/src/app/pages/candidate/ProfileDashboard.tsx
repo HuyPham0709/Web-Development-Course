@@ -1,6 +1,6 @@
-// ProfileDashboard.tsx (fully translated to English)
+// ProfileDashboard.tsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FileText, X, Plus, Trash2, Edit2, MapPin, Phone, Calendar, Loader2, UploadCloud, Sparkles, Briefcase } from 'lucide-react';
+import { FileText, X, Plus, Trash2, Edit2, MapPin, Phone, Calendar, Loader2, UploadCloud, Sparkles, Briefcase, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { CVBuilder } from '../../components/candidate/CVBuilder';
@@ -156,7 +156,10 @@ export default function ProfileDashboard() {
       if (modal === 'education') {
         newEdu = editEdu.map(edu => ({ ...edu, start_date: edu.start_date || '', end_date: edu.end_date || null }));
       }
-      if (modal === 'skills') newSkills = editSkills;
+      // Fixed syntax error here
+      if (modal === 'skills') {
+        newSkills = editSkills;
+      }
 
       if (modal === 'experience' && newExp.some(e => !e.company_name?.trim() || !e.position?.trim() || !e.start_date)) {
         showToast('error', 'Please fill in all work experience fields!');
@@ -342,14 +345,17 @@ export default function ProfileDashboard() {
         </div>
       )}
 
-      <div className={`min-h-screen bg-gray-50 dark:bg-[#0E1422] flex flex-col xl:flex-row max-w-[1920px] mx-auto transition-colors duration-300 ${showFullCVBuilder ? 'hidden' : ''}`}>
+      {/* Áp dụng Viewport Isolation (h-screen) để tách thanh cuộn Sidebar và Content */}
+      <div className={`min-h-screen xl:h-screen xl:overflow-hidden bg-white dark:bg-[#0E1422] flex flex-col xl:flex-row max-w-[1920px] mx-auto transition-colors duration-300 ${showFullCVBuilder ? 'hidden' : ''}`}>
         
-        <div className="w-full xl:w-1/5 flex-shrink-0 p-4 md:p-8 xl:pr-0">
+        {/* Sidebar */}
+        <div className="w-full xl:w-1/5 flex-shrink-0 p-4 md:p-8 xl:pr-0 xl:h-full xl:overflow-y-auto no-scrollbar">
           <ProfileSidebar activeTab={activeTab} setActiveTab={setActiveTab} userName={personalInfo.full_name} />
         </div>
 
-        <main className={`w-full p-4 md:p-8 overflow-y-auto ${activeTab === 'cv-builder' ? 'xl:w-4/5' : 'xl:w-3/5'}`}>
-          <div className={`w-full mx-auto ${activeTab === 'cv-builder' ? 'max-w-7xl' : 'max-w-4xl'}`}>
+        {/* Main Content */}
+        <main className={`w-full p-4 md:p-8 xl:h-full overflow-y-auto no-scrollbar transition-all duration-300 ${activeTab === 'cv-builder' ? 'xl:w-4/5' : 'xl:w-3/5'}`}>
+          <div className={`w-full mx-auto animate-fade-in-up ${activeTab === 'cv-builder' ? 'max-w-7xl' : 'max-w-4xl'}`}>
             
             {activeTab === 'cv-builder' && (
               <CvLibraryTab 
@@ -393,18 +399,19 @@ export default function ProfileDashboard() {
             )}
 
             {!['profile', 'cv-builder', 'applications', 'search-criteria', 'saved', 'account'].includes(activeTab) && (
-              <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
-                <div className="w-16 h-16 bg-gray-50 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
-                  <FileText className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+              <div className="rounded-3xl border border-gray-200 bg-white p-12 text-center flex flex-col items-center justify-center min-h-[400px] shadow-sm transition-colors duration-300 dark:border-white/10 dark:bg-white/5">
+                <div className="w-16 h-16 flex items-center justify-center rounded-2xl mb-4 bg-gray-50 dark:bg-white/5 text-gray-400 dark:text-gray-500 shadow-sm border border-gray-100 dark:border-white/10">
+                  <FileText className="w-8 h-8" />
                 </div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{getActiveTabLabel()}</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{getActiveTabLabel()}</h2>
                 <p className="text-gray-500 dark:text-gray-400 max-w-md">This feature is under development. Please check back later.</p>
               </div>
             )}
           </div>
         </main>
 
-        <aside className="hidden 2xl:block w-[360px] flex-shrink-0 sticky top-24 self-start">
+        {/* Aside */}
+        <aside className="hidden 2xl:block w-[360px] flex-shrink-0 p-4 md:p-8 xl:pl-0 xl:h-full xl:overflow-y-auto no-scrollbar">
           <RecommendedJobsAside 
             recommendedJobs={recommendedJobs} 
             openModal={openModal} 
@@ -415,84 +422,121 @@ export default function ProfileDashboard() {
       {/* MODALS */}
       {modal === 'personalInfo' && (
         <EditModal title="Edit Personal Information" onClose={() => setModal(null)} onSave={handleSave} saving={saving}>
-          <Field label="Full name *"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Nguyễn Văn A" value={editPI.full_name || ''} onChange={e => setEditPI(p => ({ ...p, full_name: e.target.value }))} /></Field>
-          <Field label="Title"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Senior Frontend Engineer" value={editPI.title || ''} onChange={e => setEditPI(p => ({ ...p, title: e.target.value }))} /></Field>
-          <Field label="Bio"><textarea className={inputCls + ' h-24 resize-none dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="A few lines about you..." value={editPI.bio || ''} onChange={e => setEditPI(p => ({ ...p, bio: e.target.value }))} /></Field>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Location"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Ho Chi Minh City" value={editPI.location || ''} onChange={e => setEditPI(p => ({ ...p, location: e.target.value }))} /></Field>
-            <Field label="Phone"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="0901 234 567" value={editPI.phone || ''} onChange={e => setEditPI(p => ({ ...p, phone: e.target.value }))} /></Field>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Date of birth"><input type="date" className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} value={editPI.dob || ''} onChange={e => setEditPI(p => ({ ...p, dob: e.target.value }))} /></Field>
-            <Field label="Gender">
-              <select className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} value={editPI.gender || ''} onChange={e => setEditPI(p => ({ ...p, gender: e.target.value as any }))}>
-                <option value="" className="dark:bg-[#0E1422] dark:text-white">-- Select --</option>
-                <option value="male" className="dark:bg-[#0E1422] dark:text-white">Male</option>
-                <option value="female" className="dark:bg-[#0E1422] dark:text-white">Female</option>
-                <option value="other" className="dark:bg-[#0E1422] dark:text-white">Other</option>
-              </select>
-            </Field>
+          <div className="space-y-4 animate-fade-in-up">
+            <Field label="Full name *"><input className={inputCls + ' bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 dark:text-white focus:dark:border-blue-500/50 transition-colors'} placeholder="Nguyễn Văn A" value={editPI.full_name || ''} onChange={e => setEditPI(p => ({ ...p, full_name: e.target.value }))} /></Field>
+            <Field label="Title"><input className={inputCls + ' bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 dark:text-white focus:dark:border-blue-500/50 transition-colors'} placeholder="Senior Frontend Engineer" value={editPI.title || ''} onChange={e => setEditPI(p => ({ ...p, title: e.target.value }))} /></Field>
+            <Field label="Bio"><textarea className={inputCls + ' bg-gray-50 h-24 resize-none dark:bg-white/5 border-gray-200 dark:border-white/10 dark:text-white focus:dark:border-blue-500/50 transition-colors'} placeholder="A few lines about you..." value={editPI.bio || ''} onChange={e => setEditPI(p => ({ ...p, bio: e.target.value }))} /></Field>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Location"><input className={inputCls + ' bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 dark:text-white focus:dark:border-blue-500/50 transition-colors'} placeholder="Ho Chi Minh City" value={editPI.location || ''} onChange={e => setEditPI(p => ({ ...p, location: e.target.value }))} /></Field>
+              <Field label="Phone"><input className={inputCls + ' bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 dark:text-white focus:dark:border-blue-500/50 transition-colors'} placeholder="0901 234 567" value={editPI.phone || ''} onChange={e => setEditPI(p => ({ ...p, phone: e.target.value }))} /></Field>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Date of birth"><input type="date" className={inputCls + ' bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 dark:text-white focus:dark:border-blue-500/50 transition-colors [color-scheme:dark]'} value={editPI.dob || ''} onChange={e => setEditPI(p => ({ ...p, dob: e.target.value }))} /></Field>
+              <Field label="Gender">
+                <select className={inputCls + ' bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 dark:text-white focus:dark:border-blue-500/50 transition-colors'} value={editPI.gender || ''} onChange={e => setEditPI(p => ({ ...p, gender: e.target.value as any }))}>
+                  <option value="" className="dark:bg-[#0E1422] dark:text-white">-- Select --</option>
+                  <option value="male" className="dark:bg-[#0E1422] dark:text-white">Male</option>
+                  <option value="female" className="dark:bg-[#0E1422] dark:text-white">Female</option>
+                  <option value="other" className="dark:bg-[#0E1422] dark:text-white">Other</option>
+                </select>
+              </Field>
+            </div>
           </div>
         </EditModal>
       )}
 
       {modal === 'experience' && (
         <EditModal title="Edit Work Experience" onClose={() => setModal(null)} onSave={handleSave} saving={saving}>
-          {editExp.map((exp, i) => (
-            <div key={i} className="p-4 border border-gray-100 dark:border-white/10 rounded-xl space-y-3 relative bg-gray-50 dark:bg-white/5">
-              <button onClick={() => removeExp(i)} className="absolute top-3 right-3 p-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"><Trash2 className="w-4 h-4" /></button>
-              <Field label="Company"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="TechCorp Inc." value={exp.company_name} onChange={e => updateExp(i, 'company_name', e.target.value)} /></Field>
-              <Field label="Position"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Senior Frontend Engineer" value={exp.position} onChange={e => updateExp(i, 'position', e.target.value)} /></Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Start date"><input type="date" className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} value={formatDateForInput(exp.start_date)} onChange={e => updateExp(i, 'start_date', e.target.value)} /></Field>
-                <Field label="End date"><input type="date" className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} value={formatDateForInput(exp.end_date)} onChange={e => updateExp(i, 'end_date', e.target.value)} /></Field>
+          <div className="space-y-4">
+            {editExp.map((exp, i) => (
+              <div 
+                key={i} 
+                style={{ animationDelay: `${i * 100}ms` }}
+                className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 hover:shadow-xl dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20 animate-fade-in-up opacity-0"
+              >
+                <button onClick={() => removeExp(i)} className="absolute top-4 right-4 p-2 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors z-10"><Trash2 className="w-5 h-5" /></button>
+                <div className="space-y-3 relative z-0">
+                  <Field label="Company"><input className={inputCls + ' bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 dark:text-white focus:dark:border-blue-500/50 transition-colors'} placeholder="TechCorp Inc." value={exp.company_name} onChange={e => updateExp(i, 'company_name', e.target.value)} /></Field>
+                  <Field label="Position"><input className={inputCls + ' bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 dark:text-white focus:dark:border-blue-500/50 transition-colors'} placeholder="Senior Frontend Engineer" value={exp.position} onChange={e => updateExp(i, 'position', e.target.value)} /></Field>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Start date"><input type="date" className={inputCls + ' bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 dark:text-white transition-colors [color-scheme:dark]'} value={formatDateForInput(exp.start_date)} onChange={e => updateExp(i, 'start_date', e.target.value)} /></Field>
+                    <Field label="End date"><input type="date" className={inputCls + ' bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 dark:text-white transition-colors [color-scheme:dark]'} value={formatDateForInput(exp.end_date)} onChange={e => updateExp(i, 'end_date', e.target.value)} /></Field>
+                  </div>
+                  <Field label="Description"><textarea className={inputCls + ' bg-gray-50 h-20 resize-none dark:bg-white/5 border-gray-200 dark:border-white/10 dark:text-white focus:dark:border-blue-500/50 transition-colors'} placeholder="Job description..." value={exp.description} onChange={e => updateExp(i, 'description', e.target.value)} /></Field>
+                </div>
               </div>
-              <Field label="Description"><textarea className={inputCls + ' h-20 resize-none dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Job description..." value={exp.description} onChange={e => updateExp(i, 'description', e.target.value)} /></Field>
-            </div>
-          ))}
-          <button onClick={addExp} className="w-full py-3 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl text-sm text-gray-500 dark:text-gray-400 hover:border-blue-300 dark:hover:border-blue-500/50 hover:text-blue-500 dark:hover:text-blue-400 transition-colors flex items-center justify-center gap-2"><Plus className="w-4 h-4" /> Add Experience</button>
+            ))}
+            <button onClick={addExp} className="w-full py-4 rounded-3xl border-2 border-dashed border-gray-200 bg-gray-50 text-sm font-medium text-gray-500 transition-all hover:border-blue-300 hover:bg-blue-50/50 hover:text-blue-600 dark:border-white/10 dark:bg-white/5 dark:text-gray-400 dark:hover:border-blue-500/50 dark:hover:text-blue-400 flex items-center justify-center gap-2"><Plus className="w-5 h-5" /> Add Experience</button>
+          </div>
         </EditModal>
       )}
 
       {modal === 'education' && (
         <EditModal title="Edit Education" onClose={() => setModal(null)} onSave={handleSave} saving={saving}>
-          {editEdu.map((edu, i) => (
-            <div key={i} className="p-4 border border-gray-100 dark:border-white/10 rounded-xl space-y-3 relative bg-gray-50 dark:bg-white/5">
-              <button onClick={() => removeEdu(i)} className="absolute top-3 right-3 p-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"><Trash2 className="w-4 h-4" /></button>
-              <Field label="School"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Hanoi University of Science and Technology" value={edu.school_name} onChange={e => updateEdu(i, 'school_name', e.target.value)} /></Field>
-              <Field label="Major"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Information Technology" value={edu.major} onChange={e => updateEdu(i, 'major', e.target.value)} /></Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Start year"><input type="date" className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} value={edu.start_date} onChange={e => updateEdu(i, 'start_date', e.target.value)} /></Field>
-                <Field label="End year"><input type="date" className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} value={edu.end_date || ''} onChange={e => updateEdu(i, 'end_date', e.target.value)} /></Field>
+          <div className="space-y-4">
+            {editEdu.map((edu, i) => (
+              <div 
+                key={i} 
+                style={{ animationDelay: `${i * 100}ms` }}
+                className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 hover:shadow-xl dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20 animate-fade-in-up opacity-0"
+              >
+                <button onClick={() => removeEdu(i)} className="absolute top-4 right-4 p-2 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors z-10"><Trash2 className="w-5 h-5" /></button>
+                <div className="space-y-3 relative z-0">
+                  <Field label="School"><input className={inputCls + ' bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 dark:text-white focus:dark:border-blue-500/50 transition-colors'} placeholder="Hanoi University of Science and Technology" value={edu.school_name} onChange={e => updateEdu(i, 'school_name', e.target.value)} /></Field>
+                  <Field label="Major"><input className={inputCls + ' bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 dark:text-white focus:dark:border-blue-500/50 transition-colors'} placeholder="Information Technology" value={edu.major} onChange={e => updateEdu(i, 'major', e.target.value)} /></Field>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Start year"><input type="date" className={inputCls + ' bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 dark:text-white transition-colors [color-scheme:dark]'} value={edu.start_date} onChange={e => updateEdu(i, 'start_date', e.target.value)} /></Field>
+                    <Field label="End year"><input type="date" className={inputCls + ' bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 dark:text-white transition-colors [color-scheme:dark]'} value={edu.end_date || ''} onChange={e => updateEdu(i, 'end_date', e.target.value)} /></Field>
+                  </div>
+                  <Field label="Description"><textarea className={inputCls + ' bg-gray-50 h-20 resize-none dark:bg-white/5 border-gray-200 dark:border-white/10 dark:text-white focus:dark:border-blue-500/50 transition-colors'} placeholder="Achievements, activities..." value={edu.description || ''} onChange={e => updateEdu(i, 'description', e.target.value)} /></Field>
+                </div>
               </div>
-              <Field label="Description"><textarea className={inputCls + ' h-16 resize-none dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Achievements, activities..." value={edu.description || ''} onChange={e => updateEdu(i, 'description', e.target.value)} /></Field>
-            </div>
-          ))}
-          <button onClick={addEdu} className="w-full py-3 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl text-sm text-gray-500 dark:text-gray-400 hover:border-blue-300 dark:hover:border-blue-500/50 hover:text-blue-500 dark:hover:text-blue-400 transition-colors flex items-center justify-center gap-2"><Plus className="w-4 h-4" /> Add Education</button>
+            ))}
+            <button onClick={addEdu} className="w-full py-4 rounded-3xl border-2 border-dashed border-gray-200 bg-gray-50 text-sm font-medium text-gray-500 transition-all hover:border-blue-300 hover:bg-blue-50/50 hover:text-blue-600 dark:border-white/10 dark:bg-white/5 dark:text-gray-400 dark:hover:border-blue-500/50 dark:hover:text-blue-400 flex items-center justify-center gap-2"><Plus className="w-5 h-5" /> Add Education</button>
+          </div>
         </EditModal>
       )}
 
       {modal === 'skills' && (
         <EditModal title="Edit Skills" onClose={() => setModal(null)} onSave={handleSave} saving={saving}>
-          <div className="flex gap-2">
-            <input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="e.g., React, TypeScript..." value={newSkill} onChange={e => setNewSkill(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSkill())} />
-            <button onClick={addSkill} className="px-4 py-2.5 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors flex-shrink-0"><Plus className="w-4 h-4" /></button>
-          </div>
-          <div className="flex flex-wrap gap-2 min-h-[60px] p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/10">
-            {editSkills.length === 0 && <span className="text-sm text-gray-400 dark:text-gray-500 m-auto">Type a skill and press Enter or + button</span>}
-            {editSkills.map(skill => (
-              <span key={skill} className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 text-sm rounded-lg font-medium">
-                {skill}
-                <button onClick={() => setEditSkills(prev => prev.filter(s => s !== skill))} className="text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"><X className="w-3.5 h-3.5" /></button>
-              </span>
-            ))}
+          <div className="space-y-6 animate-fade-in-up">
+            
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-100 text-purple-600 dark:bg-purple-950/50 dark:text-purple-400 flex-shrink-0">
+                <TrendingUp size={20} />
+              </div>
+              <div className="flex-1 flex gap-2">
+                <input className={inputCls + ' bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 dark:text-white focus:dark:border-purple-500/50 transition-colors'} placeholder="Add your skills..." value={newSkill} onChange={e => setNewSkill(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSkill())} />
+                <button onClick={addSkill} className="px-5 py-2.5 bg-purple-600 dark:bg-purple-500 text-white rounded-xl hover:bg-purple-700 dark:hover:bg-purple-600 transition-all flex-shrink-0 shadow-md hover:shadow-lg"><Plus className="w-5 h-5" /></button>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-3 min-h-[120px] p-6 bg-white dark:bg-[#0E1422] rounded-3xl border border-gray-200 dark:border-white/10 shadow-inner">
+              {editSkills.length === 0 && <span className="text-sm text-gray-400 dark:text-gray-500 m-auto flex flex-col items-center gap-2"><Sparkles className="w-6 h-6 opacity-50"/>Type a skill and press Enter</span>}
+              {editSkills.map((skill, i) => (
+                <span 
+                  key={skill} 
+                  style={{ animationDelay: `${i * 50}ms` }}
+                  className="group flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-5 py-2 text-sm font-medium text-gray-700 transition-all hover:border-purple-300 hover:bg-purple-50/50 hover:text-purple-700 hover:shadow-[0_0_15px_rgba(139,92,246,0.15)] dark:border-white/10 dark:bg-white/5 dark:text-gray-300 dark:hover:border-purple-500/50 dark:hover:text-purple-400 animate-fade-in-up opacity-0"
+                >
+                  {skill}
+                  <button onClick={() => setEditSkills(prev => prev.filter(s => s !== skill))} className="text-gray-400 dark:text-gray-500 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors p-0.5 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30"><X className="w-3.5 h-3.5" /></button>
+                </span>
+              ))}
+            </div>
           </div>
         </EditModal>
       )}
 
+      {/* CSS Injection cho Animations và Scrollbar */}
       <style>{`
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
+        @keyframes fadeInUp { 
+          from { opacity: 0; transform: translateY(16px); } 
+          to { opacity: 1; transform: translateY(0); } 
+        }
+        .animate-fade-in-up { 
+          animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+        }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>

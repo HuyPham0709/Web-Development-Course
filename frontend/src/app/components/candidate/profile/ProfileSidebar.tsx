@@ -62,8 +62,20 @@ export function ProfileSidebar({
     );
   };
 
+  // LOGIC MỚI: Tự động lọc bỏ tab 'applications' khỏi danh sách hiển thị
+  const filteredMenu = SIDEBAR_MENU.map(item => {
+    if (item.subItems) {
+      return {
+        ...item,
+        // Lọc bỏ nếu nó nằm trong subItems
+        subItems: item.subItems.filter(sub => sub.id !== 'applications')
+      };
+    }
+    return item;
+  }).filter(item => item.id !== 'applications'); // Lọc bỏ nếu nó là menu item cha
+
   return (
-    <aside className="w-full bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-sm rounded-2xl flex flex-col h-[calc(100vh-2rem)] md:h-[calc(100vh-4rem)] sticky top-4 md:top-8 z-10 transition-all duration-300">
+    <aside className="w-full bg-white dark:bg-[#0E1422] border border-gray-100 dark:border-white/10 shadow-sm rounded-2xl flex flex-col h-[calc(100vh-2rem)] md:h-[calc(100vh-4rem)] sticky top-4 md:top-8 z-10 transition-all duration-300">
 
       <div className="p-5 overflow-y-auto custom-scrollbar h-full">
 
@@ -74,7 +86,7 @@ export function ProfileSidebar({
             {userName || 'Unnamed User'}
           </h2>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-300 hover:shadow-md hover:border-purple-200 dark:hover:border-purple-500/20">
+          <div className="bg-white dark:bg-white/5 rounded-2xl p-4 flex items-center justify-between border border-gray-200 dark:border-white/10 shadow-sm transition-all duration-300 hover:shadow-md hover:border-purple-200 dark:hover:border-purple-500/20">
 
             <div className="flex items-center gap-3">
 
@@ -82,7 +94,7 @@ export function ProfileSidebar({
                 className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
                   allowSearch
                     ? 'bg-green-100 dark:bg-green-500/10'
-                    : 'bg-gray-100 dark:bg-gray-700'
+                    : 'bg-gray-100 dark:bg-white/5'
                 }`}
               >
                 {allowSearch ? (
@@ -124,7 +136,8 @@ export function ProfileSidebar({
         {/* ── Menu Navigation ── */}
         <nav className="space-y-1.5">
 
-          {SIDEBAR_MENU.map((item) => {
+          {/* Sử dụng filteredMenu đã lọc thay vì SIDEBAR_MENU gốc */}
+          {filteredMenu.map((item) => {
 
             const isExpanded = expandedMenus.includes(item.id);
 
@@ -138,7 +151,7 @@ export function ProfileSidebar({
 
                   <button
                     onClick={() => toggleMenu(item.id)}
-                    className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 group"
+                    className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-all duration-200 group"
                   >
                     <div className="flex items-center gap-3">
 
@@ -160,7 +173,7 @@ export function ProfileSidebar({
 
                   {/* Sub Menu */}
                   {isExpanded && (
-                    <div className="mt-1 ml-4 border-l-2 border-gray-100 dark:border-gray-800 pl-4 space-y-1 animate-in fade-in slide-in-from-top-1 duration-300">
+                    <div className="mt-1 ml-4 border-l-2 border-gray-100 dark:border-white/10 pl-4 space-y-1 animate-in fade-in slide-in-from-top-1 duration-300">
 
                       {item.subItems!.map((sub) => (
 
@@ -170,7 +183,7 @@ export function ProfileSidebar({
                           className={`w-full text-left px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${
                             activeTab === sub.id
                               ? 'text-purple-700 dark:text-purple-400 font-bold bg-purple-50 dark:bg-purple-950/30 shadow-sm'
-                              : 'text-gray-600 dark:text-gray-400 font-medium hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800'
+                              : 'text-gray-600 dark:text-gray-400 font-medium hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
                           }`}
                         >
                           {sub.label}
@@ -190,7 +203,7 @@ export function ProfileSidebar({
                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm transition-all duration-200 ${
                   activeTab === item.id
                     ? 'text-purple-700 dark:text-purple-400 font-bold bg-purple-50 dark:bg-purple-950/30 shadow-sm'
-                    : 'text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-50 dark:hover:bg-gray-800 hover:translate-x-1'
+                    : 'text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-50 dark:hover:bg-white/5 hover:translate-x-1'
                 }`}
               >
 
