@@ -404,9 +404,12 @@ export default function ProfileDashboard() {
           </div>
         </main>
 
-        {activeTab !== 'cv-builder' && (
-          <RecommendedJobsAside recommendedJobs={recommendedJobs} openModal={openModal} />
-        )}
+        <aside className="hidden 2xl:block w-[360px] flex-shrink-0 sticky top-24 self-start">
+          <RecommendedJobsAside 
+            recommendedJobs={recommendedJobs} 
+            openModal={openModal} 
+          />
+        </aside>
       </div>
 
       {/* MODALS */}

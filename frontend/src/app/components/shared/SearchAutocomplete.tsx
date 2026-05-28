@@ -235,7 +235,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                         : "bg-gray-100 dark:bg-zinc-800 text-blue-600 dark:text-blue-400 opacity-0 group-hover:opacity-100 transform translate-x-1 group-hover:translate-x-0"
                       }
                     `}>
-                      <span>Chọn</span>
+                      <span>Take</span>
                       <span className="text-[10px]">→</span>
                     </div>
                   </li>
