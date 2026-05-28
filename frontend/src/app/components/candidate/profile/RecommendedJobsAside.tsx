@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Sparkles,
@@ -6,8 +6,6 @@ import {
   ChevronRight,
   MapPin,
   Clock3,
-  TrendingUp,
-  Crown,
 } from 'lucide-react';
 
 interface RecommendedJob {
@@ -27,6 +25,8 @@ interface RecommendedJob {
 
 interface RecommendedJobsAsideProps {
   recommendedJobs?: RecommendedJob[];
+  // Thêm userData vào props để tính điểm
+  userData: any; 
   openModal: (
     type: 'personalInfo' | 'experience' | 'education' | 'skills' | null
   ) => void;
@@ -34,16 +34,40 @@ interface RecommendedJobsAsideProps {
 
 export function RecommendedJobsAside({
   recommendedJobs = [],
+  userData,
   openModal,
 }: RecommendedJobsAsideProps) {
+
+  const profileScore = useMemo(() => {
+    if (!userData) {
+      console.log("ProfileBoost: userData bị null hoặc undefined");
+      return 0;
+    }
+
+    const fieldsToCheck = [
+      'full_name', 'title', 'location', 'phone', 'gender', 
+      'dob', 'cv_url', 'avatar_url', 'cover_url', 'bio'
+    ];
+    
+    // Debug chi tiết từng trường
+    const results = fieldsToCheck.map(field => {
+      const value = userData[field];
+      const isFilled = value !== null && value !== undefined && String(value).trim() !== '';
+      return { field, isFilled, value };
+    });
+
+    // In ra table để bạn nhìn cho rõ ở Tab Console
+    console.table(results);
+
+    const filledCount = results.filter(r => r.isFilled).length;
+    return Math.round((filledCount / fieldsToCheck.length) * 100);
+  }, [userData]);
   return (
     <aside className="hidden 2xl:block w-[360px] pl-6 flex-shrink-0 sticky top-24 self-start">
-      <div className="space-y-4"> {/* Giảm space-y từ 6 xuống 4 */}
+      <div className="space-y-4">
 
         {/* ───────────────── AI RECOMMENDED JOBS ───────────────── */}
         <div className="relative overflow-hidden rounded-[24px] border border-gray-100 dark:border-white/10 bg-white dark:bg-[#0B1120] shadow-sm dark:shadow-none">
-          
-          {/* Header: Làm mỏng hơn */}
           <div className="relative px-5 py-4 border-b border-gray-100 dark:border-white/5 flex items-center justify-between bg-gray-50/50 dark:bg-white/[0.02]">
             <div className="flex items-center gap-3">
               <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-md">
@@ -63,7 +87,6 @@ export function RecommendedJobsAside({
             </div>
           </div>
 
-          {/* Jobs List: Tối ưu scrollbar và padding */}
           <div className="relative p-3 max-h-[580px] overflow-y-auto custom-scrollbar space-y-2">
             {recommendedJobs.length === 0 ? (
               <div className="py-12 text-center">
@@ -79,7 +102,6 @@ export function RecommendedJobsAside({
                   className="group relative block rounded-2xl border border-transparent bg-gray-50/50 dark:bg-white/[0.03] p-3 transition-all hover:border-blue-500/30 hover:bg-white dark:hover:bg-white/[0.06] hover:shadow-md"
                 >
                   <div className="flex gap-3">
-                    {/* Logo: Nhỏ lại một chút */}
                     <div className="relative w-11 h-11 flex-shrink-0 rounded-xl overflow-hidden border border-gray-100 dark:border-white/10 bg-white p-1.5">
                       <img
                         src={job.company_logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company_name || 'C')}&background=random`}
@@ -126,38 +148,41 @@ export function RecommendedJobsAside({
           </div>
         </div>
 
-        {/* ───────────────── PROFILE BOOST: Làm gọn card ───────────────── */}
-        <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-indigo-600 to-blue-700 p-5 text-white shadow-lg">
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="w-3.5 h-3.5 text-cyan-300" />
-              <span className="text-[10px] font-black tracking-widest uppercase opacity-90">Profile Boost</span>
-            </div>
-            
-            <h3 className="text-lg font-bold leading-tight">Increase Match Score</h3>
-            
-            <div className="mt-4 p-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/10">
-              <div className="flex justify-between text-[10px] font-bold mb-1.5">
-                <span>Strength</span>
-                <span>80%</span>
+        {/* ───────────────── PROFILE BOOST CARD (ẨN KHI 100%) ───────────────── */}
+        {profileScore < 100 && (
+          <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-indigo-600 to-blue-700 p-5 text-white shadow-lg">
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="w-3.5 h-3.5 text-cyan-300" />
+                <span className="text-[10px] font-black tracking-widest uppercase opacity-90">Profile Boost</span>
               </div>
-              <div className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
-                <div className="h-full w-[80%] bg-gradient-to-r from-cyan-400 to-white" />
+              
+              <h3 className="text-lg font-bold leading-tight">Increase Match Score</h3>
+              
+              <div className="mt-4 p-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/10">
+                <div className="flex justify-between text-[10px] font-bold mb-1.5">
+                  <span>Strength</span>
+                  {/* Sử dụng profileScore đã khai báo ở useMemo */}
+                  <span>{profileScore}%</span>
+                </div>
+                <div className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-cyan-400 to-white transition-all duration-700" 
+                    style={{ width: `${profileScore}%` }} 
+                  />
+                </div>
               </div>
-            </div>
 
-            <button
-              onClick={() => openModal('personalInfo')}
-              className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl bg-white py-2.5 text-[12px] font-black text-indigo-700 transition-all hover:bg-blue-50 active:scale-[0.98]"
-            >
-              Upgrade Profile
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
+              <button
+                onClick={() => openModal('personalInfo')}
+                className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl bg-white py-2.5 text-[12px] font-black text-indigo-700 hover:bg-blue-50"
+              >
+                Upgrade Profile
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-          
-          {/* Decorative Circles: Nhẹ nhàng hơn */}
-          <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-        </div>
+        )}
       </div>
     </aside>
   );

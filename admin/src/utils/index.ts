@@ -1,3 +1,4 @@
+import { CompanyFeedback } from '../types';
 // Tạo chữ viết tắt từ tên (VD: "Global Logistics" -> "GL")
 export function getInitials(name: string): string {
     return name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '??';
@@ -72,4 +73,13 @@ export function generateSlug(name: string): string {
         .replace(/đ/g, 'd')
         .replace(/\s+/g, '-')
         .replace(/[^a-z0-9-]/g, '');
+}
+
+export function getCompanyFeedbacks(): CompanyFeedback[] {
+  const data = localStorage.getItem('company_feedbacks');
+  return data ? JSON.parse(data) : [];
+}
+
+export function saveCompanyFeedback(feedbacks: CompanyFeedback[]): void {
+  localStorage.setItem('company_feedbacks', JSON.stringify(feedbacks));
 }

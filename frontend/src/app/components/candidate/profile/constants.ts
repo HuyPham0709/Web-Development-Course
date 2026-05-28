@@ -37,19 +37,6 @@ export const SIDEBAR_MENU: MenuItem[] = [
   },
 
   {
-    id: 'group-support',
-    label: 'Support & Notifications',
-    icon: Bell,
-    subItems: [
-      { id: 'messages', label: 'Messages' },
-      { id: 'email-settings', label: 'Email Notification Settings' },
-      { id: 'guidelines', label: 'User Guidelines' },
-      // { id: 'handbook', label: 'Career Handbook' },
-      // { id: 'personality-test', label: 'Personality Test' },
-    ]
-  },
-
-  {
     id: 'account',
     label: 'Appearance Settings',
     icon: Settings,
