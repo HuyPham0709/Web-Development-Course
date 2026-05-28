@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // Đã thêm import này
 import { TrendingUp, Briefcase } from "lucide-react";
 // Import toàn bộ icon từ thư viện lucide để làm bộ tra cứu động
 import * as LucideIcons from "lucide-react"; 
@@ -30,6 +31,9 @@ const categoryTranslations: Record<string, string> = {
 export function CategoriesAndSkills() {
   const [categories, setCategories] = useState([]);
   const [skills, setSkills] = useState([]);
+  
+  // Khởi tạo hook điều hướng
+  const navigate = useNavigate(); 
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -80,7 +84,8 @@ export function CategoriesAndSkills() {
             return (
               <div
                 key={cat.id || idx}
-                className={`group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 hover:shadow-xl ${gradient.glowColor} dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20`}
+                onClick={() => navigate(`/jobs?category_id=${cat.id}`)} // Bắt sự kiện click
+                className={`group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 hover:shadow-xl cursor-pointer ${gradient.glowColor} dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20`}
               >
                 <div>
                   {/* Khối chứa Icon động */}
@@ -121,6 +126,7 @@ export function CategoriesAndSkills() {
             {skills.map((skill: string, idx: number) => (
               <button
                 key={idx}
+                onClick={() => navigate(`/jobs?title=${encodeURIComponent(skill)}`)} // Bắt sự kiện click
                 className="rounded-full border border-gray-200 bg-gray-50 px-6 py-2.5 text-sm font-medium text-gray-700 transition-all hover:border-purple-300 hover:bg-purple-50/50 hover:text-purple-700 hover:shadow-[0_0_15px_rgba(139,92,246,0.15)] dark:border-white/10 dark:bg-white/5 dark:text-gray-300 dark:hover:border-purple-500/50 dark:hover:text-purple-400"
               >
                 {skill}

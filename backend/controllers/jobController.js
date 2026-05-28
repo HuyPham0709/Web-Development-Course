@@ -6,7 +6,8 @@ exports.createJob = async (req, res) => {
         title, category_id, location_id,
         job_type, salary_min, salary_max,
         experience_level, description, requirements, benefits,
-        status
+        status,
+        skills // <--- Đổi thành skills (nhận mảng tên kỹ năng, VD: ['React', 'NodeJS'])
     } = req.body;
 
     const posted_by = req.user.id;
@@ -27,6 +28,7 @@ exports.createJob = async (req, res) => {
     }
 
     try {
+        // 1. Chèn dữ liệu vào bảng Jobs như cũ
         const [result] = await db.execute(
             `INSERT INTO Jobs 
             (title, category_id, location_id, company_id, posted_by,
@@ -45,10 +47,34 @@ exports.createJob = async (req, res) => {
             ]
         );
 
+        const newJobId = result.insertId;
+
+        // 2. THÊM MỚI: Chuyển đổi tên kỹ năng thành ID và chèn vào Job_Skills
+        if (skills && Array.isArray(skills) && skills.length > 0) {
+            // Tạo chuỗi dấu '?' tương ứng với số lượng skill
+            const placeholders = skills.map(() => '?').join(',');
+            
+            // Tìm ID của các skill có tên nằm trong mảng skills
+            const [skillRows] = await db.execute(`SELECT id FROM Skills WHERE name IN (${placeholders})`, skills);
+            
+            if (skillRows.length > 0) {
+                const insertValues = [];
+                const valuePlaceholders = skillRows.map(row => {
+                    insertValues.push(newJobId, row.id);
+                    return '(?, ?)';
+                }).join(', ');
+
+                await db.execute(
+                    `INSERT IGNORE INTO Job_Skills (job_id, skill_id) VALUES ${valuePlaceholders}`,
+                    insertValues
+                );
+            }
+        }
+
         res.status(201).json({
             success: true,
             message: 'Tin tuyển dụng đã được gửi và đang chờ kiểm duyệt!',
-            jobId: result.insertId
+            jobId: newJobId
         });
     } catch (error) {
         console.error('Lỗi createJob:', error);
@@ -60,7 +86,7 @@ exports.createJob = async (req, res) => {
 exports.getAllJobs = async (req, res) => {
     try {
         const { 
-            title, location, category_id, type, experience_level, salary_min, 
+            title, location, category_id, type, experience_level, salary_min, salary, 
             page, limit, company_id // <-- THÊM company_id VÀO ĐÂY
         } = req.query;
 
@@ -97,9 +123,26 @@ exports.getAllJobs = async (req, res) => {
             whereClause += ` AND j.experience_level = ?`;
             params.push(experience_level);
         }
+        
+        // LOGIC CŨ: Xử lý slider lương tối thiểu (Từ trang Jobs)
         if (salary_min && Number(salary_min) > 0) {
             whereClause += ` AND j.salary_max >= ?`; 
             params.push(Number(salary_min));
+        }
+
+        // THÊM MỚI: Xử lý chuỗi khoảng lương (Từ dropdown trang Hero - VD: "1000-2000" hoặc "3000+")
+        if (salary) {
+            if (salary.includes('-')) {
+                const parts = salary.split('-');
+                const minS = parseInt(parts[0], 10) || 0;
+                const maxS = parseInt(parts[1], 10) || 99999999;
+                whereClause += ` AND j.salary_max >= ? AND j.salary_min <= ?`;
+                params.push(minS, maxS);
+            } else if (salary.includes('+')) {
+                const minS = parseInt(salary.replace('+', ''), 10) || 0;
+                whereClause += ` AND j.salary_max >= ?`;
+                params.push(minS);
+            }
         }
 
         let countQuery = `
@@ -161,12 +204,16 @@ exports.getJobDetail = async (req, res) => {
                    c.name as company_name, c.logo_url, c.banner_url,
                    c.website, c.address as company_address, c.description as company_desc,
                    l.name as location_name,
-                   cat.name as category_name
+                   cat.name as category_name,
+                   GROUP_CONCAT(s.name SEPARATOR ',') as skills -- <--- THÊM: Gộp tên kĩ năng thành chuỗi
             FROM Jobs j
             LEFT JOIN Companies c ON j.company_id = c.id
             LEFT JOIN Locations l ON j.location_id = l.id
             LEFT JOIN Categories cat ON j.category_id = cat.id
+            LEFT JOIN Job_Skills js ON j.id = js.job_id        -- <--- THÊM: Kết hợp bảng trung gian
+            LEFT JOIN Skills s ON js.skill_id = s.id           -- <--- THÊM: Kết hợp bảng kĩ năng
             WHERE j.id = ?
+            GROUP BY j.id                                      -- <--- THÊM: Group by ID để gom nhóm GROUP_CONCAT
         `, [jobId]);
 
         if (jobs.length === 0) {
@@ -186,7 +233,8 @@ exports.updateJob = async (req, res) => {
     const {
         title, category_id, location_id,
         job_type, salary_min, salary_max,
-        experience_level, description, requirements
+        experience_level, description, requirements,
+        skills // <--- Đổi thành skills (nhận mảng tên kỹ năng mới)
     } = req.body;
 
     try {
@@ -199,6 +247,7 @@ exports.updateJob = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Không tìm thấy hoặc bạn không có quyền sửa tin này!' });
         }
 
+        // 1. Cập nhật thông tin bảng Jobs
         await db.execute(
             `UPDATE Jobs SET
                 title = ?, category_id = ?, location_id = ?,
@@ -217,6 +266,31 @@ exports.updateJob = async (req, res) => {
                 jobId
             ]
         );
+
+        // 2. THÊM MỚI: Đồng bộ lại danh sách kĩ năng mới bằng cách map từ Tên sang ID
+        if (skills && Array.isArray(skills)) {
+            // Bước A: Xóa bỏ tất cả kĩ năng cũ liên kết với job này
+            await db.execute('DELETE FROM Job_Skills WHERE job_id = ?', [jobId]);
+
+            // Bước B: Nếu mảng mới có phần tử, thực hiện query lấy ID và chèn vào
+            if (skills.length > 0) {
+                const placeholders = skills.map(() => '?').join(',');
+                const [skillRows] = await db.execute(`SELECT id FROM Skills WHERE name IN (${placeholders})`, skills);
+                
+                if (skillRows.length > 0) {
+                    const insertValues = [];
+                    const valuePlaceholders = skillRows.map(row => {
+                        insertValues.push(jobId, row.id);
+                        return '(?, ?)';
+                    }).join(', ');
+
+                    await db.execute(
+                        `INSERT IGNORE INTO Job_Skills (job_id, skill_id) VALUES ${valuePlaceholders}`,
+                        insertValues
+                    );
+                }
+            }
+        }
 
         res.status(200).json({ success: true, message: 'Cập nhật tin thành công! Tin đang chờ kiểm duyệt lại.' });
     } catch (error) {

@@ -191,3 +191,39 @@ exports.uploadBanner = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Lỗi upload banner.', error: error.message });
     }
 };
+exports.getTopCompanies = async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                c.id,
+                c.name,
+                c.logo_url,
+                c.banner_url,
+                c.description,
+                c.is_verified,
+                -- Gom nhóm toàn bộ tên kỹ năng từ các Jobs đang kích hoạt thành chuỗi phân tách bằng dấu phẩy
+                GROUP_CONCAT(DISTINCT s.name SEPARATOR ',') AS tech_stack
+            FROM Companies c
+            LEFT JOIN Jobs j ON c.id = j.company_id AND j.status = 'approved' AND j.deleted_at IS NULL
+            LEFT JOIN Job_Skills js ON j.id = js.job_id
+            LEFT JOIN Skills s ON js.skill_id = s.id
+            WHERE c.deleted_at IS NULL
+            GROUP BY c.id
+            ORDER BY c.is_verified DESC, c.created_at DESC
+            LIMIT 3;
+        `;
+
+        const [rows] = await db.query(query);
+
+        // Trả về danh sách dữ liệu có chứa cột tech_stack động cho Frontend
+        return res.json(rows);
+
+    } catch (error) {
+        console.error('Lỗi khi nạp danh sách Top công ty kèm Tech Stack:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Lỗi hệ thống khi kết xuất dữ liệu công ty nổi bật.',
+            error: error.message
+        });
+    }
+};

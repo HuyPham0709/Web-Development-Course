@@ -1,4 +1,4 @@
-// src/types/job.ts (Hoặc thêm trực tiếp vào đầu file LiveJobFeed.tsx)
+// src/types/job.ts
 
 export interface ICompany {
   id?: number;
@@ -45,6 +45,7 @@ export interface IJobFilters {
   status?: string;
   page?: number;
   limit?: number;
+  salary?: string; // 🌟 Giữ nguyên hỗ trợ lọc lương theo chuỗi khoảng giá trị
 }
 
 export interface IPaginatedResponse<T> {
