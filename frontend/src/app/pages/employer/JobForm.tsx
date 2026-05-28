@@ -1,9 +1,9 @@
 // ==========================================
-// JobForm.tsx — Fixed & Unified (Post Job + Edit Job)
+// JobForm.tsx — Fixed & Unified (Post Job + Edit Job + Skills with Array of Strings)
 // ==========================================
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, Save, Send, AlertCircle, CheckCircle2 } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom"; // Added useParams to retrieve post ID
+import { useNavigate, useParams } from "react-router-dom";
 import { formatSalary } from "../../../utils/format";
 
 // Ensure this URL targets your correct Backend port 5000
@@ -20,6 +20,7 @@ function getHeaders() {
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Category { id: number; name: string; }
 interface Location { id: number; name: string; }
+// Không cần interface Skill nữa vì API skill hiện tại trả về mảng chuỗi string[]
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
 function Toast({ type, message }: { type: "success" | "error"; message: string }) {
@@ -114,6 +115,7 @@ interface FormState {
   description: string;
   requirements: string;
   benefits: string;
+  skills: string[]; // <-- Đổi thành mảng chuỗi (VD: ['React', 'NodeJS'])
 }
 
 const defaultForm: FormState = {
@@ -128,37 +130,41 @@ const defaultForm: FormState = {
   description: "",
   requirements: "",
   benefits: "",
+  skills: [], // <-- Khởi tạo mảng rỗng
 };
 
 export function JobForm() {
   const navigate = useNavigate();
-  const { id } = useParams(); // 👈 Extract ID from URL (if available, e.g., /jobs/edit/231)
-  const isEditMode = !!id;     // Check if currently operating in edit mode
+  const { id } = useParams();
+  const isEditMode = !!id;
 
   const [form, setForm] = useState<FormState>(defaultForm);
-  const [errors, setErrors] = useState<Partial<FormState>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [categories, setCategories] = useState<Category[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
+  const [availableSkills, setAvailableSkills] = useState<string[]>([]); // <-- Chứa danh sách skill string[] từ API
   const [loadingMeta, setLoadingMeta] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [animate, setAnimate] = useState(false);
 
-  // 1. Load categories & locations from Backend (Fix 404 port 5173 issue)
+  // 1. Load categories, locations, skills từ Backend
   useEffect(() => {
     Promise.all([
       fetch(`${BACKEND_URL}/categories`).then((r) => r.json()),
       fetch(`${BACKEND_URL}/locations`).then((r) => r.json()),
+      fetch(`${BACKEND_URL}/skills`).then((r) => r.json()),
     ])
-      .then(([catData, locData]) => {
+      .then(([catData, locData, skillData]) => {
         setCategories(catData.data || []);
         setLocations(locData.data || []);
+        setAvailableSkills(skillData.data || []); // <-- skillData.data hiện là ['React', 'NodeJS', ...]
       })
       .catch(console.error)
       .finally(() => setLoadingMeta(false));
   }, []);
 
-  // 2. 🌟 NEW: If in EDIT mode, call API to fetch old job posting records and assign to form state
+  // 2. Load thông tin Job nếu ở chế độ Edit
   useEffect(() => {
     if (isEditMode) {
       fetch(`${BACKEND_URL}/jobs/${id}`, { headers: getHeaders() })
@@ -166,6 +172,10 @@ export function JobForm() {
         .then((resData) => {
           if (resData.success && resData.data) {
             const job = resData.data;
+            
+            // Backend đang trả về GROUP_CONCAT dạng chuỗi, VD: "React,NodeJS"
+            const jobSkillsArray = job.skills ? job.skills.split(',').filter(Boolean) : [];
+
             setForm({
               title: job.title || "",
               category_id: String(job.category_id || ""),
@@ -178,6 +188,7 @@ export function JobForm() {
               description: job.description || "",
               requirements: job.requirements || "",
               benefits: job.benefits || "",
+              skills: jobSkillsArray, // <-- Gán mảng chuỗi kỹ năng
             });
           } else {
             showToast("error", "Job posting data not found!");
@@ -198,12 +209,14 @@ export function JobForm() {
   const setRich = (field: keyof FormState) => (val: string) => setForm((f) => ({ ...f, [field]: val }));
 
   const validate = (): boolean => {
-    const e: Partial<FormState> = {};
+    const e: Record<string, string> = {};
     if (!form.title.trim()) e.title = "Required";
     if (!form.category_id) e.category_id = "Required";
     if (!form.location_id) e.location_id = "Required";
     if (!form.description.trim()) e.description = "Required";
     if (!form.requirements.trim()) e.requirements = "Required";
+    if (form.skills.length === 0) e.skills = "Please select at least one skill"; // <-- Validate mảng skills
+    
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -213,12 +226,15 @@ export function JobForm() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // 3. Handle form submission (Supports both POST for creation and PUT for updates)
+  // 3. Submit Data
   const handleSubmit = async () => {
-    if (!validate()) return;
+    if (!validate()) {
+      showToast("error", "Please fill in all required fields!");
+      return;
+    }
+    
     setSubmitting(true);
     try {
-      // Automatically toggle Method and URL based on Post/Edit job state
       const url = isEditMode ? `${BACKEND_URL}/jobs/${id}` : `${BACKEND_URL}/jobs/create`;
       const method = isEditMode ? "PUT" : "POST";
 
@@ -233,6 +249,7 @@ export function JobForm() {
           salary_max: Number(form.salary_max) || 0,
         }),
       });
+      
       const data = await res.json();
       if (data.success) {
         showToast("success", isEditMode ? "Job updated successfully!" : "Job posted successfully! Pending review.");
@@ -268,9 +285,6 @@ export function JobForm() {
 
           <div className="flex items-center gap-3 self-end md:self-auto">
             <button type="button" onClick={() => navigate(-1)} className="px-5 py-2.5 text-slate-600 dark:text-gray-400 font-medium hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors text-sm">Cancel</button>
-            <button type="button" disabled={submitting} className="px-5 py-2.5 text-blue-600 dark:text-blue-400 border border-blue-600 dark:border-blue-500/40 rounded-lg font-medium hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors flex items-center gap-2 text-sm disabled:opacity-50">
-              <Save className="w-4 h-4" /> Save Draft
-            </button>
             <button type="button" onClick={handleSubmit} disabled={submitting} className="px-5 py-2.5 bg-blue-600 dark:bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors flex items-center gap-2 text-sm shadow-sm disabled:opacity-50">
               <Send className="w-4 h-4" /> {submitting ? "Submitting..." : isEditMode ? "Update Job" : "Post Job"}
             </button>
@@ -335,6 +349,37 @@ export function JobForm() {
                   </p>
                 )}
               </Field>
+
+              {/* Giao diện chọn Skills được sửa lại theo mảng chuỗi */}
+              <div className="md:col-span-2">
+                <Field label="Required Skills" required error={errors.skills}>
+                  <div className={`flex flex-wrap gap-2 p-3 bg-white dark:bg-[#151D30] border rounded-lg h-32 overflow-y-auto ${errors.skills ? 'border-red-400' : 'border-slate-300 dark:border-white/10'}`}>
+                    {loadingMeta ? (
+                      <span className="text-slate-500 text-sm">Loading skills...</span>
+                    ) : (
+                      availableSkills.map((skillName, index) => (
+                        <label key={index} className="flex items-center gap-2 text-sm text-slate-700 dark:text-gray-300 cursor-pointer p-1.5 hover:bg-slate-50 dark:hover:bg-white/5 rounded transition-colors">
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 bg-white dark:bg-[#151D30]"
+                            // Kiểm tra chuỗi thay vì id
+                            checked={form.skills.includes(skillName)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setForm(prev => ({ ...prev, skills: [...prev.skills, skillName] }));
+                              } else {
+                                setForm(prev => ({ ...prev, skills: prev.skills.filter(s => s !== skillName) }));
+                              }
+                            }}
+                          />
+                          {skillName}
+                        </label>
+                      ))
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">Select the relevant skills for this job.</p>
+                </Field>
+              </div>
             </div>
 
             <div className="w-full h-px bg-slate-200 dark:bg-white/5 transition-colors" />

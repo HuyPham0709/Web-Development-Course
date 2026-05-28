@@ -1,37 +1,51 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, MapPin, Briefcase, Zap, Layers } from "lucide-react";
-import { motion } from "motion/react";
-// Đổi thành:
-import { getCategories, getLocations } from "../../../../services/jobService";
+import { Search, MapPin, Briefcase, Zap, Layers, ChevronDown, DollarSign } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { getCategories, getLocations, getJobSuggestions } from "../../../../services/jobService";
+// Nhúng file Autocomplete đã được tối ưu hóa tự trị ở trên
+import { SearchAutocomplete } from "../../shared/SearchAutocomplete";
 
 interface HeroProps {
   initialTitle: string;
   initialLocation: string;
   initialCategoryId: string;
+  initialSalary?: string;
 }
 
-export function Hero({ initialTitle, initialLocation, initialCategoryId }: HeroProps) {
+export function Hero({ initialTitle, initialLocation, initialCategoryId, initialSalary = "" }: HeroProps) {
   const navigate = useNavigate();
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   // State lưu trữ dữ liệu người dùng nhập
   const [title, setTitle] = useState(initialTitle);
   const [location, setLocation] = useState(initialLocation);
   const [categoryId, setCategoryId] = useState(initialCategoryId);
+  const [salary, setSalary] = useState(initialSalary);
+
+  // State quản lý dropdown nào đang mở
+  const [activeDropdown, setActiveDropdown] = useState<"category" | "location" | "salary" | null>(null);
 
   // State chứa danh sách tùy chọn lấy từ API
-  const [categories, setCategories] = useState([]);
-  const [locations, setLocations] = useState([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
+
+  // Danh sách khoảng lương (USD)
+  const salaryOptions = [
+    { value: "0-1000", label: "Under $1,000" },
+    { value: "1000-2000", label: "$1,000 - $2,000" },
+    { value: "2000-3000", label: "$2,000 - $3,000" },
+    { value: "3000+", label: "$3,000+" },
+  ];
 
   useEffect(() => {
-    // Đồng bộ lại input nếu URL thay đổi đột ngột
     setTitle(initialTitle);
     setLocation(initialLocation);
     setCategoryId(initialCategoryId);
-  }, [initialTitle, initialLocation, initialCategoryId]);
+    setSalary(initialSalary);
+  }, [initialTitle, initialLocation, initialCategoryId, initialSalary]);
 
   useEffect(() => {
-    // Gọi API nạp dữ liệu cho các ô Select box
     const fetchSelectData = async () => {
       try {
         const [catData, locData] = await Promise.all([getCategories(), getLocations()]);
@@ -44,18 +58,43 @@ export function Hero({ initialTitle, initialLocation, initialCategoryId }: HeroP
     fetchSelectData();
   }, []);
 
-  // Hàm xử lý kích hoạt tìm kiếm đẩy dữ liệu lên thanh URL của Home
-  const handleSearch = () => {
+  // Xử lý click ra ngoài để đóng các dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setActiveDropdown(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Hàm xử lý tìm kiếm nhận params trực tiếp để tránh state bất đồng bộ
+  const handleSearch = (updatedFields?: { title?: string; location?: string; categoryId?: string; salary?: string }) => {
+    const finalTitle = updatedFields && updatedFields.hasOwnProperty('title') ? updatedFields.title : title;
+    const finalLocation = updatedFields && updatedFields.hasOwnProperty('location') ? updatedFields.location : location;
+    const finalCategory = updatedFields && updatedFields.hasOwnProperty('categoryId') ? updatedFields.categoryId : categoryId;
+    const finalSalary = updatedFields && updatedFields.hasOwnProperty('salary') ? updatedFields.salary : salary;
+
     const params = new URLSearchParams();
-    if (title) params.append("title", title);
-    if (location) params.append("location", location);
-    if (categoryId) params.append("category_id", categoryId);
+    if (finalTitle) params.append("title", finalTitle);
+    if (finalLocation) params.append("location", finalLocation);
+    if (finalCategory) params.append("category_id", finalCategory);
+    if (finalSalary) params.append("salary", finalSalary);
     
     navigate(`?${params.toString()}`);
   };
 
+  const toggleDropdown = (dropdown: "category" | "location" | "salary") => {
+    setActiveDropdown((prev) => (prev === dropdown ? null : dropdown));
+  };
+
+  const getDisplayCategory = () => categories.find(c => c.id.toString() === categoryId)?.name || "All Categories";
+  const getDisplayLocation = () => locations.find(l => l.name === location)?.name || "Any Location";
+  const getDisplaySalary = () => salaryOptions.find(s => s.value === salary)?.label || "Salary Range";
+
   return (
-    <section className="relative w-full overflow-hidden pt-20 pb-32 transition-colors duration-300 dark:bg-[#0B0F19]">
+    <section className="relative z-10 w-full pt-20 pb-32 transition-colors duration-300 dark:bg-[#0B0F19]">
       <div className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center overflow-hidden opacity-20 dark:opacity-35">
         <div className="absolute top-[-20%] left-[-10%] h-[500px] w-[500px] rounded-full bg-blue-400 blur-[150px]"></div>
         <div className="absolute top-[20%] right-[-10%] h-[600px] w-[600px] rounded-full bg-purple-400 blur-[150px]"></div>
@@ -63,6 +102,7 @@ export function Hero({ initialTitle, initialLocation, initialCategoryId }: HeroP
 
       <div className="relative z-10 mx-auto max-w-7xl px-6">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-8">
+          {/* Cột trái: Text */}
           <div className="flex flex-col justify-center space-y-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -96,6 +136,7 @@ export function Hero({ initialTitle, initialLocation, initialCategoryId }: HeroP
             </motion.p>
           </div>
 
+          {/* Cột phải: Hình ảnh & Widget */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -171,59 +212,146 @@ export function Hero({ initialTitle, initialLocation, initialCategoryId }: HeroP
           transition={{ duration: 0.6, delay: 0.5 }}
           className="relative z-20 mt-16 rounded-3xl border border-gray-200 bg-white p-4 shadow-xl dark:border-white/10 dark:bg-white/5 dark:backdrop-blur-lg"
         >
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-6">
+          <div ref={searchContainerRef} className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-6">
+            
+            {/* 1. Kế thừa Ô Input Autocomplete Mới */}
             <div className="flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-3 lg:col-span-2 border border-gray-100 dark:bg-white/5 dark:border-white/5">
-              <Search className="text-gray-400 dark:text-gray-500" size={20} />
-              <input
-                type="text"
-                placeholder="Search Keywords, Skills, or Roles..."
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full bg-transparent text-sm text-gray-900 placeholder-gray-500 outline-none dark:text-white dark:placeholder-gray-400"
+              <Search className="text-gray-400 dark:text-gray-500 shrink-0" size={20} />
+              <SearchAutocomplete
+                placeholder="Keywords, Skills, or Roles..."
+                initialValue={title}
+                onSelect={(item) => {
+                  setTitle(item.label);
+                  handleSearch({ title: item.label });
+                }}
+                onInputChange={(value) => setTitle(value)} // Đảm bảo dòng này đã có để cập nhật state 'title' liên tục khi gõ phím
+                onFetchSuggestions={async (query, signal) => {
+                  if (!query.trim()) return [];
+                  return await getJobSuggestions(query, signal);
+                }}
               />
             </div>
             
-            <div className="flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-3 border border-gray-100 dark:bg-white/5 dark:border-white/5">
-              <Layers className="text-gray-400 dark:text-gray-500" size={20} />
-              <select 
-                value={categoryId} 
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full appearance-none bg-transparent text-sm text-gray-700 outline-none cursor-pointer dark:text-gray-200"
+            {/* 2. Category Custom Dropdown */}
+            <div className="relative flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-3 border border-gray-100 dark:bg-white/5 dark:border-white/5">
+              <Layers className="text-gray-400 dark:text-gray-500 shrink-0" size={20} />
+              <button 
+                onClick={() => toggleDropdown("category")}
+                className="flex w-full items-center justify-between outline-none"
               >
-                <option value="" className="dark:bg-[#0B0F19]">All Categories</option>
-                {categories.map((cat: any) => (
-                  <option key={cat.id} value={cat.id} className="dark:bg-[#0B0F19]">{cat.name}</option>
-                ))}
-              </select>
+                <span className={`text-sm truncate pr-2 ${categoryId ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}`}>
+                  {getDisplayCategory()}
+                </span>
+                <ChevronDown className={`w-4 h-4 shrink-0 text-gray-400 transition-transform duration-300 ${activeDropdown === "category" ? "rotate-180" : ""}`} />
+              </button>
+
+              <AnimatePresence>
+                {activeDropdown === "category" && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ duration: 0.2 }}
+                    className="absolute left-0 top-full mt-3 w-full min-w-[220px] rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl z-50 dark:border-white/10 dark:bg-[#0B0F19]"
+                  >
+                    <button
+                      onClick={() => { setCategoryId(""); setActiveDropdown(null); handleSearch({ categoryId: "" }); }}
+                      className={`w-full text-left px-3 py-2.5 text-sm rounded-xl transition-all ${!categoryId ? 'bg-blue-50 text-blue-600 font-semibold dark:bg-blue-500/20 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                    >
+                      All Categories
+                    </button>
+                    {categories.map((cat: any) => (
+                      <button
+                        key={cat.id}
+                        onClick={() => { setCategoryId(cat.id.toString()); setActiveDropdown(null); handleSearch({ categoryId: cat.id.toString() }); }}
+                        className={`w-full text-left px-3 py-2.5 text-sm rounded-xl transition-all ${categoryId === cat.id.toString() ? 'bg-blue-50 text-blue-600 font-semibold dark:bg-blue-500/20 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                      >
+                        {cat.name}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
-            <div className="flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-3 border border-gray-100 dark:bg-white/5 dark:border-white/5">
-              <MapPin className="text-gray-400 dark:text-gray-500" size={20} />
-              <select 
-                value={location} 
-                onChange={(e) => setLocation(e.target.value)}
-                className="w-full appearance-none bg-transparent text-sm text-gray-700 outline-none cursor-pointer dark:text-gray-200"
+            {/* 3. Location Custom Dropdown */}
+            <div className="relative flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-3 border border-gray-100 dark:bg-white/5 dark:border-white/5">
+              <MapPin className="text-gray-400 dark:text-gray-500 shrink-0" size={20} />
+              <button 
+                onClick={() => toggleDropdown("location")}
+                className="flex w-full items-center justify-between outline-none"
               >
-                <option value="" className="dark:bg-[#0B0F19]">Any Location</option>
-                {locations.map((loc: any) => (
-                  <option key={loc.id} value={loc.name} className="dark:bg-[#0B0F19]">{loc.name}</option>
-                ))}
-              </select>
+                <span className={`text-sm truncate pr-2 ${location ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}`}>
+                  {getDisplayLocation()}
+                </span>
+                <ChevronDown className={`w-4 h-4 shrink-0 text-gray-400 transition-transform duration-300 ${activeDropdown === "location" ? "rotate-180" : ""}`} />
+              </button>
+
+              <AnimatePresence>
+                {activeDropdown === "location" && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ duration: 0.2 }}
+                    className="absolute left-0 top-full mt-3 w-full min-w-[200px] rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl z-50 dark:border-white/10 dark:bg-[#0B0F19]"
+                  >
+                    <button
+                      onClick={() => { setLocation(""); setActiveDropdown(null); handleSearch({ location: "" }); }}
+                      className={`w-full text-left px-3 py-2.5 text-sm rounded-xl transition-all ${!location ? 'bg-blue-50 text-blue-600 font-semibold dark:bg-blue-500/20 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                    >
+                      Any Location
+                    </button>
+                    {locations.map((loc: any) => (
+                      <button
+                        key={loc.id}
+                        onClick={() => { setLocation(loc.name); setActiveDropdown(null); handleSearch({ location: loc.name }); }}
+                        className={`w-full text-left px-3 py-2.5 text-sm rounded-xl transition-all ${location === loc.name ? 'bg-blue-50 text-blue-600 font-semibold dark:bg-blue-500/20 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                      >
+                        {loc.name}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
-            {/* Giữ nguyên Range lương tĩnh trang trí của bạn */}
-            <div className="flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-3 border border-gray-100 dark:bg-white/5 dark:border-white/5">
-              <span className="text-gray-400 font-medium dark:text-gray-500">$</span>
-              <select className="w-full appearance-none bg-transparent text-sm text-gray-700 outline-none cursor-pointer dark:text-gray-200">
-                <option value="" className="dark:bg-[#0B0F19]">Salary Range</option>
-                <option value="50k" className="dark:bg-[#0B0F19]">$50k - $80k</option>
-                <option value="80k" className="dark:bg-[#0B0F19]">$80k - $120k</option>
-                <option value="120k" className="dark:bg-[#0B0F19]">$120k+</option>
-              </select>
+            {/* 4. Salary Custom Dropdown */}
+            <div className="relative flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-3 border border-gray-100 dark:bg-white/5 dark:border-white/5">
+              <DollarSign className="text-gray-400 dark:text-gray-500 shrink-0" size={20} />
+              <button 
+                onClick={() => toggleDropdown("salary")}
+                className="flex w-full items-center justify-between outline-none"
+              >
+                <span className={`text-sm truncate pr-2 ${salary ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}`}>
+                  {getDisplaySalary()}
+                </span>
+                <ChevronDown className={`w-4 h-4 shrink-0 text-gray-400 transition-transform duration-300 ${activeDropdown === "salary" ? "rotate-180" : ""}`} />
+              </button>
+
+              <AnimatePresence>
+                {activeDropdown === "salary" && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ duration: 0.2 }}
+                    className="absolute left-0 top-full mt-3 w-full min-w-[200px] rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl z-50 dark:border-white/10 dark:bg-[#0B0F19]"
+                  >
+                    <button
+                      onClick={() => { setSalary(""); setActiveDropdown(null); handleSearch({ salary: "" }); }}
+                      className={`w-full text-left px-3 py-2.5 text-sm rounded-xl transition-all ${!salary ? 'bg-blue-50 text-blue-600 font-semibold dark:bg-blue-500/20 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                    >
+                      Any Salary
+                    </button>
+                    {salaryOptions.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => { setSalary(opt.value); setActiveDropdown(null); handleSearch({ salary: opt.value }); }}
+                        className={`w-full text-left px-3 py-2.5 text-sm rounded-xl transition-all ${salary === opt.value ? 'bg-blue-50 text-blue-600 font-semibold dark:bg-blue-500/20 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
+            {/* 5. Nút Search */}
             <button 
-              onClick={handleSearch}
+              onClick={() => handleSearch()}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 font-semibold text-white shadow-md transition-all hover:shadow-lg lg:col-span-1 hover:opacity-95"
             >
               <Zap size={18} />

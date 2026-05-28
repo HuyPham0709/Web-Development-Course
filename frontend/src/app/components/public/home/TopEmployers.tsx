@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ShieldCheck, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
+import { useNavigate } from "react-router-dom"; // Hook điều hướng trang
 import { getTopCompanies } from "../../../../services/jobService";
 
 // Dải màu nền Banner ngẫu nhiên xoay vòng cho các công ty nếu DB không có banner_url
@@ -10,24 +11,9 @@ const bannerGradients = [
   "from-emerald-500 to-emerald-800"
 ];
 
-// Hàm tự động gán Tech Stack đẹp mắt cho các công ty từ Database đổ ra
-const getCompanyTechStack = (companyName: string, index: number) => {
-  const name = companyName?.toLowerCase() || "";
-  if (name.includes("nextgen")) return ["React", "Python", "AWS"];
-  if (name.includes("alpha")) return ["Node.js", "GraphQL", "GCP"];
-  if (name.includes("growth")) return ["Vue", "Ruby", "Docker"];
-  
-  // Danh sách công nghệ dự phòng xoay vòng nếu trong DB có thêm các công ty khác
-  const defaultTechStacks = [
-    ["React", "Node.js", "TypeScript"],
-    ["Next.js", "Python", "PostgreSQL"],
-    ["Angular", "Java", "Docker"]
-  ];
-  return defaultTechStacks[index % defaultTechStacks.length];
-};
-
 export function TopEmployers() {
   const [employers, setEmployers] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchEmployersData = async () => {
@@ -58,8 +44,14 @@ export function TopEmployers() {
               ? "" 
               : bannerGradients[idx % bannerGradients.length];
             
-            // Lấy danh sách công nghệ cho công ty hiện tại
-            const techStack = getCompanyTechStack(emp.name, idx);
+            // XỬ LÝ TECH STACK ĐỔ TỪ SQL:
+            // Tách chuỗi "React,Node.js" từ SQL thành mảng, nếu không có thì dùng mảng mặc định
+            const techStack = emp.tech_stack
+              ? emp.tech_stack.split(",").map((s: string) => s.trim()).filter(Boolean)
+              : ["Tech Hub"];
+
+            // Thay thế link ảnh lỗi bằng placeholder chất lượng cao ổn định
+            const logoUrl = emp.logo_url || `https://placehold.co/150?text=${encodeURIComponent(emp.name || 'Company')}`;
 
             return (
               <motion.div
@@ -75,9 +67,9 @@ export function TopEmployers() {
                 )}
                 
                 <div className="relative px-6 pb-8 pt-12">
-                  {/* Khung chứa Logo */}
+                  {/* Khung chứa Logo đã sửa link fallback */}
                   <div className="absolute -top-10 left-6 h-20 w-20 rounded-2xl border-4 border-white bg-white p-1 shadow-lg dark:border-4 dark:border-[#161b26] dark:bg-[#161b26]">
-                    <img src={emp.logo_url || "https://images.unsplash.com/photo-1760037028517-e5cc6e3ebd3e"} alt={emp.name} className="h-full w-full rounded-xl object-cover" />
+                    <img src={logoUrl} alt={emp.name} className="h-full w-full rounded-xl object-cover" />
                   </div>
                   
                   {/* Tên công ty & Tích xanh */}
@@ -91,7 +83,7 @@ export function TopEmployers() {
                   {/* Mô tả ngắn */}
                   <p className="mb-6 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{emp.description || "No description provided."}</p>
                   
-                  {/* KHỐI TECH STACK ĐÃ ĐƯỢC KHÔI PHỤC HOÀN TOÀN KHỚP CSS CŨ */}
+                  {/* KHỐI TECH STACK LẤY ĐỘNG TỪ SQL */}
                   <div className="mb-8">
                     <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Tech Stack</p>
                     <div className="flex flex-wrap gap-2">
@@ -103,8 +95,11 @@ export function TopEmployers() {
                     </div>
                   </div>
                   
-                  {/* Nút View Hub */}
-                  <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-gray-50 py-3 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-100 border border-gray-200 hover:border-gray-300 hover:text-gray-900 dark:bg-white/5 dark:text-gray-300 dark:border-white/10 dark:hover:bg-white/10 dark:hover:text-white">
+                  {/* Nút View Hub đi kèm chuyển hướng theo ID */}
+                  <button 
+                    onClick={() => navigate(`/company/${emp.id || emp.company_id}`)}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-gray-50 py-3 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-100 border border-gray-200 hover:border-gray-300 hover:text-gray-900 dark:bg-white/5 dark:text-gray-300 dark:border-white/10 dark:hover:bg-white/10 dark:hover:text-white"
+                  >
                     View Hub & Jobs
                     <ChevronRight size={16} />
                   </button>

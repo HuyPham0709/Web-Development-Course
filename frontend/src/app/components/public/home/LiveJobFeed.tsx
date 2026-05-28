@@ -11,15 +11,15 @@ interface LiveJobFeedProps {
   titleFilter: string;
   locationFilter: string;
   categoryFilter: string;
+  salaryFilter: string;
 }
 
-export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter }: LiveJobFeedProps) {
+export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter, salaryFilter }: LiveJobFeedProps) {
   const [jobs, setJobs] = useState<IJob[]>([]);
   const [activeTab, setActiveTab] = useState("All Jobs");
   const [savedJobs, setSavedJobs] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 1. Chỉ fetch đúng 10 bài tuyển dụng mới nhất theo điều kiện bộ lọc
   useEffect(() => {
     const fetchJobs = async () => {
       setLoading(true);
@@ -29,19 +29,21 @@ export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter }: Liv
         if (activeTab === "Contract") typeParam = "contract";
         if (activeTab === "Remote") typeParam = "remote";
 
-        const response = await getJobs({
-          title: titleFilter,
-          location: locationFilter,
-          category_id: categoryFilter,
-          type: typeParam,
-          status: "approved",
-          page: 1,       // Cố định trang 1
-          limit: 10,     // Giới hạn lấy chuẩn 10 bài viết mới nhất
-        });
+        const [response] = await Promise.all([
+          getJobs({
+            title: titleFilter,
+            location: locationFilter,
+            category_id: categoryFilter,
+            salary: salaryFilter,
+            type: typeParam,
+            status: "approved",
+            page: 1,       
+            limit: 10,     
+          }),
+          new Promise(resolve => setTimeout(resolve, 500))
+        ]);
         
         const approvedJobs = response.data.filter((job: IJob) => job.status === "approved");
-        
-        // Đảm bảo chặt chẽ tối đa 10 bản ghi đưa vào State
         setJobs(approvedJobs.slice(0, 10));
         
       } catch (error) {
@@ -52,9 +54,8 @@ export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter }: Liv
     };
 
     fetchJobs();
-  }, [titleFilter, locationFilter, categoryFilter, activeTab]);
+  }, [titleFilter, locationFilter, categoryFilter, salaryFilter, activeTab]);
 
-  // 2. Load Danh sách các công việc đã lưu
   useEffect(() => {
     const fetchSavedJobs = async () => {
       try {
@@ -70,7 +71,6 @@ export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter }: Liv
     }
   }, []);
 
-  // 3. Xử lý Lưu/Hủy lưu công việc
   const handleToggleSave = useCallback(async (jobId: number) => {
     try {
       setSavedJobs(prev => {
@@ -122,15 +122,45 @@ export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter }: Liv
           </div>
         </div>
 
-        {jobs.length === 0 && !loading ? (
+        {/* ĐOẠN RENDER CHUẨN UX */}
+        {loading ? (
+          <HorizontalTrack onLoadMore={() => {}} hasMore={false} isLoading={false}>
+            {Array.from({ length: 10 }).map((_, idx) => (
+              <div 
+                key={`skeleton-${idx}`}
+                // Hiệu ứng chớp đuổi gợn sóng (Staggered Effect) cấp Enterprise
+                style={{ animationDelay: `${idx * 120}ms` }}
+                className="w-[280px] sm:w-[320px] shrink-0 self-stretch pointer-events-auto flex flex-col h-[340px] bg-white dark:bg-[#0B0F19] rounded-3xl p-6 border border-gray-100 dark:border-white/5 justify-between animate-pulse"
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 bg-gray-200/80 dark:bg-gray-800 rounded-2xl" />
+                    <div className="space-y-2 flex-1">
+                      <div className="h-4 bg-gray-200/80 dark:bg-gray-800 rounded w-2/3" />
+                      <div className="h-3 bg-gray-200/80 dark:bg-gray-800 rounded w-1/2" />
+                    </div>
+                  </div>
+                  <div className="space-y-2 pt-2">
+                    <div className="h-3 bg-gray-200/80 dark:bg-gray-800 rounded w-full" />
+                    <div className="h-3 bg-gray-200/80 dark:bg-gray-800 rounded w-5/6" />
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-4 border-t border-gray-100 dark:border-white/5">
+                  <div className="h-7 bg-gray-200/80 dark:bg-gray-800 rounded-xl w-20" />
+                  <div className="h-7 bg-gray-200/80 dark:bg-gray-800 rounded-xl w-24" />
+                </div>
+              </div>
+            ))}
+          </HorizontalTrack>
+        ) : jobs.length === 0 ? (
           <div className="text-center text-gray-500 dark:text-gray-400 py-12">No jobs matched your filter criteria.</div>
         ) : (
-          /* Khóa tính năng tải thêm bằng cách truyền hasMore={false} vào track trượt */
           <HorizontalTrack onLoadMore={() => {}} hasMore={false} isLoading={loading}>
             {jobs.map((job, idx) => (
               <div 
                 key={`${job.id}-${idx}`}
-                className="w-[280px] sm:w-[320px] shrink-0 self-stretch pointer-events-auto"
+                // ĐÃ SỬA: Bỏ `opacity: 0` inline nguy hiểm, thay bằng class transition an toàn của Tailwind
+                className="w-[280px] sm:w-[320px] shrink-0 self-stretch pointer-events-auto transition-all duration-300"
               >
                 <JobCard 
                   index={idx}
