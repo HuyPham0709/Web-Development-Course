@@ -51,7 +51,7 @@ exports.register = async (req, res) => {
     });
   }
 
-  const { name, username, email, password, role,phone } = req.body;
+  const { name, username, email, password, role, phone } = req.body;
   const finalName = name || username;
 
   if (!finalName) {
@@ -192,7 +192,7 @@ exports.login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, role: user.role, company_id: user.company_id }, // ← thêm company_id,
+      { id: user.id, role: user.role, company_id: user.company_id },
       process.env.JWT_SECRET,
       { expiresIn: "1d" },
     );
@@ -206,7 +206,7 @@ exports.login = async (req, res) => {
         username: user.username,
         full_name: user.full_name || user.username,
         role: user.role,
-        company_id: user.company_id, // FIX LỖI: Trả về company_id lấy từ bảng Users để lưu vào localStorage
+        company_id: user.company_id,
         avatar_url: user.profile_avatar || user.avatar_url || null,
       },
     });
@@ -284,12 +284,11 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
-// --- Đặt lại mật khẩu (ĐÃ FIX LỖI HẾT HẠN OTP SỚM) ---
+// --- Đặt lại mật khẩu ---
 exports.resetPassword = async (req, res) => {
   const { email, otp, newPassword } = req.body;
 
   try {
-    // 💡 GIẢI PHÁP: Sử dụng thời gian thực từ Node.js thay vì NOW() của MySQL
     const currentTime = formatToMySQLDateTime(new Date());
 
     const [users] = await db.execute(
@@ -375,7 +374,6 @@ exports.googleLogin = async (req, res) => {
 
     const { email, name, picture } = googleResponse.data;
 
-    // ✅ CHỈNH SỬA 1: Đơn giản hóa câu lệnh SELECT, chỉ lấy thông tin Users và Profiles gốc
     const [users] = await db.execute(
       `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name
        FROM Users u
@@ -396,12 +394,11 @@ exports.googleLogin = async (req, res) => {
         autoUsername = `${autoUsername}_${Math.floor(1000 + Math.random() * 9000)}`;
       }
 
-      // LẦN ĐẦU ĐĂNG KÝ: Giữ nguyên cấu trúc INSERT cũ để tránh lỗi cấu trúc database (nếu các trường đó đặt NOT NULL)
+      // ✅ ĐÃ SỬA: Loại bỏ hoàn toàn các trường google_name, google_avatar_url...
       const [result] = await db.execute(
         `INSERT INTO Users 
-          (username, email, password, role, is_verified, avatar_url, display_name, 
-           google_name, google_avatar_url, use_custom_name, use_custom_avatar) 
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)`,
+          (username, email, password, role, is_verified, avatar_url, display_name) 
+          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           autoUsername,
           email,
@@ -409,9 +406,7 @@ exports.googleLogin = async (req, res) => {
           role || "candidate",
           1,
           picture,
-          name,
-          name,       
-          picture,    
+          name
         ],
       );
 
@@ -426,7 +421,6 @@ exports.googleLogin = async (req, res) => {
           companyId = companyResult.insertId;
           await db.execute("UPDATE Users SET company_id = ? WHERE id = ?", [companyId, userId]);
         } else {
-          // ✅ LẦN ĐẦU ĐĂNG KÝ: Lưu tên và ảnh mặc định từ Google vào bảng Profiles
           await db.execute(
             "INSERT INTO Profiles (user_id, full_name, avatar_url) VALUES (?, ?, ?)",
             [userId, name, picture],
@@ -446,8 +440,6 @@ exports.googleLogin = async (req, res) => {
         profile_avatar: picture,
       };
     } else {
-      // ✅ CHỈNH SỬA 2: Nếu user ĐÃ TỒN TẠI, TUYỆT ĐỐI KHÔNG ghi đè dữ liệu Google lên nữa!
-      // Bỏ hoàn toàn câu lệnh UPDATE đè dữ liệu cũ. Giữ nguyên những gì user đã sửa trong DB.
       await db.execute(
         `UPDATE Users SET is_verified = 1 WHERE id = ?`,
         [user.id],
@@ -460,17 +452,16 @@ exports.googleLogin = async (req, res) => {
       { expiresIn: "1d" },
     );
 
-    // ✅ CHỈNH SỬA 3: Lấy thẳng dữ liệu từ Profiles ra dùng, không check toggle chọn 1 trong 2 nữa
     return res.status(200).json({
       success: true,
       token: token,
       user: {
         id: user.id,
         username: user.username,
-        full_name: user.full_name || user.username, // Nếu có full_name trong Profiles thì dùng, không thì fallback về username
+        full_name: user.full_name || user.username,
         role: user.role,
         company_id: user.company_id,
-        avatar_url: user.profile_avatar || user.avatar_url || null, // Lấy avatar trong Profiles làm chuẩn
+        avatar_url: user.profile_avatar || user.avatar_url || null,
       },
     });
   } catch (error) {
@@ -481,6 +472,7 @@ exports.googleLogin = async (req, res) => {
     });
   }
 };
+
 // --- BƯỚC 1: KIỂM TRA MẬT KHẨU VÀ GỬI OTP (ADMIN) ---
 exports.adminLogin = async (req, res) => {
   const { email, password } = req.body;
@@ -546,12 +538,11 @@ exports.adminLogin = async (req, res) => {
   }
 };
 
-// --- BƯỚC 2: XÁC THỰC OTP VÀ CẤP TOKEN (ADMIN - ĐÃ FIX LỖI HẾT HẠN OTP SỚM) ---
+// --- BƯỚC 2: XÁC THỰC OTP VÀ CẤP TOKEN (ADMIN) ---
 exports.verifyLoginOTP = async (req, res) => {
   const { email, otp } = req.body;
 
   try {
-    // 💡 GIẢI PHÁP: Sử dụng thời gian thực từ Node.js thay vì NOW() của MySQL
     const currentTime = formatToMySQLDateTime(new Date());
 
     const [users] = await db.execute(
