@@ -29,9 +29,6 @@ export interface PersonalInfo {
   id?: number;
   user_id?: number;
   full_name: string;
-  google_name?: string;     
-  custom_name?: string;     
-  use_custom_name?: boolean;
   title: string;
   bio: string;
   location: string;
@@ -181,8 +178,10 @@ export const uploadProfileImage = async (
   const formData = new FormData();
   formData.append(type, file);
 
+  // ✅ ĐÃ ĐỔI: `/api/profile/upload-${type}` -> `/api/profile/${type}`
+  // Khi chạy thực tế sẽ sinh ra đúng endpoint: `/api/profile/avatar` hoặc `/api/profile/cover`
   const res = await fetch(
-    `${BASE_URL}/api/profile/upload-${type}`,
+    `${BASE_URL}/api/profile/${type}`,
     {
       method: 'POST',
       headers: authMultipartHeaders(),

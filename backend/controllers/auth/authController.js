@@ -375,11 +375,9 @@ exports.googleLogin = async (req, res) => {
 
     const { email, name, picture } = googleResponse.data;
 
-    // Truy vấn lấy dữ liệu User kèm theo Profiles và các cột config mới
+    // ✅ CHỈNH SỬA 1: Đơn giản hóa câu lệnh SELECT, chỉ lấy thông tin Users và Profiles gốc
     const [users] = await db.execute(
-      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name,
-              u.google_name, u.custom_name, u.use_custom_name,
-              u.google_avatar_url, u.custom_avatar_url, u.use_custom_avatar
+      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name
        FROM Users u
        LEFT JOIN Profiles p ON p.user_id = u.id
        WHERE u.email = ?`,
@@ -398,12 +396,12 @@ exports.googleLogin = async (req, res) => {
         autoUsername = `${autoUsername}_${Math.floor(1000 + Math.random() * 9000)}`;
       }
 
-      // Tạo mới tài khoản: Đưa dữ liệu Google vào đúng các cột google_name, google_avatar_url
+      // LẦN ĐẦU ĐĂNG KÝ: Giữ nguyên cấu trúc INSERT cũ để tránh lỗi cấu trúc database (nếu các trường đó đặt NOT NULL)
       const [result] = await db.execute(
         `INSERT INTO Users 
-         (username, email, password, role, is_verified, avatar_url, display_name, 
-          google_name, google_avatar_url, use_custom_name, use_custom_avatar) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)`,
+          (username, email, password, role, is_verified, avatar_url, display_name, 
+           google_name, google_avatar_url, use_custom_name, use_custom_avatar) 
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)`,
         [
           autoUsername,
           email,
@@ -412,8 +410,8 @@ exports.googleLogin = async (req, res) => {
           1,
           picture,
           name,
-          name,       // google_name
-          picture,    // google_avatar_url
+          name,       
+          picture,    
         ],
       );
 
@@ -428,6 +426,7 @@ exports.googleLogin = async (req, res) => {
           companyId = companyResult.insertId;
           await db.execute("UPDATE Users SET company_id = ? WHERE id = ?", [companyId, userId]);
         } else {
+          // ✅ LẦN ĐẦU ĐĂNG KÝ: Lưu tên và ảnh mặc định từ Google vào bảng Profiles
           await db.execute(
             "INSERT INTO Profiles (user_id, full_name, avatar_url) VALUES (?, ?, ?)",
             [userId, name, picture],
@@ -439,29 +438,20 @@ exports.googleLogin = async (req, res) => {
 
       user = {
         id: userId,
+        username: autoUsername,
         email,
         role: role || "candidate",
-        username: autoUsername,
         company_id: companyId,
-        google_name: name,
-        custom_name: null,
-        use_custom_name: 0,
-        google_avatar_url: picture,
-        custom_avatar_url: null,
-        use_custom_avatar: 0,
+        full_name: name,
+        profile_avatar: picture,
       };
     } else {
-      // Nếu user đã tồn tại, cập nhật đồng bộ các cột Google, TUYỆT ĐỐI không ghi đè cột Custom
+      // ✅ CHỈNH SỬA 2: Nếu user ĐÃ TỒN TẠI, TUYỆT ĐỐI KHÔNG ghi đè dữ liệu Google lên nữa!
+      // Bỏ hoàn toàn câu lệnh UPDATE đè dữ liệu cũ. Giữ nguyên những gì user đã sửa trong DB.
       await db.execute(
-        `UPDATE Users 
-         SET google_name = ?, google_avatar_url = ?, is_verified = 1 
-         WHERE id = ?`,
-        [name || user.google_name, picture || user.google_avatar_url, user.id],
+        `UPDATE Users SET is_verified = 1 WHERE id = ?`,
+        [user.id],
       );
-
-      // Cập nhật lại Object bộ nhớ cục bộ để xử lý tính toán trả về phía dưới
-      user.google_name = name || user.google_name;
-      user.google_avatar_url = picture || user.google_avatar_url;
     }
 
     const token = jwt.sign(
@@ -470,27 +460,17 @@ exports.googleLogin = async (req, res) => {
       { expiresIn: "1d" },
     );
 
-    // Xác định Tên và Ảnh đại diện sẽ hiển thị dựa theo cấu hình lựa chọn của người dùng
-    const finalFullName = user.use_custom_name ? user.custom_name : user.google_name;
-    const finalAvatarUrl = user.use_custom_avatar ? user.custom_avatar_url : user.google_avatar_url;
-
+    // ✅ CHỈNH SỬA 3: Lấy thẳng dữ liệu từ Profiles ra dùng, không check toggle chọn 1 trong 2 nữa
     return res.status(200).json({
       success: true,
       token: token,
       user: {
         id: user.id,
         username: user.username,
-        full_name: finalFullName || user.username,
+        full_name: user.full_name || user.username, // Nếu có full_name trong Profiles thì dùng, không thì fallback về username
         role: user.role,
         company_id: user.company_id,
-        avatar_url: finalAvatarUrl || null,
-        // Gửi kèm trạng thái config về để Frontend đồng bộ UI (bật tắt switch/radio button)
-        use_custom_name: !!user.use_custom_name,
-        use_custom_avatar: !!user.use_custom_avatar,
-        custom_name: user.custom_name,
-        google_name: user.google_name,
-        custom_avatar_url: user.custom_avatar_url,
-        google_avatar_url: user.google_avatar_url,
+        avatar_url: user.profile_avatar || user.avatar_url || null, // Lấy avatar trong Profiles làm chuẩn
       },
     });
   } catch (error) {

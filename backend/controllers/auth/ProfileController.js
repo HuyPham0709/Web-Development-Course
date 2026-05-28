@@ -20,11 +20,13 @@ const getCloudinaryPublicId = (url) => {
 };
 
 // ─── 1. GET /api/profile ───────────────────────────────────────────────────────
+// Lấy profile của user đang đăng nhập (qua JWT token)
 exports.getMyProfile = async (req, res) => {
     const userId = req.user.id;
     try {
+        // ✅ ĐÃ SỬA: Lấy thêm trường avatar_url trực tiếp từ bảng Profiles
         const [profiles] = await db.query(
-            `SELECT id, full_name, title, location, bio, cv_url FROM Profiles WHERE user_id = ?`,
+            `SELECT id, full_name, avatar_url, title, location, bio, cv_url FROM Profiles WHERE user_id = ?`,
             [userId]
         );
 
@@ -66,6 +68,7 @@ exports.getMyProfile = async (req, res) => {
 };
 
 // ─── 2. GET /api/profile/:userId ──────────────────────────────────────────────
+// Xem profile của một user bất kỳ qua id
 exports.getProfile = async (req, res) => {
     const { userId } = req.params;
     try {
@@ -74,11 +77,7 @@ exports.getProfile = async (req, res) => {
 
         const profileId = profiles[0].id;
 
-        const [users] = await db.query(
-            `SELECT google_name, custom_name, use_custom_name, google_avatar_url, custom_avatar_url, use_custom_avatar FROM Users WHERE id = ?`,
-            [userId]
-        );
-        const userConfig = users[0] || {};
+        // ✅ ĐÃ XÓA: Bỏ hoàn toàn câu SELECT bảng Users để check cấu hình cũ phức tạp
 
         const [experiences] = await db.query(`SELECT * FROM Work_Experience WHERE profile_id = ? ORDER BY start_date DESC`, [profileId]);
         const [education] = await db.query(`SELECT * FROM Education WHERE profile_id = ? ORDER BY start_date DESC`, [profileId]);
@@ -90,22 +89,12 @@ exports.getProfile = async (req, res) => {
             catch { personalInfo.social_links = {}; }
         }
 
-        const finalFullName = userConfig.use_custom_name ? userConfig.custom_name : userConfig.google_name;
-        const finalAvatarUrl = userConfig.use_custom_avatar ? userConfig.custom_avatar_url : userConfig.google_avatar_url;
-
+        // ✅ ĐÃ SỬA: Trả thẳng dữ liệu từ bảng Profiles về, không cần tính toán toggle chọn 1 trong 2 nữa
         res.status(200).json({
             success: true,
             personalInfo: {
                 ...personalInfo,
-                full_name: finalFullName || personalInfo.full_name,
-                avatar_url: finalAvatarUrl || personalInfo.avatar_url,
                 dob: formatDate(personalInfo.dob),
-                google_name: userConfig.google_name,
-                custom_name: userConfig.custom_name,
-                use_custom_name: !!userConfig.use_custom_name,
-                google_avatar_url: userConfig.google_avatar_url,
-                custom_avatar_url: userConfig.custom_avatar_url,
-                use_custom_avatar: !!userConfig.use_custom_avatar,
             },
             experiences: experiences.map(exp => ({
                 ...exp,
@@ -126,6 +115,7 @@ exports.getProfile = async (req, res) => {
 };
 
 // ─── 3. PUT /api/profile/me ───────────────────────────────────────────────────
+// Form cập nhật nhanh hồ sơ cá nhân
 exports.updateMyProfile = async (req, res) => {
     const connection = await db.getConnection();
     try {
@@ -189,6 +179,7 @@ exports.updateMyProfile = async (req, res) => {
 };
 
 // ─── 4. POST /api/profile/update ──────────────────────────────────────────────
+// Hàm cập nhật toàn bộ thông tin chi tiết hồ sơ (CV)
 exports.updateProfile = async (req, res) => {
     const { userId, personalInfo, experiences, education, skills } = req.body;
     let connection;
@@ -196,23 +187,35 @@ exports.updateProfile = async (req, res) => {
         connection = await db.getConnection();
         await connection.beginTransaction();
 
-        await connection.query(
-            `UPDATE Users SET custom_name = ?, use_custom_name = ?, use_custom_avatar = ? WHERE id = ?`,
-            [personalInfo.custom_name || null, personalInfo.use_custom_name ? 1 : 0, personalInfo.use_custom_avatar ? 1 : 0, userId]
-        );
+        // ✅ ĐÃ XÓA: Bỏ câu lệnh UPDATE bảng Users (bỏ hoàn toàn custom_name, use_custom_name...)
 
-        const finalFullName = personalInfo.use_custom_name ? personalInfo.custom_name : personalInfo.google_name;
-        const finalAvatarUrl = personalInfo.use_custom_avatar ? personalInfo.custom_avatar_url : personalInfo.google_avatar_url;
-
+        // ✅ ĐÃ SỬA: Ghi đè thẳng thông tin full_name và avatar_url mới vào bảng Profiles
         await connection.query(
-            `UPDATE Profiles SET full_name = ?, title = ?, bio = ?, cv_url = ?, avatar_url = ?, cover_url = ?, phone = ?, gender = ?, dob = ?, location = ?, social_links = ? WHERE user_id = ?`,
-            [finalFullName || null, personalInfo.title || null, personalInfo.bio || null, personalInfo.cv_url || null, finalAvatarUrl || null, personalInfo.cover_url || null, personalInfo.phone || null, personalInfo.gender || null, personalInfo.dob || null, personalInfo.location || null, personalInfo.social_links ? JSON.stringify(personalInfo.social_links) : null, userId]
+            `UPDATE Profiles 
+             SET full_name = ?, title = ?, bio = ?, cv_url = ?, avatar_url = ?, cover_url = ?, 
+                 phone = ?, gender = ?, dob = ?, location = ?, social_links = ? 
+             WHERE user_id = ?`,
+            [
+                personalInfo.full_name || null, 
+                personalInfo.title || null, 
+                personalInfo.bio || null, 
+                personalInfo.cv_url || null, 
+                personalInfo.avatar_url || null, 
+                personalInfo.cover_url || null, 
+                personalInfo.phone || null, 
+                personalInfo.gender || null, 
+                personalInfo.dob || null, 
+                personalInfo.location || null, 
+                personalInfo.social_links ? JSON.stringify(personalInfo.social_links) : null, 
+                userId
+            ]
         );
 
         const [profileRows] = await connection.query(`SELECT id FROM Profiles WHERE user_id = ?`, [userId]);
         if (profileRows.length === 0) throw new Error("Không tìm thấy hồ sơ người dùng!");
         const profileId = profileRows[0].id;
 
+        // Cập nhật Kinh nghiệm làm việc
         await connection.query(`DELETE FROM Work_Experience WHERE profile_id = ?`, [profileId]);
         if (experiences && experiences.length > 0) {
             for (const exp of experiences) {
@@ -223,6 +226,7 @@ exports.updateProfile = async (req, res) => {
             }
         }
 
+        // Cập nhật Học vấn
         await connection.query(`DELETE FROM Education WHERE profile_id = ?`, [profileId]);
         if (education && education.length > 0) {
             for (const edu of education) {
@@ -233,6 +237,7 @@ exports.updateProfile = async (req, res) => {
             }
         }
 
+        // Cập nhật Kỹ năng
         await connection.query(`DELETE FROM User_Skills WHERE profile_id = ?`, [profileId]);
         if (skills && skills.length > 0) {
             for (const skillName of skills) {
@@ -255,21 +260,21 @@ exports.updateProfile = async (req, res) => {
 
 // ─── 5. UPLOAD CV ───────────────────────────────────────────
 exports.uploadCV = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    if (!req.file) return res.status(400).json({ success: false, message: 'Chưa nhận được file CV' });
+    try {
+        const userId = req.user.id;
+        if (!req.file) return res.status(400).json({ success: false, message: 'Chưa nhận được file CV' });
 
-    const result = await uploadToCloudinary(req.file.buffer, 'job_finder/cvs');
-    const secureUrl = result.secure_url;
+        const result = await uploadToCloudinary(req.file.buffer, 'job_finder/cvs');
+        const secureUrl = result.secure_url;
 
-    const [dbResult] = await db.query('UPDATE Profiles SET cv_url = ? WHERE user_id = ?', [secureUrl, userId]);
-    if (dbResult.affectedRows === 0) return res.status(404).json({ success: false, message: 'Bạn cần tạo thông tin cá nhân trước!' });
+        const [dbResult] = await db.query('UPDATE Profiles SET cv_url = ? WHERE user_id = ?', [secureUrl, userId]);
+        if (dbResult.affectedRows === 0) return res.status(404).json({ success: false, message: 'Bạn cần tạo thông tin cá nhân trước!' });
 
-    res.json({ success: true, cv_url: secureUrl, message: 'Upload CV thành công!' });
-  } catch (error) {
-    console.error('Lỗi upload CV:', error);
-    res.status(500).json({ success: false, message: 'Lỗi server khi upload CV', error: error.message });
-  }
+        res.json({ success: true, cv_url: secureUrl, message: 'Upload CV thành công!' });
+    } catch (error) {
+        console.error('Lỗi upload CV:', error);
+        res.status(500).json({ success: false, message: 'Lỗi server khi upload CV', error: error.message });
+    }
 };
 
 // ─── 6. DELETE CV ───────────────────────────────────────────
@@ -299,84 +304,84 @@ exports.deleteCV = async (req, res) => {
 
 // ─── 7. POST /api/profile/avatar ──────────────────────────────────────────────
 exports.uploadAvatar = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    if (!req.file) return res.status(400).json({ success: false, message: 'Chưa chọn file ảnh đại diện!' });
+    try {
+        const userId = req.user.id;
+        if (!req.file) return res.status(400).json({ success: false, message: 'Chưa chọn file ảnh đại diện!' });
 
-    const result = await uploadToCloudinary(req.file.buffer, 'job_finder/avatars');
-    const secureUrl = result.secure_url;
+        const result = await uploadToCloudinary(req.file.buffer, 'job_finder/avatars');
+        const secureUrl = result.secure_url;
 
-    await db.query(`UPDATE Users SET custom_avatar_url = ?, use_custom_avatar = 1 WHERE id = ?`, [secureUrl, userId]);
-    await db.query(`UPDATE Profiles SET avatar_url = ? WHERE user_id = ?`, [secureUrl, userId]);
+        // ✅ ĐÃ SỬA: Chỉ cần UPDATE duy nhất trường avatar_url ở bảng Profiles là xong, bỏ hoàn toàn update bên Users
+        await db.query(`UPDATE Profiles SET avatar_url = ? WHERE user_id = ?`, [secureUrl, userId]);
 
-    res.json({ success: true, avatar_url: secureUrl, message: 'Cập nhật ảnh đại diện tùy chỉnh thành công!' });
-  } catch (error) {
-    console.error("Lỗi upload avatar:", error);
-    res.status(500).json({ success: false, message: 'Lỗi server khi upload ảnh đại diện' });
-  }
+        res.json({ success: true, avatar_url: secureUrl, message: 'Cập nhật ảnh đại diện thành công!' });
+    } catch (error) {
+        console.error("Lỗi upload avatar:", error);
+        res.status(500).json({ success: false, message: 'Lỗi server khi upload ảnh đại diện' });
+    }
 };
 
 // ─── 8. POST /api/profile/cover ───────────────────────────────────────────────
 exports.uploadCover = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    if (!req.file) return res.status(400).json({ success: false, message: 'Chưa chọn file ảnh bìa!' });
+    try {
+        const userId = req.user.id;
+        if (!req.file) return res.status(400).json({ success: false, message: 'Chưa chọn file ảnh bìa!' });
 
-    const result = await uploadToCloudinary(req.file.buffer, 'job_finder/covers');
-    const secureUrl = result.secure_url;
+        const result = await uploadToCloudinary(req.file.buffer, 'job_finder/covers');
+        const secureUrl = result.secure_url;
 
-    await db.query(`UPDATE Profiles SET cover_url = ? WHERE user_id = ?`, [secureUrl, userId]);
+        await db.query(`UPDATE Profiles SET cover_url = ? WHERE user_id = ?`, [secureUrl, userId]);
 
-    res.json({ success: true, cover_url: secureUrl, message: 'Cập nhật ảnh bìa thành công!' });
-  } catch (error) {
-    console.error("Lỗi upload cover:", error);
-    res.status(500).json({ success: false, message: 'Lỗi server khi upload ảnh bìa' });
-  }
+        res.json({ success: true, cover_url: secureUrl, message: 'Cập nhật ảnh bìa thành công!' });
+    } catch (error) {
+        console.error("Lỗi upload cover:", error);
+        res.status(500).json({ success: false, message: 'Lỗi server khi upload ảnh bìa' });
+    }
 };
 
 // ─── 9. SEARCH CANDIDATES ─────────────────────────────────────────────────────
 exports.searchCandidates = async (req, res) => {
-  try {
-    const { keyword, location, skills, exp_min, exp_max } = req.query;
-    let query = `
-      SELECT p.id, p.full_name AS name, p.title, p.location, p.avatar_url AS avatar,
-        (SELECT GROUP_CONCAT(s.name) FROM User_Skills us JOIN Skills s ON us.skill_id = s.id WHERE us.profile_id = p.id) AS skills,
-        (SELECT COALESCE(SUM(TIMESTAMPDIFF(YEAR, start_date, IFNULL(end_date, CURRENT_DATE))), 0) FROM Work_Experience we WHERE we.profile_id = p.id) AS years_of_exp
-      FROM Profiles p JOIN Users u ON p.user_id = u.id WHERE u.role = 'candidate' AND u.is_active = 1 AND p.allow_employer_search = 1
-    `;
-    const queryParams = [];
+    try {
+        const { keyword, location, skills, exp_min, exp_max } = req.query;
+        let query = `
+          SELECT p.id, p.full_name AS name, p.title, p.location, p.avatar_url AS avatar,
+            (SELECT GROUP_CONCAT(s.name) FROM User_Skills us JOIN Skills s ON us.skill_id = s.id WHERE us.profile_id = p.id) AS skills,
+            (SELECT COALESCE(SUM(TIMESTAMPDIFF(YEAR, start_date, IFNULL(end_date, CURRENT_DATE))), 0) FROM Work_Experience we WHERE we.profile_id = p.id) AS years_of_exp
+          FROM Profiles p JOIN Users u ON p.user_id = u.id WHERE u.role = 'candidate' AND u.is_active = 1 AND p.allow_employer_search = 1
+        `;
+        const queryParams = [];
 
-    if (keyword) { query += ` AND (p.title LIKE ? OR p.full_name LIKE ?)`; queryParams.push(`%${keyword}%`, `%${keyword}%`); }
-    if (location) { query += ` AND p.location LIKE ?`; queryParams.push(`%${location}%`); }
-    if (skills) {
-      const skillList = skills.split(',').map(s => s.trim());
-      for (let i = 0; i < skillList.length; i++) {
-        query += ` AND EXISTS (SELECT 1 FROM User_Skills us JOIN Skills s ON us.skill_id = s.id WHERE us.profile_id = p.id AND s.name = ?)`;
-        queryParams.push(skillList[i]);
-      }
+        if (keyword) { query += ` AND (p.title LIKE ? OR p.full_name LIKE ?)`; queryParams.push(`%${keyword}%`, `%${keyword}%`); }
+        if (location) { query += ` AND p.location LIKE ?`; queryParams.push(`%${location}%`); }
+        if (skills) {
+          const skillList = skills.split(',').map(s => s.trim());
+          for (let i = 0; i < skillList.length; i++) {
+            query += ` AND EXISTS (SELECT 1 FROM User_Skills us JOIN Skills s ON us.skill_id = s.id WHERE us.profile_id = p.id AND s.name = ?)`;
+            queryParams.push(skillList[i]);
+          }
+        }
+
+        query += ` GROUP BY p.id`;
+        let having = '';
+        if (exp_min !== undefined && exp_min !== '') { having += ` HAVING years_of_exp >= ?`; queryParams.push(parseInt(exp_min)); }
+        if (exp_max !== undefined && exp_max !== '') { having += (having ? ' AND ' : ' HAVING ') + ` years_of_exp <= ?`; queryParams.push(parseInt(exp_max)); }
+        query += having;
+        query += ` ORDER BY p.updated_at DESC`;
+
+        const [rows] = await db.query(query, queryParams);
+        const candidates = rows.map(row => ({
+          id: row.id,
+          name: row.name || 'Ứng viên',
+          title: row.title || 'Chưa cập nhật',
+          exp: row.years_of_exp ? `${row.years_of_exp} năm` : 'Chưa có KN',
+          location: row.location || 'Chưa cập nhật',
+          skills: row.skills ? row.skills.split(',') : [],
+          avatar: row.avatar || 'https://placehold.co/150'
+        }));
+
+        res.status(200).json({ success: true, data: candidates });
+    } catch (error) {
+        console.error('Search CV Error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi server khi tìm kiếm CV' });
     }
-
-    query += ` GROUP BY p.id`;
-    let having = '';
-    if (exp_min !== undefined && exp_min !== '') { having += ` HAVING years_of_exp >= ?`; queryParams.push(parseInt(exp_min)); }
-    if (exp_max !== undefined && exp_max !== '') { having += (having ? ' AND ' : ' HAVING ') + ` years_of_exp <= ?`; queryParams.push(parseInt(exp_max)); }
-    query += having;
-    query += ` ORDER BY p.updated_at DESC`;
-
-    const [rows] = await db.query(query, queryParams);
-    const candidates = rows.map(row => ({
-      id: row.id,
-      name: row.name || 'Ứng viên',
-      title: row.title || 'Chưa cập nhật',
-      exp: row.years_of_exp ? `${row.years_of_exp} năm` : 'Chưa có KN',
-      location: row.location || 'Chưa cập nhật',
-      skills: row.skills ? row.skills.split(',') : [],
-      avatar: row.avatar || 'https://placehold.co/150'
-    }));
-
-    res.status(200).json({ success: true, data: candidates });
-  } catch (error) {
-    console.error('Search CV Error:', error);
-    res.status(500).json({ success: false, message: 'Lỗi server khi tìm kiếm CV' });
-  }
 };

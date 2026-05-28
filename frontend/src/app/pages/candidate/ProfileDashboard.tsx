@@ -40,16 +40,6 @@ interface RecommendedJob {
   match_score: number;
 }
 
-// Mở rộng interface PersonalInfo gốc để thêm 6 trường tùy chỉnh DB mới chống lỗi biên dịch TypeScript
-interface ExtendedPersonalInfo extends PersonalInfo {
-  google_name?: string | null;
-  custom_name?: string | null;
-  use_custom_name?: boolean;
-  google_avatar_url?: string | null;
-  custom_avatar_url?: string | null;
-  use_custom_avatar?: boolean;
-}
-
 const resolveFileUrl = (url: string | null) => {
   if (!url) return '';
   if (url.startsWith('http')) return url;
@@ -62,17 +52,10 @@ export default function ProfileDashboard() {
   const [selectedTemplate, setSelectedTemplate] = useState<{ template: string; accentColor: string } | null>(null);
   const [templateFilter, setTemplateFilter] = useState('all');
 
-  // Khởi tạo đầy đủ giá trị mặc định cho 6 cột cấu hình mới tránh lỗi undefined form
-  const [personalInfo, setPersonalInfo] = useState<ExtendedPersonalInfo>({
+  const [personalInfo, setPersonalInfo] = useState<PersonalInfo>({
     full_name: '', title: '', bio: '', location: '',
     phone: '', gender: '', dob: '', avatar_url: null, cover_url: null, cv_url: null,
-    social_links: {},
-    google_name: '',
-    custom_name: '',
-    use_custom_name: false,
-    google_avatar_url: null,
-    custom_avatar_url: null,
-    use_custom_avatar: false
+    social_links: {}
   });
   const [experiences, setExperiences] = useState<WorkExperience[]>([]);
   const [education, setEducation] = useState<Education[]>([]);
@@ -86,7 +69,7 @@ export default function ProfileDashboard() {
 
   const [modal, setModal] = useState<'personalInfo' | 'experience' | 'education' | 'skills' | null>(null);
 
-  const [editPI, setEditPI] = useState<ExtendedPersonalInfo>(personalInfo);
+  const [editPI, setEditPI] = useState<PersonalInfo>(personalInfo);
   const [editExp, setEditExp] = useState<WorkExperience[]>([]);
   const [editEdu, setEditEdu] = useState<Education[]>([]);
   const [editSkills, setEditSkills] = useState<string[]>([]);
@@ -199,11 +182,6 @@ export default function ProfileDashboard() {
       setExperiences(newExp);
       setEducation(newEdu);
       setSkills(newSkills);
-      
-      if (newPI.avatar_url) {
-        setAvatarSrc(newPI.avatar_url);
-      }
-
       setModal(null);
       showToast('success', 'Profile updated successfully!');
 
@@ -270,24 +248,8 @@ export default function ProfileDashboard() {
 
       if (data.success) {
         setAvatarSrc(data.avatar_url);
-        
-        // Đồng bộ cập nhật link ảnh mới vào custom_avatar và tự bật dùng ảnh custom lên state chính
-        setPersonalInfo(prev => ({ 
-          ...prev, 
-          custom_avatar_url: data.avatar_url,
-          avatar_url: data.avatar_url,
-          use_custom_avatar: true 
-        }));
-        
-        // Cập nhật luôn cho state đang chỉnh sửa trong Modal đang mở
-        setEditPI(p => ({
-          ...p,
-          custom_avatar_url: data.avatar_url,
-          avatar_url: data.avatar_url,
-          use_custom_avatar: true
-        }));
-
-        showToast('success', 'Avatar uploaded successfully! Click Save to confirm.');
+        setPersonalInfo(prev => ({ ...prev, avatar_url: data.avatar_url }));
+        showToast('success', 'Avatar updated successfully!');
 
         const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
         savedUser.avatar_url = data.avatar_url;
@@ -450,105 +412,7 @@ export default function ProfileDashboard() {
       {/* MODALS */}
       {modal === 'personalInfo' && (
         <EditModal title="Edit Personal Information" onClose={() => setModal(null)} onSave={handleSave} saving={saving}>
-          
-          {/* 1. KHU VỰC LỰA CHỌN TÊN HIỂN THỊ */}
-          <div className="col-span-1 mb-4 p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/10">
-            <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2.5">Display Name Option</p>
-            <div className="flex flex-col gap-2.5 mb-2">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="radio"
-                  name="name_preference"
-                  checked={!editPI.use_custom_name}
-                  onChange={() => setEditPI(p => ({ 
-                    ...p, 
-                    use_custom_name: false, 
-                    full_name: p.google_name || p.full_name 
-                  }))}
-                  className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-white/10 dark:bg-transparent"
-                />
-                <span className="text-sm text-gray-600 dark:text-gray-300">
-                  Use Google Name: <span className="font-medium text-gray-900 dark:text-white">({editPI.google_name || 'Syncing...'})</span>
-                </span>
-              </label>
-              
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="radio"
-                  name="name_preference"
-                  checked={!!editPI.use_custom_name}
-                  onChange={() => setEditPI(p => ({ 
-                    ...p, 
-                    use_custom_name: true, 
-                    full_name: p.custom_name || p.full_name 
-                  }))}
-                  className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-white/10 dark:bg-transparent"
-                />
-                <span className="text-sm text-gray-600 dark:text-gray-300">Use Custom Name</span>
-              </label>
-            </div>
-
-            {/* Ô nhập tên tùy chỉnh: Chỉ hiển thị khi chọn chế độ Custom Name */}
-            {editPI.use_custom_name && (
-              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-white/10 animate-fade-in-up">
-                <Field label="Your Custom Name *">
-                  <input 
-                    className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} 
-                    placeholder="Enter your custom display name" 
-                    value={editPI.custom_name || ''} 
-                    onChange={e => setEditPI(p => ({ 
-                      ...p, 
-                      custom_name: e.target.value, 
-                      full_name: e.target.value 
-                    }))} 
-                  />
-                </Field>
-              </div>
-            )}
-          </div>
-
-          {/* 2. KHU VỰC LỰA CHỌN AVATAR HIỂN THỊ */}
-          <div className="col-span-1 mb-4 p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/10">
-            <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2.5">Avatar Image Option</p>
-            <div className="flex flex-col gap-2.5">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="radio"
-                  name="avatar_preference"
-                  checked={!editPI.use_custom_avatar}
-                  disabled={!editPI.google_avatar_url}
-                  onChange={() => setEditPI(p => ({ 
-                    ...p, 
-                    use_custom_avatar: false, 
-                    avatar_url: p.google_avatar_url || p.avatar_url 
-                  }))}
-                  className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-white/10 dark:bg-transparent disabled:opacity-50"
-                />
-                <span className="text-sm text-gray-600 dark:text-gray-300">
-                  Use Google Default Avatar
-                </span>
-              </label>
-              
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="radio"
-                  name="avatar_preference"
-                  checked={!!editPI.use_custom_avatar}
-                  disabled={!editPI.custom_avatar_url}
-                  onChange={() => setEditPI(p => ({ 
-                    ...p, 
-                    use_custom_avatar: true, 
-                    avatar_url: p.custom_avatar_url || p.avatar_url 
-                  }))}
-                  className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-white/10 dark:bg-transparent disabled:opacity-50"
-                />
-                <span className="text-sm text-gray-600 dark:text-gray-300">
-                  Use Custom Uploaded Avatar {!editPI.custom_avatar_url && <span className="text-xs text-amber-500 font-normal ml-1">(Upload an image first)</span>}
-                </span>
-              </label>
-            </div>
-          </div>
-
+          <Field label="Full name *"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Nguyễn Văn A" value={editPI.full_name || ''} onChange={e => setEditPI(p => ({ ...p, full_name: e.target.value }))} /></Field>
           <Field label="Title"><input className={inputCls + ' dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="Senior Frontend Engineer" value={editPI.title || ''} onChange={e => setEditPI(p => ({ ...p, title: e.target.value }))} /></Field>
           <Field label="Bio"><textarea className={inputCls + ' h-24 resize-none dark:bg-white/5 dark:border-white/10 dark:text-white'} placeholder="A few lines about you..." value={editPI.bio || ''} onChange={e => setEditPI(p => ({ ...p, bio: e.target.value }))} /></Field>
           <div className="grid grid-cols-2 gap-4">

@@ -302,10 +302,3 @@ CREATE TABLE IF NOT EXISTS Employer_Profile_Views (
     INDEX idx_candidate (candidate_id),
     UNIQUE KEY uk_view_per_day (employer_id, candidate_id, view_date)
 );
-ALTER TABLE users 
-ADD COLUMN google_name VARCHAR(255) NULL,
-ADD COLUMN custom_name VARCHAR(255) NULL,
-ADD COLUMN use_custom_name BOOLEAN DEFAULT FALSE;
-ADD COLUMN google_avatar_url TEXT NULL,
-ADD COLUMN custom_avatar_url TEXT NULL,
-ADD COLUMN use_custom_avatar BOOLEAN DEFAULT FALSE;
