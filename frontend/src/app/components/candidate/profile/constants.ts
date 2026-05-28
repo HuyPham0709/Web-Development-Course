@@ -44,8 +44,8 @@ export const SIDEBAR_MENU: MenuItem[] = [
       { id: 'messages', label: 'Messages' },
       { id: 'email-settings', label: 'Email Notification Settings' },
       { id: 'guidelines', label: 'User Guidelines' },
-      { id: 'handbook', label: 'Career Handbook' },
-      { id: 'personality-test', label: 'Personality Test' },
+      // { id: 'handbook', label: 'Career Handbook' },
+      // { id: 'personality-test', label: 'Personality Test' },
     ]
   },
 

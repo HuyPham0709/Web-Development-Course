@@ -13,6 +13,7 @@ import {
   Grid,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
   ChevronDown
 } from "lucide-react";
 
@@ -21,6 +22,7 @@ import { getJobs, getLocations, getCategories } from "../../../services/jobServi
 import { getRecommendations } from "../../../services/recommendationService";
 import { JobCard } from "../../components/public/home/JobCard";
 import { RecommendedJobsAside } from "../../components/candidate/profile/RecommendedJobsAside";
+import { Link } from "react-router-dom";
 
 interface IExtendedFilters extends IJobFilters {
   experience_level?: string;
@@ -156,11 +158,12 @@ export const Jobs: React.FC = () => {
 
         const token = localStorage.getItem("token");
         if (token) {
-          const aiRes = await getRecommendations();
-          if (aiRes?.data?.success) {
-            setAiRecommendations(aiRes.data.data);
-          } else if (aiRes?.data) {
-            setAiRecommendations(Array.isArray(aiRes.data) ? aiRes.data : []);
+          try {
+            const aiRes = await getRecommendations();
+            const data = aiRes?.data?.jobs;
+            setAiRecommendations(Array.isArray(data) ? data : []);
+          } catch (err) {
+            setAiRecommendations([]);
           }
         }
       } catch (error) {
@@ -505,13 +508,90 @@ export const Jobs: React.FC = () => {
             </div>
 
             {/* RECOMMENDED JOBS ASIDE */}
-            <RecommendedJobsAside 
-              recommendedJobs={aiRecommendations}
-              openModal={(type) => {
-                console.log("Trigger open modal type from profile card:", type);
-              }}
+            {/* Thay RecommendedJobsAside bằng inline card */}
+<div className="rounded-3xl border border-gray-200 bg-white dark:border-white/5 dark:bg-[#0B0F19] overflow-hidden">
+  <div className="px-5 py-4 border-b border-gray-100 dark:border-white/5 flex items-center justify-between bg-gray-50/50 dark:bg-white/[0.02]">
+    <div className="flex items-center gap-3">
+      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+        <Sparkles className="w-4 h-4 text-white" />
+      </div>
+      <div>
+        <h3 className="text-[12px] font-black uppercase tracking-wider text-gray-900 dark:text-white">AI Job Matches</h3>
+        <p className="text-[10px] text-gray-500 dark:text-gray-400">Top picks for you</p>
+      </div>
+    </div>
+    <span className="px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-[9px] font-bold text-blue-600 dark:text-blue-400">PREMIUM</span>
+  </div>
+
+  <div className="p-3 max-h-[400px] overflow-y-auto custom-scrollbar space-y-2">
+    {aiRecommendations.length === 0 ? (
+      <div className="py-10 text-center">
+        <Briefcase className="w-7 h-7 mx-auto text-gray-300 mb-2" />
+        <p className="text-xs font-bold text-gray-500 dark:text-gray-400">No recommendations</p>
+        <p className="text-[10px] text-gray-400">Complete profile to unlock</p>
+      </div>
+    ) : (
+      aiRecommendations.map((job, idx) => (
+        <Link
+          key={job.id || idx}
+          to={`/job/${job.id}`}
+          className="group flex gap-3 rounded-2xl p-3 border border-transparent bg-gray-50/50 dark:bg-white/[0.03] hover:border-blue-500/30 hover:bg-white dark:hover:bg-white/[0.06] hover:shadow-sm transition-all"
+        >
+          <div className="w-10 h-10 flex-shrink-0 rounded-xl overflow-hidden border border-gray-100 dark:border-white/10 bg-white p-1.5">
+            <img
+              src={job.company_logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company_name || 'C')}&background=random`}
+              alt={job.company_name}
+              className="w-full h-full object-contain"
             />
-          </aside>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-[12px] text-gray-900 dark:text-white line-clamp-1 group-hover:text-blue-600 transition-colors">{job.title}</p>
+            <p className="text-[10px] text-gray-500 truncate">{job.company_name}</p>
+            <div className="mt-1.5 flex items-center justify-between">
+              <span className="text-[11px] font-bold text-emerald-500">
+                {job.salary_min ? `$${job.salary_min/1000}k+` : 'Negotiable'}
+              </span>
+              {job.match_score > 0 && (
+                <span className="text-[10px] font-bold text-purple-500">{job.match_score}% match</span>
+              )}
+            </div>
+          </div>
+        </Link>
+      ))
+    )}
+  </div>
+</div>
+
+{/* ───────────────── PROFILE BOOST: Làm gọn card ───────────────── */}
+        <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-indigo-600 to-blue-700 p-5 text-white shadow-lg">
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-3.5 h-3.5 text-cyan-300" />
+              <span className="text-[10px] font-black tracking-widest uppercase opacity-90">Profile Boost</span>
+            </div>
+            
+            <h3 className="text-lg font-bold leading-tight">Increase Match Score</h3>
+            
+            <div className="mt-4 p-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/10">
+              <div className="flex justify-between text-[10px] font-bold mb-1.5">
+                <span>Strength</span>
+                <span>80%</span>
+              </div>
+              <div className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
+                <div className="h-full w-[80%] bg-gradient-to-r from-cyan-400 to-white" />
+              </div>
+            </div>
+
+            <button
+              // onClick={() => openModal('personalInfo')}
+              className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl bg-white py-2.5 text-[12px] font-black text-indigo-700 transition-all hover:bg-blue-50 active:scale-[0.98]"
+            >
+              Upgrade Profile
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </aside>
 
           {/* MAIN JOBS LIST AREA */}
           <main className="lg:col-span-3 space-y-5 min-h-[600px]">
