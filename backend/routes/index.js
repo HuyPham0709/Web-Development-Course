@@ -1,3 +1,4 @@
+// backend/routes/index.js
 const express = require('express');
 const router = express.Router();
 
@@ -40,11 +41,6 @@ const messageRoutes = require("./social/messageRoutes");
 const notificationRoutes = require("./social/notificationRoutes");
 const favoriteRoutes = require("./social/favoriteRoutes");
 const recommendationRoutes = require("./social/recommendationRoutes");
-
-// ─────────────────────────────────────────────────────────────
-// 6. Tuyến đường Client riêng lẻ
-// ─────────────────────────────────────────────────────────────
-const reportRoutes = require("./reportRoutes"); 
 
 
 // ─────────────────────────────────────────────────────────────
@@ -97,7 +93,6 @@ safeRegisterRoute("/notifications", notificationRoutes, "notificationRoutes");
 safeRegisterRoute("/favorites", favoriteRoutes, "favoriteRoutes");
 safeRegisterRoute("/recommendations", recommendationRoutes, "recommendationRoutes");
 
-// Phân hệ Client Report
-safeRegisterRoute("/reports", reportRoutes, "reportRoutes");
+//  ĐÃ XÓA: Bỏ hoàn toàn dòng đăng ký "/reports" cũ ở đây vì đã chuyển vào cụm admin phía trên.
 
 module.exports = router;

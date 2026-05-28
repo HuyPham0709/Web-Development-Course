@@ -29,6 +29,9 @@ export interface PersonalInfo {
   id?: number;
   user_id?: number;
   full_name: string;
+  google_name?: string;     
+  custom_name?: string;     
+  use_custom_name?: boolean;
   title: string;
   bio: string;
   location: string;

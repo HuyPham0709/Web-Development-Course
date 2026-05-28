@@ -375,8 +375,11 @@ exports.googleLogin = async (req, res) => {
 
     const { email, name, picture } = googleResponse.data;
 
+    // Truy vấn lấy dữ liệu User kèm theo Profiles và các cột config mới
     const [users] = await db.execute(
-      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name
+      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name,
+              u.google_name, u.custom_name, u.use_custom_name,
+              u.google_avatar_url, u.custom_avatar_url, u.use_custom_avatar
        FROM Users u
        LEFT JOIN Profiles p ON p.user_id = u.id
        WHERE u.email = ?`,
@@ -395,8 +398,12 @@ exports.googleLogin = async (req, res) => {
         autoUsername = `${autoUsername}_${Math.floor(1000 + Math.random() * 9000)}`;
       }
 
+      // Tạo mới tài khoản: Đưa dữ liệu Google vào đúng các cột google_name, google_avatar_url
       const [result] = await db.execute(
-        "INSERT INTO Users (username, email, password, role, is_verified, avatar_url, display_name) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        `INSERT INTO Users 
+         (username, email, password, role, is_verified, avatar_url, display_name, 
+          google_name, google_avatar_url, use_custom_name, use_custom_avatar) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)`,
         [
           autoUsername,
           email,
@@ -405,6 +412,8 @@ exports.googleLogin = async (req, res) => {
           1,
           picture,
           name,
+          name,       // google_name
+          picture,    // google_avatar_url
         ],
       );
 
@@ -417,8 +426,6 @@ exports.googleLogin = async (req, res) => {
             `Công ty của ${name}`,
           ]);
           companyId = companyResult.insertId;
-          
-          // FIX LỖI: Cập nhật ngược company_id cho tài khoản Employer tạo qua Google
           await db.execute("UPDATE Users SET company_id = ? WHERE id = ?", [companyId, userId]);
         } else {
           await db.execute(
@@ -427,10 +434,7 @@ exports.googleLogin = async (req, res) => {
           );
         }
       } catch (subError) {
-        console.error(
-          "Lỗi tạo Profile phụ (Tài khoản gốc vẫn an toàn):",
-          subError.message,
-        );
+        console.error("Lỗi tạo Profile phụ:", subError.message);
       }
 
       user = {
@@ -439,29 +443,25 @@ exports.googleLogin = async (req, res) => {
         role: role || "candidate",
         username: autoUsername,
         company_id: companyId,
-        avatar_url: picture,
-        full_name: name,
-        profile_avatar: picture,
+        google_name: name,
+        custom_name: null,
+        use_custom_name: 0,
+        google_avatar_url: picture,
+        custom_avatar_url: null,
+        use_custom_avatar: 0,
       };
     } else {
+      // Nếu user đã tồn tại, cập nhật đồng bộ các cột Google, TUYỆT ĐỐI không ghi đè cột Custom
       await db.execute(
-        "UPDATE Users SET avatar_url = ?, display_name = ?, is_verified = 1 WHERE id = ?",
-        [picture || user.avatar_url, name || user.display_name, user.id],
+        `UPDATE Users 
+         SET google_name = ?, google_avatar_url = ?, is_verified = 1 
+         WHERE id = ?`,
+        [name || user.google_name, picture || user.google_avatar_url, user.id],
       );
 
-      try {
-        if (user.role !== "employer") {
-          await db.execute(
-            "UPDATE Profiles SET avatar_url = ?, full_name = ? WHERE user_id = ?",
-            [picture || user.profile_avatar, name || user.full_name, user.id],
-          );
-        }
-      } catch (subError) {
-        console.error("Lỗi đồng bộ bảng Profiles phụ:", subError.message);
-      }
-
-      user.avatar_url = picture || user.avatar_url;
-      user.full_name = name || user.full_name;
+      // Cập nhật lại Object bộ nhớ cục bộ để xử lý tính toán trả về phía dưới
+      user.google_name = name || user.google_name;
+      user.google_avatar_url = picture || user.google_avatar_url;
     }
 
     const token = jwt.sign(
@@ -470,16 +470,27 @@ exports.googleLogin = async (req, res) => {
       { expiresIn: "1d" },
     );
 
+    // Xác định Tên và Ảnh đại diện sẽ hiển thị dựa theo cấu hình lựa chọn của người dùng
+    const finalFullName = user.use_custom_name ? user.custom_name : user.google_name;
+    const finalAvatarUrl = user.use_custom_avatar ? user.custom_avatar_url : user.google_avatar_url;
+
     return res.status(200).json({
       success: true,
       token: token,
       user: {
         id: user.id,
         username: user.username,
-        full_name: user.full_name || user.username,
+        full_name: finalFullName || user.username,
         role: user.role,
-        company_id: user.company_id, // FIX LỖI: Trả về company_id của tài khoản Google đăng nhập
-        avatar_url: user.avatar_url || user.profile_avatar || null,
+        company_id: user.company_id,
+        avatar_url: finalAvatarUrl || null,
+        // Gửi kèm trạng thái config về để Frontend đồng bộ UI (bật tắt switch/radio button)
+        use_custom_name: !!user.use_custom_name,
+        use_custom_avatar: !!user.use_custom_avatar,
+        custom_name: user.custom_name,
+        google_name: user.google_name,
+        custom_avatar_url: user.custom_avatar_url,
+        google_avatar_url: user.google_avatar_url,
       },
     });
   } catch (error) {
@@ -490,7 +501,6 @@ exports.googleLogin = async (req, res) => {
     });
   }
 };
-
 // --- BƯỚC 1: KIỂM TRA MẬT KHẨU VÀ GỬI OTP (ADMIN) ---
 exports.adminLogin = async (req, res) => {
   const { email, password } = req.body;
