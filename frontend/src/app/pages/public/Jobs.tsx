@@ -24,6 +24,7 @@ import { getRecommendations } from "../../../services/recommendationService";
 import { JobCard } from "../../components/public/home/JobCard";
 import { RecommendedJobsAside } from "../../components/candidate/profile/RecommendedJobsAside";
 import { Link } from "react-router-dom";
+import { api } from "../../../services/api";
 // 2. Import SearchAutocomplete theo đúng cấu trúc thư mục của Jobs.tsx
 import { SearchAutocomplete } from "../../components/shared/SearchAutocomplete";
 
@@ -162,6 +163,15 @@ export const Jobs: React.FC = () => {
           } catch (err) {
             setAiRecommendations([]);
           }
+
+          // GIẢI PHÁP SỬA LỖI: Gọi API lấy danh sách các Job đã được user save từ trước để hiển thị tim đỏ
+          try {
+            const res = await api.get("/api/favorites"); 
+            const savedIds = res.data.data.map((job: any) => job.id);
+            setSavedJobs(savedIds);
+          } catch (err) {
+            console.error("Fetch saved jobs error in Jobs.tsx:", err);
+          }
         }
       } catch (error) {
         console.error("Error initializing auxiliary filters data:", error);
@@ -207,11 +217,22 @@ export const Jobs: React.FC = () => {
     setSearchParams({}); 
   };
 
-  const handleToggleSaveJob = (jobId: number) => {
-    setSavedJobs(prev => 
-      prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]
-    );
-  };
+  const handleToggleSaveJob = useCallback(async (jobId: number) => {
+    try {
+      setSavedJobs(prev => {
+        const isSaved = prev.includes(jobId);
+        if (isSaved) {
+          api.delete(`/api/favorites/${jobId}`).catch(err => console.error(err));
+          return prev.filter(id => id !== jobId);
+        } else {
+          api.post(`/api/favorites/${jobId}`, {}).catch(err => console.error(err));
+          return [...prev, jobId];
+        }
+      });
+    } catch (err) {
+      console.error("Save job error:", err);
+    }
+  }, []);
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
@@ -514,12 +535,9 @@ export const Jobs: React.FC = () => {
               </div>
             </div>
 
-            {/* GỌI COMPONENT RECOMMENDED JOBS ĐÃ ĐƯỢC TÁCH BIỆT (THAY THẾ ĐOẠN CODE TRÙNG LẶP CŨ) */}
             <RecommendedJobsAside 
               recommendedJobs={aiRecommendations} 
-              openModal={() => {
-                // Trang Jobs không có hệ thống Modal Profile, để trống logic hoặc chuyển hướng tùy nhu cầu
-              }} 
+              openModal={() => {}} 
             />
 
           </aside>

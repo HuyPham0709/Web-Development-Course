@@ -36,16 +36,8 @@ export function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(-1);
 
-  // Mock data cho Line Chart (Giữ nguyên chờ API hỗ trợ)
-  const [trendsData] = useState([
-    { name: "Mon", postings: 120 },
-    { name: "Tue", postings: 150 },
-    { name: "Wed", postings: 180 },
-    { name: "Thu", postings: 140 },
-    { name: "Fri", postings: 210 },
-    { name: "Sat", postings: 90 },
-    { name: "Sun", postings: 110 },
-  ]);
+  // Dữ liệu thực tế cho Line Chart lấy từ API backend thay thế cho mock data cũ
+  const [trendsData, setTrendsData] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -55,6 +47,11 @@ export function Dashboard() {
 
         if (result.success) {
           setStats(result.data.stats);
+          
+          // Cập nhật dữ liệu xu hướng tin tuyển dụng từ API thật
+          if (result.data.trendsData) {
+            setTrendsData(result.data.trendsData);
+          }
 
           const rawData = result.data.categoryData;
           let processedData = [];
