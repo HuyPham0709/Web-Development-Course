@@ -1,14 +1,14 @@
 const express = require('express');
 const router = express.Router();
 
-const { verifyToken } = require('../middlewares/authMiddleware');
+const { verifyToken } = require('../../middlewares/authMiddleware');
 
 const {
   getFavorites,
   addFavorite,
   removeFavorite,
   checkFavorite
-} = require('../controllers/favoriteController');
+} = require('../../controllers/social/favoriteController');
 
 router.get('/', verifyToken, getFavorites);
 

@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 
 // ─────────────────────────────────────────────────────────────
-// 1. CONFIG CHUNG & GLOBAL MIDDLEWARES
+// 1. GLOBAL MIDDLEWARES (Cấu hình toàn cục)
 // ─────────────────────────────────────────────────────────────
 
 app.use(
@@ -27,47 +27,59 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ─────────────────────────────────────────────────────────────
-// 2. IMPORT ROUTES
+// 2. IMPORT ROUTES & MIDDLEWARES (Đã sửa theo cấu trúc thư mục mới)
 // ─────────────────────────────────────────────────────────────
 
-const authRoutes = require("./routes/authRoutes");
-const jobRoutes = require("./routes/jobRoutes");
-const categoryRoutes = require("./routes/categoryRoutes");
-const locationRoutes = require("./routes/locationRoutes");
-const applicationRoutes = require("./routes/applicationRoutes");
-const profileRoutes = require("./routes/profileRoutes");
-const companyRoutes = require("./routes/companyRoutes");
-const skillRoutes = require("./routes/skillRoutes");
-const jobCriteriaRoutes = require("./routes/jobCriteriaRoutes");
-const favoriteRoutes = require("./routes/favoriteRoutes");
-const recommendationRoutes = require("./routes/recommendationRoutes");
-const notificationRoutes = require("./routes/notificationRoutes");
-const messageRoutes = require("./routes/messageRoutes");
-const cvBuilderRoutes = require("./routes/cvBuilderRoutes");
-const candidateVisibilityRoutes = require('./routes/candidateVisibilityRoutes');
-const reportRoutes = require('./routes/reportRoutes'); 
+// Phân hệ Auth
+const authRoutes = require("./routes/auth/authRoutes");
+const profileRoutes = require("./routes/auth/profileRoutes");
 
-// Admin Routes
+// Phân hệ Jobs
+const jobRoutes = require("./routes/jobs/jobRoutes");
+const categoryRoutes = require("./routes/jobs/categoryRoutes");
+const locationRoutes = require("./routes/jobs/locationRoutes");
+const jobCriteriaRoutes = require("./routes/jobs/jobCriteriaRoutes");
+const skillRoutes = require("./routes/jobs/skillRoutes");
+
+// Phân hệ Core
+const applicationRoutes = require("./routes/core/applicationRoutes");
+const companyRoutes = require("./routes/core/companyRoutes");
+const cvBuilderRoutes = require("./routes/core/cvBuilderRoutes");
+const candidateVisibilityRoutes = require("./routes/core/candidateVisibilityRoutes");
+
+// Phân hệ Social
+const favoriteRoutes = require("./routes/social/favoriteRoutes");
+const recommendationRoutes = require("./routes/social/recommendationRoutes");
+const notificationRoutes = require("./routes/social/notificationRoutes");
+const messageRoutes = require("./routes/social/messageRoutes");
+
+// Client Report (Nằm ngay trong thư mục routes gốc)
+const reportRoutes = require("./routes/reportRoutes"); 
+
+// Phân hệ Admin Routes (Đã sửa lại viết hoa/thường theo đúng file tree)
 const adminRoutes = require("./routes/admin/adminRoutes");
-const adminUserRoutes = require("./routes/admin/Userroutes");
+const adminUserRoutes = require("./routes/admin/userRoutes");
 const adminJobRoutes = require("./routes/admin/adminJobRoutes");
 const metadataRoutes = require("./routes/admin/metadataRoutes");
-const adminReportRoutes = require("./routes/admin/Reportroutes"); 
+const adminReportRoutes = require("./routes/admin/reportRoutes"); 
 
 // Custom Middlewares & Utils
 const { verifyToken, authorizeRole } = require("./middlewares/authMiddleware");
 const socketUtils = require("./utils/socket");
 
 // ─────────────────────────────────────────────────────────────
-// 3. ĐĂNG KÝ CÁC TUYẾN ĐƯỜNG (API ROUTES)
+// 3. API ROUTES CONFIGURATION (Đăng ký các tuyến đường)
 // ─────────────────────────────────────────────────────────────
 
-// Main User/Candidate Routes
+// Router tổng hợp (Có file routes/index.js nên dòng này hoạt động bình thường)
+app.use("/api", require("./routes/index"));
+
+// Chi tiết các phân hệ Route chính (Client)
 app.use("/api/auth", authRoutes);
+app.use("/api/profile", profileRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/locations", locationRoutes);
 app.use("/api/applications", applicationRoutes);
-app.use("/api/profile", profileRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/companies", companyRoutes);
 app.use("/api/skills", skillRoutes);
@@ -75,19 +87,22 @@ app.use("/api/job-criteria", jobCriteriaRoutes);
 app.use("/api/favorites", favoriteRoutes);
 app.use("/api/recommendations", recommendationRoutes);
 app.use("/api/notifications", notificationRoutes);
-app.use("/api/messages", messageRoutes);
-app.use("/api/cv-builder", cvBuilderRoutes);
-app.use('/api/candidate', candidateVisibilityRoutes);
-app.use("/api/reports", reportRoutes); 
+app.use("/api/messages", messageRoutes);       
+app.use("/api/cv-builder", cvBuilderRoutes);     
+app.use("/api/candidate", candidateVisibilityRoutes);
+app.use("/api/reports", reportRoutes);           
 
-// Admin Routes
+// Phân hệ Admin Routes
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin/users", adminUserRoutes);
 app.use("/api/admin/jobs", adminJobRoutes);
 app.use("/api/admin/metadata", metadataRoutes);
 app.use("/api/admin/reports", adminReportRoutes);
 
-// Test Route
+// ─────────────────────────────────────────────────────────────
+// 4. TEST ROUTE & ROOT ROUTE
+// ─────────────────────────────────────────────────────────────
+
 app.post("/api/jobs/create", verifyToken, authorizeRole(["employer"]), (req, res) => {
   res.json({
     message: "Đăng tin thành công!",
@@ -95,13 +110,12 @@ app.post("/api/jobs/create", verifyToken, authorizeRole(["employer"]), (req, res
   });
 });
 
-// Root Route
 app.get("/", (req, res) => {
   res.send("Backend JobFinder đang hoạt động! 🚀");
 });
 
 // ─────────────────────────────────────────────────────────────
-// 4. ERROR HANDLER MIDDLEWARE (Phải đặt dưới cùng của các Route)
+// 5. ERROR HANDLER MIDDLEWARE (Phải đặt dưới cùng của các Route)
 // ─────────────────────────────────────────────────────────────
 
 app.use((err, req, res, next) => {
@@ -113,10 +127,10 @@ app.use((err, req, res, next) => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// 5. KẾT NỐI DATABASE & KHỞI ĐỘNG SERVER (Luôn đặt cuối file)
+// 6. DATABASE CONNECT & SERVER STARTUP 
 // ─────────────────────────────────────────────────────────────
 
-// Đăng ký Socket.io với server trước khi mở port listen
+// Khởi tạo Socket.io sẵn sàng nhận kết nối
 socketUtils.init(server);
 
 mongoose
@@ -126,15 +140,15 @@ mongoose
   )
   .then(() => {
     console.log("✅ MongoDB connected successfully!");
-    server.listen(PORT, () => {
-      console.log(`🚀 Server is running on port ${PORT}`);
+    server.listen(PORT, "0.0.0.0", () => {
+      console.log(`🚀 Server is running on http://localhost:${PORT}`);
     });
   })
   .catch((err) => {
     console.error("❌ MongoDB connection error:", err.message);
     console.log("⚠️ Khởi động server chế độ Fallback (Không có MongoDB)...");
     
-    server.listen(PORT, () => {
-      console.log(`🚀 Server is running on port ${PORT} (without MongoDB)`);
+    server.listen(PORT, "0.0.0.0", () => {
+      console.log(`🚀 Server is running on http://localhost:${PORT} (without MongoDB)`);
     });
   });

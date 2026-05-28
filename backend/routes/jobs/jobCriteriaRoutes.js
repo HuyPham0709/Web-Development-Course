@@ -5,9 +5,9 @@ const router = express.Router();
 const {
   getJobCriteria,
   saveJobCriteria
-} = require('../controllers/jobCriteriaController');
+} = require('../../controllers/jobs/jobCriteriaController');
 
-const authMiddleware = require('../middlewares/authMiddleware');
+const authMiddleware = require('../../middlewares/authMiddleware');
 
 router.get(
   '/',

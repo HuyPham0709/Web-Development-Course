@@ -6,11 +6,11 @@ const router = express.Router();
 
 const {
   getRecommendedJobs
-} = require('../controllers/recommendationController');
+} = require('../../controllers/social/recommendationController');
 
 const {
   verifyToken
-} = require('../middlewares/authMiddleware');
+} = require('../../middlewares/authMiddleware');
 
 
 // GET RECOMMENDED JOBS

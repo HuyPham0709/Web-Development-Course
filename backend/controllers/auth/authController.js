@@ -1,10 +1,10 @@
+const db = require('../../config/db');
 const path = require("path");
 
 require("dotenv").config({
   path: path.join(__dirname, "../.env"),
 });
 
-const db = require("../config/db");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { validationResult } = require("express-validator");
