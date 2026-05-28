@@ -1,9 +1,20 @@
+// backend/routes/messageRoutes.js
+
 const express = require('express');
 const router = express.Router();
 const messageController = require('../controllers/messageController');
+
+// 1. Import chatbotController mới tạo
+const chatbotController = require('../controllers/chatbotController'); 
+
 const { verifyToken } = require('../middlewares/authMiddleware'); 
 
-// Dòng này giúp bảo vệ TẤT CẢ các route bên dưới (yêu cầu phải đăng nhập)
+// 2. Trỏ route /bot qua Controller mới (Vẫn để TRƯỚC verifyToken)
+router.post('/bot', chatbotController.chatWithBot);
+
+// ====================================================================
+// Các Route bên dưới bắt buộc phải đăng nhập
+// ====================================================================
 router.use(verifyToken); 
 
 router.get('/conversations', messageController.getConversations);
