@@ -366,3 +366,35 @@ exports.getJobsByEmployer = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+exports.getSuggestions = async (req, res, next) => {
+    try {
+        const { q } = req.query;
+        
+        if (!q || q.trim() === '') {
+            return res.json({ success: true, data: [] });
+        }
+
+        const searchQuery = `%${q}%`;
+        
+        const sql = `
+            SELECT 
+                j.id AS id, 
+                j.title AS label, 
+                c.name AS description
+            FROM Jobs j
+            LEFT JOIN Companies c ON j.company_id = c.id
+            WHERE j.status = 'approved' 
+              AND j.deleted_at IS NULL 
+              AND j.title LIKE ?
+            LIMIT 10
+        `;
+
+        const [rows] = await db.execute(sql, [searchQuery]);
+
+        // ĐỒNG BỘ CHUẨN: Trả về object chứa trường data tương tự các hàm khác
+        return res.json({ success: true, data: rows });
+    } catch (error) {
+        console.error("Lỗi lấy dữ liệu Autocomplete gợi ý việc làm:", error);
+        return res.status(500).json({ success: false, message: "Lỗi máy chủ nội bộ" });
+    }
+};

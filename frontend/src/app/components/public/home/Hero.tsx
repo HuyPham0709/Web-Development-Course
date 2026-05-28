@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, MapPin, Briefcase, Zap, Layers, ChevronDown, DollarSign } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { getCategories, getLocations } from "../../../../services/jobService";
+import { getCategories, getLocations, getJobSuggestions } from "../../../../services/jobService";
+// Nhúng file Autocomplete đã được tối ưu hóa tự trị ở trên
+import { SearchAutocomplete } from "../../shared/SearchAutocomplete";
 
 interface HeroProps {
   initialTitle: string;
@@ -15,7 +17,7 @@ export function Hero({ initialTitle, initialLocation, initialCategoryId, initial
   const navigate = useNavigate();
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
-  // 1. State lưu trữ dữ liệu người dùng nhập
+  // State lưu trữ dữ liệu người dùng nhập
   const [title, setTitle] = useState(initialTitle);
   const [location, setLocation] = useState(initialLocation);
   const [categoryId, setCategoryId] = useState(initialCategoryId);
@@ -24,7 +26,7 @@ export function Hero({ initialTitle, initialLocation, initialCategoryId, initial
   // State quản lý dropdown nào đang mở
   const [activeDropdown, setActiveDropdown] = useState<"category" | "location" | "salary" | null>(null);
 
-  // 2. State chứa danh sách tùy chọn lấy từ API
+  // State chứa danh sách tùy chọn lấy từ API
   const [categories, setCategories] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
 
@@ -67,7 +69,7 @@ export function Hero({ initialTitle, initialLocation, initialCategoryId, initial
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 3. Hàm xử lý tìm kiếm ĐÃ CẢI TIẾN: Nhận params trực tiếp để tránh state bất đồng bộ
+  // Hàm xử lý tìm kiếm nhận params trực tiếp để tránh state bất đồng bộ
   const handleSearch = (updatedFields?: { title?: string; location?: string; categoryId?: string; salary?: string }) => {
     const finalTitle = updatedFields && updatedFields.hasOwnProperty('title') ? updatedFields.title : title;
     const finalLocation = updatedFields && updatedFields.hasOwnProperty('location') ? updatedFields.location : location;
@@ -212,20 +214,25 @@ export function Hero({ initialTitle, initialLocation, initialCategoryId, initial
         >
           <div ref={searchContainerRef} className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-6">
             
-            {/* 1. Input Keyword (Bổ sung nút Enter kích hoạt tìm kiếm nhanh) */}
+            {/* 1. Kế thừa Ô Input Autocomplete Mới */}
             <div className="flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-3 lg:col-span-2 border border-gray-100 dark:bg-white/5 dark:border-white/5">
-              <Search className="text-gray-400 dark:text-gray-500" size={20} />
-              <input
-                type="text"
+              <Search className="text-gray-400 dark:text-gray-500 shrink-0" size={20} />
+              <SearchAutocomplete
                 placeholder="Keywords, Skills, or Roles..."
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch({ title })}
-                className="w-full bg-transparent text-sm text-gray-900 placeholder-gray-500 outline-none dark:text-white dark:placeholder-gray-400"
+                initialValue={title}
+                onSelect={(item) => {
+                  setTitle(item.label);
+                  handleSearch({ title: item.label });
+                }}
+                onInputChange={(value) => setTitle(value)} // Đảm bảo dòng này đã có để cập nhật state 'title' liên tục khi gõ phím
+                onFetchSuggestions={async (query, signal) => {
+                  if (!query.trim()) return [];
+                  return await getJobSuggestions(query, signal);
+                }}
               />
             </div>
             
-            {/* 2. Category Custom Dropdown (Tìm kiếm tự động khi chọn) */}
+            {/* 2. Category Custom Dropdown */}
             <div className="relative flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-3 border border-gray-100 dark:bg-white/5 dark:border-white/5">
               <Layers className="text-gray-400 dark:text-gray-500 shrink-0" size={20} />
               <button 
@@ -264,7 +271,7 @@ export function Hero({ initialTitle, initialLocation, initialCategoryId, initial
               </AnimatePresence>
             </div>
 
-            {/* 3. Location Custom Dropdown (Tìm kiếm tự động khi chọn) */}
+            {/* 3. Location Custom Dropdown */}
             <div className="relative flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-3 border border-gray-100 dark:bg-white/5 dark:border-white/5">
               <MapPin className="text-gray-400 dark:text-gray-500 shrink-0" size={20} />
               <button 
@@ -303,7 +310,7 @@ export function Hero({ initialTitle, initialLocation, initialCategoryId, initial
               </AnimatePresence>
             </div>
 
-            {/* 4. Salary Custom Dropdown (Tìm kiếm tự động khi chọn) */}
+            {/* 4. Salary Custom Dropdown */}
             <div className="relative flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-3 border border-gray-100 dark:bg-white/5 dark:border-white/5">
               <DollarSign className="text-gray-400 dark:text-gray-500 shrink-0" size={20} />
               <button 
@@ -342,7 +349,7 @@ export function Hero({ initialTitle, initialLocation, initialCategoryId, initial
               </AnimatePresence>
             </div>
 
-            {/* 5. Nút Search (Giữ lại để tìm kiếm theo Keyword thủ công nếu thích) */}
+            {/* 5. Nút Search */}
             <button 
               onClick={() => handleSearch()}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 font-semibold text-white shadow-md transition-all hover:shadow-lg lg:col-span-1 hover:opacity-95"

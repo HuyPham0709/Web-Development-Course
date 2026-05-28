@@ -18,9 +18,9 @@ const GREETING_POOL = [
 ];
 
 const SUGGESTIONS = [
-  { label: "🏢 Địa chỉ công ty FPT", value: "Địa chỉ công ty FPT ở đâu vậy" },
-  { label: "💼 Tuyển dụng Viettel", value: "Bên Viettel tuyển job nào hot không" },
-  { label: "🎯 Tìm việc ngành IT", value: "Tìm việc ngành IT" },
+  { label: "🏢 Địa chỉ của công ty NextGen Tech", value: "Địa chỉ của công ty NextGen Tech" },
+  { label: "💼 Tuyển dụng NextGen Tech", value: "Tuyển dụng NextGen Tech" },
+  { label: "🎯 Tìm việc ngành Design", value: "Tìm việc ngành Design" },
   { label: "📝 Cách tạo CV", value: "Cách tạo CV như thế nào" }
 ];
 
