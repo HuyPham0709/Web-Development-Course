@@ -1,4 +1,4 @@
-const db = require('../config/db');
+const db = require('../../config/db');
 
 // GET: Lấy danh sách việc làm đã lưu
 exports.getFavorites = async (req, res) => {

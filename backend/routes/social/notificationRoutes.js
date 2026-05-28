@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const notificationController = require("../controllers/notificationController");
-const { verifyToken } = require("../middlewares/authMiddleware"); 
-const Notification = require("../models/Notification"); // Import Model MongoDB
+const notificationController = require("../../controllers/social/notificationController");
+const { verifyToken } = require("../../middlewares/authMiddleware"); 
+const Notification = require("../../models/Notification"); // Import Model MongoDB
 
 router.get("/", verifyToken, notificationController.getNotifications);
 router.put("/:id/read", verifyToken, notificationController.markAsRead);

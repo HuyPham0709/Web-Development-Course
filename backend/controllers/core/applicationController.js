@@ -1,103 +1,103 @@
-const db = require("../config/db");
-const Notification = require("../models/Notification"); 
-const socketUtils = require("../utils/socket");
+const db = require("../../config/db");
+const Notification = require("../../models/Notification"); 
+const socketUtils = require("../../utils/socket");
 
 // ======================================================
-// APPLY JOB (BẢN ĐÃ CHỮA LỖI NAME & TÍCH HỢP REAL-TIME)
+// APPLY JOB
 // ======================================================
 exports.applyJob = async (req, res) => {
   const { job_id, cover_letter } = req.body;
-  const candidate_id = req.user.id; // Lấy ID của ứng viên đăng nhập
+  const candidate_id = req.user.id; // Get logged-in candidate's ID
 
   try {
-    console.log("🚀 [Backend] Nhận yêu cầu ứng tuyển công việc ID:", job_id);
+    console.log("🚀 [Backend] Received application request for Job ID:", job_id);
 
-    // 1. Truy vấn MySQL để lấy thông tin Job (bao gồm tiêu đề và ID người đăng)
+    // 1. Query MySQL to get Job details (including title and publisher's ID)
     const [jobs] = await db.execute(
       "SELECT id, title, posted_by FROM Jobs WHERE id = ? AND deleted_at IS NULL",
       [job_id],
     );
 
-    // Kiểm tra nếu không tìm thấy công việc trong Database
+    // Check if the job exists in the database
     if (jobs.length === 0) {
-      console.log(`❌ Thất bại: Không tìm thấy Job ID ${job_id} trong MySQL`);
+      console.log(`❌ Failure: Job ID ${job_id} not found in MySQL`);
       return res
         .status(404)
         .json({
           success: false,
-          message: "Không tìm thấy công việc này hoặc tin tuyển dụng đã bị xóa!",
+          message: "This job post could not be found or has been deleted!",
         });
     }
 
-    const job = jobs[0]; // Định nghĩa biến job hợp lệ từ kết quả truy vấn
+    const job = jobs[0]; // Define a valid job variable from the query results
 
-    // 2. Kiểm tra xem ứng viên đã nộp đơn vào công việc này chưa (Tránh nộp trùng)
+    // 2. Check if the candidate has already applied for this job (Avoid duplicates)
     const [existingApp] = await db.execute(
       "SELECT id FROM Applications WHERE job_id = ? AND candidate_id = ?",
       [job_id, candidate_id],
     );
 
     if (existingApp.length > 0) {
-      console.log("⚠️ Cảnh báo: Ứng viên này đã nộp đơn trùng lặp trước đó.");
+      console.log("⚠️ Warning: This candidate has already submitted a duplicate application.");
       return res
         .status(400)
         .json({
           success: false,
-          message: "Bạn đã nộp đơn ứng tuyển cho công việc này rồi!",
+          message: "You have already applied for this position!",
         });
     }
 
-    // 3. THỰC HIỆN: Lưu bản ghi ứng tuyển vào bảng Applications (MySQL)
+    // 3. EXECUTE: Save application record into the Applications table (MySQL)
     await db.execute(
       "INSERT INTO Applications (job_id, candidate_id, cover_letter, status, applied_at) VALUES (?, ?, ?, 'pending', NOW())",
       [job_id, candidate_id, cover_letter || null],
     );
-    console.log("⚙️ [MySQL] Đã lưu thành công đơn ứng tuyển mới!");
+    console.log("⚙️ [MySQL] Successfully saved new job application record!");
 
-    // 4. TIẾN HÀNH BẮN THÔNG BÁO SANG MONGODB & SOCKET REAL-TIME
+    // 4. PROCEED WITH NOTIFICATION DISPATCH TO MONGODB & SOCKET REAL-TIME
     try {
       console.log(
-        "⏳ [MongoDB] Đang chuẩn bị bắn thông báo cho Employer ID gốc:",
+        "⏳ [MongoDB] Preparing to send notification to native Employer ID:",
         job.posted_by,
       );
 
       const targetEmployerId = String(job.posted_by);
 
-      // ✅ FIX LỖI: Lấy thông tin Tên đầy đủ của Ứng viên đang đăng nhập gửi đơn
-      const candidateName = req.user.full_name || req.user.name || req.user.username || "Ứng viên ẩn danh";
+      // Extract the candidate's full name from the authenticated user context
+      const candidateName = req.user.full_name || req.user.name || req.user.username || "Anonymous Candidate";
 
-      // Lưu vào cơ sở dữ liệu MongoDB thông báo
+      // Persist the notification structure to MongoDB
       const newNotify = await Notification.create({
         user_id: targetEmployerId,
-        title: "Đơn ứng tuyển mới 📄",
-        message: `Ứng viên ${candidateName} đã nộp đơn vào vị trí "${job.title}"`,
+        title: "New Job Application 📄",
+        message: `Candidate ${candidateName} has applied for the position "${job.title}"`,
         is_read: false,
         type: "apply",
         link_url: "/employer/candidates", 
         created_at: new Date(),
       });
 
-      console.log("🍃 [MongoDB] Đã lưu thành công thông báo mới!");
+      console.log("🍃 [MongoDB] Successfully saved new notification!");
 
-      // 🔥 REAL-TIME: Bắn trực tiếp qua socket cho Nhà tuyển dụng nhận ngay lập tức
+      // 🔥 REAL-TIME: Dispatch immediately via Socket to the Employer
       socketUtils.sendNotification(targetEmployerId, newNotify);
 
     } catch (mongoError) {
-      console.error("❌ LỖI TẠI LUỒNG MONGODB/SOCKET (MySQL vẫn chạy ổn):");
+      console.error("❌ ERROR WITHIN MONGODB/SOCKET THREAD (MySQL remains unaffected):");
       console.error(mongoError.message);
     }
 
-    // Luôn trả về thành công vì MySQL đã xử lý xong hồ sơ ứng tuyển
+    // Always respond with success since the core MySQL profile registration completed
     return res
       .status(201)
       .json({
         success: true,
-        message: "Ứng tuyển thành công và đang cập nhật thông báo!",
+        message: "Applied successfully and dispatching updates!",
       });
   } catch (error) {
-    console.error("====== LỖI SẬP LUỒNG ỨNG TUYỂN CHÍNH ======");
+    console.error("====== CRITICAL APPLICATION PROCESS FLOW CRASH ======");
     console.error(error);
-    console.error("===============================================");
+    console.error("=====================================================");
     return res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -178,7 +178,7 @@ exports.getApplicationById = async (req, res) => {
     if (rows.length === 0) {
       return res
         .status(404)
-        .json({ success: false, message: "Không tìm thấy đơn ứng tuyển" });
+        .json({ success: false, message: "Application not found" });
     }
 
     const [workExp] = await db.execute(
@@ -204,7 +204,7 @@ exports.getApplicationById = async (req, res) => {
 };
 
 // ======================================================
-// UPDATE APPLICATION STATUS (THAY ĐỔI TRẠNG THÁI & REAL-TIME)
+// UPDATE APPLICATION STATUS
 // ======================================================
 exports.updateApplicationStatus = async (req, res) => {
   const { application_id, status } = req.body;
@@ -220,7 +220,7 @@ exports.updateApplicationStatus = async (req, res) => {
   if (!allowedStatuses.includes(status)) {
     return res
       .status(400)
-      .json({ success: false, message: "Status không hợp lệ" });
+      .json({ success: false, message: "Invalid status provided" });
   }
 
   try {
@@ -234,7 +234,7 @@ exports.updateApplicationStatus = async (req, res) => {
     if (applications.length === 0) {
       return res
         .status(404)
-        .json({ success: false, message: "Không tìm thấy đơn ứng tuyển này!" });
+        .json({ success: false, message: "Application not found!" });
     }
 
     await db.execute("UPDATE Applications SET status = ? WHERE id = ?", [
@@ -242,7 +242,7 @@ exports.updateApplicationStatus = async (req, res) => {
       application_id,
     ]);
 
-    // Ép kiểu candidateId về dạng String cho đồng bộ MongoDB
+    // Format candidateId as String for MongoDB query compliance
     const candidateId = String(applications[0].candidate_id);
     const jobTitle = applications[0].job_title;
 
@@ -250,42 +250,42 @@ exports.updateApplicationStatus = async (req, res) => {
     let notifyMessage = "";
 
     if (status === "reviewed") {
-      notifyTitle = "Hồ sơ đang được xem xét";
-      notifyMessage = `Hồ sơ ứng tuyển vị trí "${jobTitle}" của bạn đã được chuyển sang trạng thái: Xem xét (Under Review).`;
+      notifyTitle = "The application is under review.";
+      notifyMessage = `The application for the position "${jobTitle}" has been updated to: Under Review.`;
     } else if (status === "interviewing") {
-      notifyTitle = "Lời mời phỏng vấn 📅";
-      notifyMessage = `Chúc mừng! Bạn có lịch phỏng vấn cho vị trí "${jobTitle}". Hãy chuẩn bị thật tốt nhé.`;
+      notifyTitle = "Interview Invitation 📅";
+      notifyMessage = `Congratulations! You have an interview scheduled for the position "${jobTitle}". Please prepare well.`;
     } else if (status === "accepted") {
-      notifyTitle = "Hồ sơ được chấp nhận 🎉";
-      notifyMessage = `Chúc mừng bạn đã xuất sắc trúng tuyển vị trí "${jobTitle}"!`;
+      notifyTitle = "Application accepted 🎉";
+      notifyMessage = `The application for the position "${jobTitle}" has been accepted. Congratulations! The employer will contact you soon.`;
     } else if (status === "rejected") {
-      notifyTitle = "Cập nhật trạng thái hồ sơ";
-      notifyMessage = `Cảm ơn bạn đã ứng tuyển vị trí "${jobTitle}". Hồ sơ của bạn chưa phù hợp tiêu chí lần này.`;
+      notifyTitle = "Application rejected";
+      notifyMessage = `The application for the position "${jobTitle}" has been rejected. Thank you for your interest.`;
     }
 
     if (notifyTitle && notifyMessage) {
-      // 1. Tạo thông báo lưu vào MongoDB cho ứng viên
+      // 1. Persist candidate event notification to MongoDB
       const newCandidateNotify = await Notification.create({
         user_id: candidateId, 
         title: notifyTitle,
         message: notifyMessage,
         is_read: false,
         type: "system",
-        link_url: "/profile/applications", // Trùng khớp với route alias đã fix lỗi 404
+        link_url: "/profile/applications", 
         created_at: new Date(), 
       });
-      console.log("🍃 [MongoDB] Đã tạo thành công 1 thông báo xét duyệt.");
+      console.log("🍃 [MongoDB] Successfully generated a target review evaluation notification.");
 
-      // 🔥 2. REAL-TIME: Bắn trực tiếp qua socket về cho Ứng viên (Candidate) thấy ngay lập tức
+      // 🔥 2. REAL-TIME: Dispatch immediate telemetry via active connection socket to Candidate
       socketUtils.sendNotification(candidateId, newCandidateNotify);
     }
 
     res.status(200).json({
       success: true,
-      message: `Đã chuyển trạng thái sang: ${status} và thông báo tới ứng viên thành công!`,
+      message: `Status transitioned to: ${status} and candidate notified successfully!`,
     });
   } catch (error) {
-    console.error("🚨 Lỗi update status:", error);
+    console.error("🚨 Error updating status:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -311,7 +311,7 @@ exports.getEmployerJobs = async (req, res) => {
     `, [employer_id]);
 
     const total_jobs = jobs.length;
-    // Chỉ đếm applications của jobs approved
+    // Calculate applications metrics solely from approved listings
     const total_applications = jobs.reduce((sum, job) => {
       return job.status === 'approved'
         ? sum + (parseInt(job.application_count) || 0)
@@ -362,7 +362,7 @@ exports.getMyApplications = async (req, res) => {
       data: rows,
     });
   } catch (error) {
-    console.error("Lỗi SQL:", error.message);
+    console.error("SQL Error:", error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -381,15 +381,15 @@ exports.withdrawApplication = async (req, res) => {
     if (applications.length === 0) {
       return res
         .status(404)
-        .json({ success: false, message: "Không tìm thấy đơn ứng tuyển" });
+        .json({ success: false, message: "Application not found" });
     }
     if (applications[0].status !== "pending") {
       return res
         .status(400)
-        .json({ success: false, message: "Chỉ có thể rút hồ sơ đang pending" });
+        .json({ success: false, message: "You can only withdraw applications that are pending" });
     }
     await db.execute(`DELETE FROM Applications WHERE id = ?`, [application_id]);
-    res.json({ success: true, message: "Đã rút hồ sơ ứng tuyển" });
+    res.json({ success: true, message: "Application withdrawn successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -413,7 +413,7 @@ exports.getNotes = async (req, res) => {
 
     res.status(200).json({ success: true, data: rows });
   } catch (error) {
-    console.error("Lỗi getNotes:", error);
+    console.error("Error in getNotes:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -428,7 +428,7 @@ exports.addNote = async (req, res) => {
   if (!content?.trim()) {
     return res
       .status(400)
-      .json({ success: false, message: "Nội dung ghi chú không được trống" });
+      .json({ success: false, message: "Note content cannot be empty" });
   }
 
   try {
@@ -447,7 +447,7 @@ exports.addNote = async (req, res) => {
 
     res.status(201).json({ success: true, data: newNote[0] });
   } catch (error) {
-    console.error("Lỗi addNote:", error);
+    console.error("Error in addNote:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -468,12 +468,12 @@ exports.deleteNote = async (req, res) => {
     if (result.affectedRows === 0) {
       return res
         .status(403)
-        .json({ success: false, message: "Không có quyền xóa ghi chú này" });
+        .json({ success: false, message: "You do not have permission to delete this note" });
     }
 
-    res.status(200).json({ success: true, message: "Đã xóa ghi chú" });
+    res.status(200).json({ success: true, message: "Note deleted successfully" });
   } catch (error) {
-    console.error("Lỗi deleteNote:", error);
+    console.error("Error in deleteNote:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -494,7 +494,7 @@ exports.toggleJobStatus = async (req, res) => {
     if (jobs.length === 0) {
       return res
         .status(404)
-        .json({ success: false, message: "Không tìm thấy tin tuyển dụng" });
+        .json({ success: false, message: "Job post not found" });
     }
 
     const currentStatus = jobs[0].status;
@@ -509,8 +509,8 @@ exports.toggleJobStatus = async (req, res) => {
       success: true,
       message:
         newStatus === "closed"
-          ? "Đã đóng tin tuyển dụng"
-          : "Đã mở lại tin tuyển dụng",
+          ? "Job post has been closed"
+          : "Job post has been reopened",
       new_status: newStatus,
     });
   } catch (error) {

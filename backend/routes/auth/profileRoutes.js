@@ -1,9 +1,9 @@
 // backend/routes/profileRoutes.js
 const express = require('express');
 const router = express.Router();
-const profileController = require('../controllers/ProfileController');
-const { verifyToken, authorizeRole } = require('../middlewares/authMiddleware'); // dùng đúng tên export
-const upload = require('../middlewares/uploadMiddleware');        // multer đã cấu hình
+const profileController = require("../../controllers/auth/ProfileController");
+const { verifyToken, authorizeRole } = require('../../middlewares/authMiddleware'); // dùng đúng tên export
+const upload = require('../../middlewares/uploadMiddleware');        // multer đã cấu hình
 
 router.get('/search-cv', verifyToken, authorizeRole(['employer']), profileController.searchCandidates); // Đẩy lên trên đầu
 router.get('/:userId', profileController.getProfile);

@@ -1,6 +1,6 @@
 // backend/controllers/recommendationController.js
 
-const db = require('../config/db');
+const db = require('../../config/db');
 
 exports.getRecommendedJobs = async (req, res) => {
   try {

@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const authController = require('../controllers/authController');
-const profileController = require('../controllers/ProfileController');
-const { verifyToken } = require('../middlewares/authMiddleware');
+const authController = require("../../controllers/auth/authController");
+const profileController = require("../../controllers/auth/ProfileController");
+const { verifyToken } = require('../../middlewares/authMiddleware');
 const rateLimit = require('express-rate-limit');
 const { body } = require('express-validator');
-const upload = require('../middlewares/uploadMiddleware');
+const upload = require('../../middlewares/uploadMiddleware');
 
 // ─── RATE LIMITERS ─────────────────────────────────────────────
 
