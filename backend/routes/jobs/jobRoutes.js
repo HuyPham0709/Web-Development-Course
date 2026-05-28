@@ -8,7 +8,9 @@ const jobController = require("../../controllers/jobs/jobController");
 // ==========================================
 
 // Route xem toàn bộ job (Công khai)
+
 router.get('/', jobController.getAllJobs);
+router.get('/autocomplete', jobController.getSuggestions);
 router.get('/all', jobController.getAllJobs);
 
 // API Lấy job của riêng nhà tuyển dụng đó (Phải để TRÊN /:id)

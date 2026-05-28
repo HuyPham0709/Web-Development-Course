@@ -1,6 +1,6 @@
-// backend/controllers/companyController.js
-const db = require('../../config/db');
-const { uploadToCloudinary } = require('../../config/cloudinary');
+const db = require('../config/db');
+const { uploadToCloudinary } = require('../config/cloudinary');
+
 // ─── 1. GET /api/companies/:id HOẶC /api/companies/:slug ─────────────────────
 // Lấy thông tin chi tiết của một công ty dựa trên ID hoặc Slug
 exports.getCompanyProfile = async (req, res) => {
@@ -68,7 +68,6 @@ exports.updateCompanyProfile = async (req, res) => {
             });
         }
 
-        // Câu lệnh cập nhật dùng db.query đồng bộ phong cách viết của ProfileController
         const updateQuery = `
             UPDATE Companies 
             SET name = ?, website = ?, description = ?, address = ?
@@ -108,10 +107,9 @@ exports.updateCompanyProfile = async (req, res) => {
         });
     }
 };
-// backend/controllers/companyController.js
 
 // ─── 3. POST /api/companies/upload-logo ──────────────────────────────────────
-// Upload Logo Công Ty (Đã sửa lỗi 403)
+// Upload Logo Công Ty
 exports.uploadLogo = async (req, res) => {
     try {
         const userId = req.user.id; // Lấy ID tài khoản từ Token bảo mật
@@ -152,7 +150,7 @@ exports.uploadLogo = async (req, res) => {
 };
 
 // ─── 4. POST /api/companies/upload-banner ────────────────────────────────────
-// Upload Banner Công Ty (Đã sửa lỗi 403)
+// Upload Banner Công Ty
 exports.uploadBanner = async (req, res) => {
     try {
         const userId = req.user.id; // Lấy ID tài khoản từ Token bảo mật
@@ -189,5 +187,44 @@ exports.uploadBanner = async (req, res) => {
     } catch (error) {
         console.error('Lỗi khi upload banner:', error);
         return res.status(500).json({ success: false, message: 'Lỗi upload banner.', error: error.message });
+    }
+};
+
+// ─── 5. GET /api/companies/top ────────────────────────────────────────────────
+// Lấy danh sách Top 3 công ty nổi bật kèm Tech Stack động
+exports.getTopCompanies = async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                c.id,
+                c.name,
+                c.logo_url,
+                c.banner_url,
+                c.description,
+                c.is_verified,
+                -- Gom nhóm toàn bộ tên kỹ năng từ các Jobs đang kích hoạt thành chuỗi phân tách bằng dấu phẩy
+                GROUP_CONCAT(DISTINCT s.name SEPARATOR ',') AS tech_stack
+            FROM Companies c
+            LEFT JOIN Jobs j ON c.id = j.company_id AND j.status = 'approved' AND j.deleted_at IS NULL
+            LEFT JOIN Job_Skills js ON j.id = js.job_id
+            LEFT JOIN Skills s ON js.skill_id = s.id
+            WHERE c.deleted_at IS NULL
+            GROUP BY c.id
+            ORDER BY c.is_verified DESC, c.created_at DESC
+            LIMIT 3;
+        `;
+
+        const [rows] = await db.query(query);
+
+        // Trả về danh sách dữ liệu có chứa cột tech_stack động cho Frontend
+        return res.json(rows);
+
+    } catch (error) {
+        console.error('Lỗi khi nạp danh sách Top công ty kèm Tech Stack:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Lỗi hệ thống khi kết xuất dữ liệu công ty nổi bật.',
+            error: error.message
+        });
     }
 };
