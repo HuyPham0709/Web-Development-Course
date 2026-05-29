@@ -45,7 +45,8 @@ export interface IJobFilters {
   status?: string;
   page?: number;
   limit?: number;
-  salary?: string; // 🌟 Giữ nguyên hỗ trợ lọc lương theo chuỗi khoảng giá trị
+  salary?: string;
+  sort?: string;
 }
 
 export interface IPaginatedResponse<T> {

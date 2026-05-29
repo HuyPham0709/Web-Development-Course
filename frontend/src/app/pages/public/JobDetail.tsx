@@ -17,11 +17,18 @@ import {
 } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom"; 
 
+// 1. Import Component và Service
+import { RecommendedJobsAside } from "../../components/candidate/profile/RecommendedJobsAside";
+import { getRecommendations } from "../../../services/recommendationService";
+
 export default function JobDetail() {
   const { id } = useParams();
   const navigate = useNavigate(); 
   const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  // --- Recommended Jobs State ---
+  const [aiRecommendations, setAiRecommendations] = useState<any[]>([]);
 
   // --- Apply Modal State & Logic ---
   const [showApplyModal, setShowApplyModal] = useState(false);
@@ -172,7 +179,23 @@ export default function JobDetail() {
         setLoading(false);
       }
     };
+
+    // 2. Fetch recommended jobs
+    const fetchAiJobs = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (token) {
+          const res = await getRecommendations();
+          const data = res?.data?.jobs;
+          setAiRecommendations(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        console.error("API Error AI recommendations:", err);
+      }
+    };
+
     fetchJob();
+    fetchAiJobs();
   }, [id]);
 
   if (loading)
@@ -374,8 +397,16 @@ export default function JobDetail() {
                 {job.website?.replace(/^https?:\/\//, "") || "company-website.com"}
               </a>
             </div>
-
-            {/* PREMIUM RED REPORT BLOCK (Cực kỳ nổi bật ở Sidebar) */}
+            {/* 3. THÊM RECOMMENDED JOBS VÀO ĐÂY */}
+            <div className="sticky top-24">
+              <RecommendedJobsAside 
+                recommendedJobs={aiRecommendations}
+                openModal={() => {
+                  window.location.href = "/candidate/profile";
+                }}
+              />
+            </div>
+            {/* PREMIUM RED REPORT BLOCK */}
             <div className="bg-rose-500/5 dark:bg-rose-500/5 border border-rose-200 dark:border-rose-500/20 rounded-3xl p-6 text-left space-y-4">
               <div className="flex items-center gap-2.5 text-rose-600 dark:text-rose-400">
                 <AlertTriangle className="w-5 h-5 flex-shrink-0" />
@@ -392,7 +423,6 @@ export default function JobDetail() {
                 Report Violation
               </button>
             </div>
-
           </div>
         </div>
       </div>
