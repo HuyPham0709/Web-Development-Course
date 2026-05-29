@@ -304,77 +304,6 @@ CREATE TABLE IF NOT EXISTS Employer_Profile_Views (
 );
 DROP TABLE messages;
 DROP TABLE notifications;
-
--- ============================================================
--- CV Builder - Chỉ tạo thêm bảng MỚI, tái sử dụng bảng cũ:
---   Profiles, Education, Work_Experience, Skills, User_Skills
--- ============================================================
- 
-USE job_finder_db;
- 
--- Bảng chính: lưu cài đặt CV (template, ngôn ngữ, share link)
-CREATE TABLE IF NOT EXISTS CV_Builder (
-    id            INT AUTO_INCREMENT PRIMARY KEY,
-    user_id       INT NOT NULL UNIQUE,
-    template      VARCHAR(50)  DEFAULT 'modern',
-    language      VARCHAR(10)  DEFAULT 'vi',
-    share_token   VARCHAR(64)  NULL UNIQUE,
-    share_enabled TINYINT(1)   DEFAULT 0,
-    certs         TEXT         NULL,
-    hobbies       TEXT         NULL,
-    created_at    TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-    updated_at    TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
-    INDEX idx_share_token (share_token)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
- 
--- Ngoại ngữ (khác với Skills kỹ thuật)
-CREATE TABLE IF NOT EXISTS CV_Languages (
-    id         INT AUTO_INCREMENT PRIMARY KEY,
-    user_id    INT NOT NULL,
-    language   VARCHAR(100) DEFAULT '',
-    level      VARCHAR(50)  DEFAULT 'Cơ bản',
-    sort_order INT          DEFAULT 0,
-    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
-    INDEX idx_user (user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
- 
--- Tin học
-CREATE TABLE IF NOT EXISTS CV_IT_Skills (
-    id         INT AUTO_INCREMENT PRIMARY KEY,
-    user_id    INT NOT NULL,
-    name       VARCHAR(100) DEFAULT '',
-    level      VARCHAR(50)  DEFAULT 'Cơ bản',
-    sort_order INT          DEFAULT 0,
-    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
-    INDEX idx_user (user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
- 
--- Người liên hệ
-CREATE TABLE IF NOT EXISTS CV_Contacts (
-    id         INT AUTO_INCREMENT PRIMARY KEY,
-    user_id    INT NOT NULL,
-    name       VARCHAR(255) DEFAULT '',
-    phone      VARCHAR(50)  DEFAULT '',
-    relation   VARCHAR(100) DEFAULT '',
-    sort_order INT          DEFAULT 0,
-    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
-    INDEX idx_user (user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
- 
--- Hoạt động ngoại khóa
-CREATE TABLE IF NOT EXISTS CV_Activities (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
-    user_id     INT NOT NULL,
-    name        VARCHAR(255) DEFAULT '',
-    role        VARCHAR(255) DEFAULT '',
-    period      VARCHAR(100) DEFAULT '',
-    description TEXT         NULL,
-    sort_order  INT          DEFAULT 0,
-    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
-    INDEX idx_user (user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 use job_finder_db ;
 -- 1. Thêm cột bật/tắt cho phép NTD tìm bạn (trong bảng Profiles)
 ALTER TABLE Profiles 
@@ -395,3 +324,24 @@ CREATE TABLE IF NOT EXISTS Employer_Profile_Views (
     INDEX idx_candidate (candidate_id),
     UNIQUE KEY uk_view_per_day (employer_id, candidate_id, view_date)
 );
+
+CREATE TABLE Job_Invitations (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    employer_id INT NOT NULL,       -- Người gửi (Nhà tuyển dụng)
+    candidate_id INT NOT NULL,      -- Người nhận (Ứng viên)
+    job_id INT NOT NULL,            -- Công việc được mời
+    message TEXT NOT NULL,          -- Lời nhắn đính kèm
+    status ENUM('pending', 'accepted', 'declined') DEFAULT 'pending', -- Trạng thái lời mời
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Ràng buộc khóa ngoại
+    FOREIGN KEY (employer_id) REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (candidate_id) REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (job_id) REFERENCES Jobs(id) ON DELETE CASCADE,
+    
+    -- Tối ưu hóa truy vấn
+    INDEX idx_invitation_candidate (candidate_id),
+    INDEX idx_invitation_employer (employer_id),
+    INDEX idx_invitation_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
