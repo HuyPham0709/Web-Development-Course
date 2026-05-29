@@ -66,7 +66,7 @@ export const Navbar = () => {
   const [chatUnreadCount, setChatUnreadCount] = useState<number>(0);
 
   // ======================================================================
-  // Xử lý hiển thị NavLinks chính xác theo từng vai trò (Role)
+  // Dynamic navigation link logic by user role
   // ======================================================================
   const getNavLinks = () => {
     if (!isLoggedIn) {
@@ -153,7 +153,7 @@ export const Navbar = () => {
     checkUnreadChat();
   }, [checkUnreadChat]);
 
-  // Lắng nghe sự kiện Chat từ Window Event phát ra
+  // Listen for Chat update events triggered globally
   useEffect(() => {
     if (!isLoggedIn) return;
 
@@ -174,7 +174,7 @@ export const Navbar = () => {
     };
   }, [isLoggedIn, checkUnreadChat, handleChatTrigger]);
 
-  // Xử lý Socket Realtime kết nối tới Backend
+  // Real-time backend socket listener management
   useEffect(() => {
     if (isLoggedIn && user.id) {
       const socket = io(BASE_URL);
@@ -191,7 +191,7 @@ export const Navbar = () => {
       socket.on("receive_message", () => checkUnreadChat());
       
       socket.on("update_unread_total", (data: any) => {
-        console.log("📩 [SOCKET] Nhận tín hiệu update_unread_total thành công:", data);
+        console.log("📩 [SOCKET] Successfully received update_unread_total signal:", data);
         checkUnreadChat();
         if (window.location.pathname !== "/chat") {
           setChatUnreadCount((prevCount) => prevCount + 1);
@@ -409,7 +409,7 @@ export const Navbar = () => {
             <Moon
               size={20}
               className={`absolute transition-all duration-500 ease-in-out ${
-                theme === "dark" ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"
+                theme === "dark" ? "rotate-99 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"
               }`}
             />
           </button>
@@ -529,7 +529,7 @@ export const Navbar = () => {
                         <User className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400" />
                       </div>
                       <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
-                        Hồ sơ cá nhân
+                        Personal Profile
                       </span>
                     </Link>
                   </DropdownMenuItem>
@@ -542,7 +542,7 @@ export const Navbar = () => {
                         <Briefcase className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
                       </div>
                       <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
-                        Hồ sơ công ty
+                        Company Profile
                       </span>
                     </Link>
                   </DropdownMenuItem>
@@ -551,7 +551,7 @@ export const Navbar = () => {
                 <DropdownMenuItem className="p-1 cursor-pointer focus:bg-transparent">
                   <Link to={isEmployer ? "/employer/dashboard" : "/settings"} className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group">
                     <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-blue-500/10 dark:group-hover:bg-blue-500/20 transition-colors">
-                      <Settings className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+                      <Settings className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 group-hover:text-blue-400" />
                     </div>
                     <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
                       {isEmployer ? "Dashboard" : "Settings"}
@@ -567,7 +567,7 @@ export const Navbar = () => {
                       <LogOut className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400" />
                     </div>
                     <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-red-600 dark:group-hover:text-red-400">
-                      Đăng xuất
+                      Log Out
                     </span>
                   </div>
                 </DropdownMenuItem>

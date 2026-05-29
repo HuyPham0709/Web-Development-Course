@@ -26,6 +26,7 @@ import { CVSearch } from "./pages/employer/CVSearch";
 import Settings from "./pages/shared/Settings";
 import ErrorPage from "./pages/shared/ErrorPage";
 import Chat from "./pages/shared/Chat";
+import ViewedByEmployers from "./components/candidate/profile/ViewedByEmployers";
 
 // ======================================================
 // PROTECTED ROUTE (Bắt buộc đúng Role cụ thể)
@@ -125,6 +126,7 @@ export const router = createBrowserRouter([
           { path: "profile", element: <ProfileDashboard /> },
           { path: "applications", element: <MyApplications /> },
           { path: "profile/applications", element: <MyApplications /> },
+          { path: "profile/viewed-by-employer", element: <ViewedByEmployers /> },
         ],
       },
 

@@ -45,3 +45,19 @@ export const getSkills = async () => {
   const res = await api.get("/api/skills");
   return res.data.data || res.data;
 };
+export const getJobSuggestions = async (query: string, signal: AbortSignal): Promise<any[]> => {
+  try {
+    // SỬA: Thêm tiền tố /api vào trước /jobs/autocomplete
+    const response = await api.get(`/api/jobs/autocomplete?q=${encodeURIComponent(query)}`, { signal });
+    
+    // Trả về response.data.data nếu backend bọc qua object success, hoặc response.data nếu trả về mảng trực tiếp
+    return response.data.data || response.data;
+  } catch (error: any) {
+    // Nếu request bị hủy bởi AbortController thì bỏ qua không log lỗi
+    if (error.name === "CanceledError" || error.name === "AbortError") {
+      throw error;
+    }
+    console.error("Lỗi khi fetch gợi ý từ database:", error);
+    return [];
+  }
+};

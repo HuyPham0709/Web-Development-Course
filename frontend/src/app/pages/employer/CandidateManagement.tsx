@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutGrid, List, MoreVertical, Calendar, Briefcase, ChevronDown, Loader2 } from 'lucide-react';
+import { LayoutGrid, List, MoreVertical, Calendar, Briefcase, ChevronDown, Loader2, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { applicationService } from '../../../services/applicationService';
 import { Candidate } from '../../../types/application';
 import { STATUSES, STATUS_LABEL, STATUS_COLORS } from '../../../constants/status';
 import { getInitials, formatDateVN } from '../../../utils/format';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
+import { io } from 'socket.io-client'; // Thêm thư viện socket.io-client
 
-// ADDED: Backend URL configuration to handle candidate avatars
 const BASE_URL = 'http://localhost:5000';
 
 const toFullUrl = (url: string | null | undefined): string => {
   if (!url) return '';
   if (url.startsWith('http')) return url;
-  
   const cleanUrl = url.replace(/\\/g, '/');
   return `${BASE_URL}${cleanUrl.startsWith('/') ? '' : '/'}${cleanUrl}`;
 };
@@ -25,20 +24,26 @@ export default function CandidateManagement() {
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
   const [filterJob, setFilterJob] = useState('All');
   const [updatingId, setUpdatingId] = useState<number | null>(null);
-  
-  // ADDED: State to control smooth slide-up animation on page load
   const [animate, setAnimate] = useState(false);
+
+  // --- STATE MỚI CHO MODAL PHỎNG VẤN ---
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedAppId, setSelectedAppId] = useState<number | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string>('UnderReview'); // FIX LOGIC: Lưu đúng định dạng Casing (chữ hoa/thường) của trạng thái phỏng vấn ban đầu chọn
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [interviewForm, setInterviewForm] = useState({
+    location: '',
+    time: '',
+    message: 'Trân trọng mời bạn tham gia buổi phỏng vấn trực tiếp tại văn phòng công ty chúng tôi.'
+  });
 
   useEffect(() => {
     applicationService.getEmployerApplications()
       .then(res => setCandidates(res.data.data))
       .catch(err => setError(err.response?.data?.message || 'Error loading candidate list'))
-      .finally(() => {
-        setLoading(false);
-      });
+      .finally(() => setLoading(false));
   }, []);
 
-  // ADDED: Trigger animation immediately after loading finishes
   useEffect(() => {
     if (!loading) {
       const timer = setTimeout(() => setAnimate(true), 60);
@@ -46,7 +51,33 @@ export default function CandidateManagement() {
     }
   }, [loading]);
 
+  // --- REALTIME: Lắng nghe cập nhật trạng thái từ Socket.io ---
+  useEffect(() => {
+    const socket = io(BASE_URL);
+
+    // Lắng nghe sự kiện khi candidate Chấp nhận / Từ chối phỏng vấn
+    socket.on('candidateStatusUpdated', (data: { application_id: number; newStatus: string }) => {
+      setCandidates(prev => prev.map(c =>
+        // FIX LOGIC: Ép kiểu Number đề phòng backend gửi ID dạng chuỗi gây lỗi toán tử ===
+        Number(c.application_id) === Number(data.application_id) ? { ...c, status: data.newStatus } : c
+      ));
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
+  // Thay đổi trạng thái CV chung
   const handleStatusChange = async (application_id: number, newStatus: string) => {
+    // Đánh chặn nếu chuyển sang trạng thái UnderReview (Lưu ý: Chỉnh lại text tương ứng với file constants/status của bạn)
+    if (newStatus === 'UnderReview' || newStatus === 'UNDER_REVIEW') {
+      setSelectedAppId(application_id);
+      setSelectedStatus(newStatus); // FIX LOGIC: Lưu lại chuẩn text hệ thống (UnderReview hoặc UNDER_REVIEW) để UI không bị mất dòng filter
+      setIsModalOpen(true);
+      return;
+    }
+
     setUpdatingId(application_id);
     try {
       await applicationService.updateStatus(application_id, newStatus);
@@ -57,6 +88,44 @@ export default function CandidateManagement() {
       alert(err.response?.data?.message || 'Error updating status');
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  // --- SUBMIT GỬI LỜI MỜI PHỎNG VẤN ---
+  const handleSendInvitation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAppId) return;
+
+    setSubmitLoading(true);
+    try {
+      // FIX LOGIC: Lấy token từ localStorage (hoặc nơi bạn lưu trữ) để đính kèm vào fetch thuần, tránh lỗi 401 Unauthorized
+      const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
+
+      // Gọi API gửi lời mời phỏng vấn lên Backend
+      await fetch(`${BASE_URL}/api/interviews/invite`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}) // Gửi kèm token xác thực nhà tuyển dụng
+        },
+        body: JSON.stringify({
+          application_id: selectedAppId,
+          ...interviewForm
+        })
+      });
+
+      // Cập nhật trạng thái ngay lập tức trên UI sang định dạng chuẩn đã chọn ban đầu
+      setCandidates(prev => prev.map(c =>
+        Number(c.application_id) === Number(selectedAppId) ? { ...c, status: selectedStatus } : c
+      ));
+
+      setIsModalOpen(false);
+      setInterviewForm({ location: '', time: '', message: 'Trân trọng mời bạn tham gia buổi phỏng vấn...' });
+      alert('Gửi lời mời phỏng vấn thành công!');
+    } catch (err) {
+      alert('Không thể gửi lời mời phỏng vấn. Vui lòng thử lại!');
+    } finally {
+      setSubmitLoading(false);
     }
   };
 
@@ -75,17 +144,14 @@ export default function CandidateManagement() {
     </div>
   );
 
-  // Delay array to create a stagger ripple effect for the 4 Kanban columns
   const delays = ['delay-75', 'delay-150', 'delay-200', 'delay-300'];
 
   return (
     <div className="min-h-screen bg-gray-50/50 dark:bg-[#0E1422] py-8 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col">
         
-        {/* 1. Header - Appears first */}
-        <div className={`mb-6 transform transition-all duration-500 ease-out ${
-          animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-        }`}>
+        {/* Header */}
+        <div className={`mb-6 transform transition-all duration-500 ease-out ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Employer Dashboard</h1>
           <div className="flex space-x-8 border-b border-gray-200 dark:border-white/10 mt-6">
             <Link to="/employer/dashboard" className="border-b-2 border-transparent pb-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium text-sm transition-colors">Overview & Jobs</Link>
@@ -93,10 +159,8 @@ export default function CandidateManagement() {
           </div>
         </div>
 
-        {/* 2. Toolbar - Appears second with a slight delay */}
-        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 transform transition-all duration-500 ease-out delay-75 ${
-          animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-        }`}>
+        {/* Toolbar */}
+        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 transform transition-all duration-500 ease-out delay-75 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
           <div className="relative">
             <select value={filterJob} onChange={e => setFilterJob(e.target.value)}
               className="appearance-none bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 py-2.5 pl-4 pr-10 rounded-xl font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500/50 shadow-sm transition-colors">
@@ -114,7 +178,7 @@ export default function CandidateManagement() {
           </div>
         </div>
 
-        {/* 3. Main Content (Kanban or Table) */}
+        {/* Main Content (Kanban/Table) */}
         {viewMode === 'kanban' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pb-8">
             {STATUSES.map((status, index) => {
@@ -122,42 +186,24 @@ export default function CandidateManagement() {
               const delayClass = delays[index] || 'delay-300';
 
               return (
-                <div 
-                  key={status} 
-                  className={`flex flex-col transform transition-all duration-700 ease-out ${delayClass} ${
-                    animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-                  } ${isRejected ? 'col-span-1 md:col-span-2 lg:col-span-4 mt-4' : 'w-full'}`}
-                >
-                  {/* Column Title & Count Badge */}
+                <div key={status} className={`flex flex-col transform transition-all duration-700 ease-out ${delayClass} ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} ${isRejected ? 'col-span-1 md:col-span-2 lg:col-span-4 mt-4' : 'w-full'}`}>
                   <div className="flex items-center justify-between mb-4 px-1">
                     <h3 className={`font-bold text-sm uppercase tracking-wider ${isRejected ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-300'}`}>
                       {STATUS_LABEL[status]}
                     </h3>
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                      isRejected ? 'bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-400' : 'bg-gray-200 text-gray-600 dark:bg-white/10 dark:text-gray-400'
-                    }`}>
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${isRejected ? 'bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-400' : 'bg-gray-200 text-gray-600 dark:bg-white/10 dark:text-gray-400'}`}>
                       {filtered.filter(c => c.status === status).length}
                     </span>
                   </div>
 
-                  {/* Container for Candidate Cards */}
-                  <div className={`flex flex-col gap-4 rounded-2xl p-3 transition-colors ${
-                    isRejected 
-                      ? 'bg-red-50/30 dark:bg-red-950/10 border border-dashed border-red-200 dark:border-red-500/20 min-h-[180px]' 
-                      : 'bg-gray-100/50 dark:bg-white/5 min-h-[450px]'
-                  }`}>
+                  <div className={`flex flex-col gap-4 rounded-2xl p-3 transition-colors ${isRejected ? 'bg-red-50/30 dark:bg-red-950/10 border border-dashed border-red-200 dark:border-red-500/20 min-h-[180px]' : 'bg-gray-100/50 dark:bg-white/5 min-h-[450px]'}`}>
                     <div className={isRejected ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' : 'flex flex-col gap-4'}>
                       {filtered.filter(c => c.status === status).map(candidate => (
                         <div key={candidate.application_id} className="bg-white dark:bg-[#0E1422] p-4 rounded-xl border border-gray-200 dark:border-white/10 dark:hover:border-white/20 shadow-sm hover:shadow-md transition-all group">
                           <div className="flex justify-between items-start mb-3">
                             <Link to={`/employer/candidate/${candidate.application_id}`} className="flex items-center gap-3 hover:opacity-80">
-                              {/* FIXED: Replaced old div block with Avatar component synchronized with Navbar */}
                               <Avatar className="w-10 h-10 border border-gray-200 dark:border-white/10 shrink-0">
-                                <AvatarImage 
-                                  src={toFullUrl(candidate.avatar_url || candidate.avatar)} 
-                                  alt={candidate.full_name || candidate.candidate_name} 
-                                  className="object-cover"
-                                />
+                                <AvatarImage src={toFullUrl(candidate.avatar_url || candidate.avatar)} alt={candidate.full_name || candidate.candidate_name} className="object-cover" />
                                 <AvatarFallback className="bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400 font-bold text-sm">
                                   {getInitials(candidate.full_name || candidate.candidate_name)}
                                 </AvatarFallback>
@@ -200,13 +246,8 @@ export default function CandidateManagement() {
                         </div>
                       ))}
                     </div>
-
                     {filtered.filter(c => c.status === status).length === 0 && (
-                      <div className={`text-center text-sm py-8 border-2 border-dashed rounded-xl w-full transition-colors ${
-                        isRejected 
-                          ? 'border-red-200/60 dark:border-red-500/20 text-red-400 bg-white/50 dark:bg-transparent' 
-                          : 'border-gray-200 dark:border-white/10 text-gray-400 dark:text-gray-500'
-                      }`}>
+                      <div className={`text-center text-sm py-8 border-2 border-dashed rounded-xl w-full transition-colors ${isRejected ? 'border-red-200/60 dark:border-red-500/20 text-red-400 bg-white/50 dark:bg-transparent' : 'border-gray-200 dark:border-white/10 text-gray-400 dark:text-gray-500'}`}>
                         No candidates found
                       </div>
                     )}
@@ -217,9 +258,7 @@ export default function CandidateManagement() {
           </div>
         ) : (
           /* Table View */
-          <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden transform transition-all duration-700 ease-out delay-150 ${
-            animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}>
+          <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden transform transition-all duration-700 ease-out delay-150 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -235,13 +274,8 @@ export default function CandidateManagement() {
                     <tr key={candidate.application_id} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
                       <td className="px-6 py-4">
                         <Link to={`/employer/candidate/${candidate.application_id}`} className="flex items-center gap-3 hover:opacity-80 group">
-                          {/* FIXED: Replaced old div block with Avatar component synchronized with Navbar */}
                           <Avatar className="w-9 h-9 border border-gray-200 dark:border-white/10 shrink-0">
-                            <AvatarImage 
-                              src={toFullUrl(candidate.avatar_url || candidate.avatar)} 
-                              alt={candidate.full_name || candidate.candidate_name} 
-                              className="object-cover"
-                            />
+                            <AvatarImage src={toFullUrl(candidate.avatar_url || candidate.avatar)} alt={candidate.full_name || candidate.candidate_name} className="object-cover" />
                             <AvatarFallback className="bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400 font-bold text-xs">
                               {getInitials(candidate.full_name || candidate.candidate_name)}
                             </AvatarFallback>
@@ -278,6 +312,44 @@ export default function CandidateManagement() {
           </div>
         )}
       </div>
+
+      {/* --- POPUP MODAL: INTERVIEW INVITATION --- */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-[#121A2E] w-full max-w-md rounded-2xl border border-gray-100 dark:border-white/10 shadow-2xl overflow-hidden p-6 relative">
+            <button type="button" onClick={() => setIsModalOpen(false)} className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-blue-500" /> Interview Invitation
+            </h2>
+            <form onSubmit={handleSendInvitation} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Địa chỉ phỏng vấn</label>
+                <input required type="text" value={interviewForm.location} onChange={e => setInterviewForm({...interviewForm, location: e.target.value})}
+                  placeholder="Ví dụ: Tầng 5, Tòa nhà Bitexco, Q.1, TP.HCM"
+                  className="w-full px-4 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Thời gian phỏng vấn</label>
+                <input required type="datetime-local" value={interviewForm.time} onChange={e => setInterviewForm({...interviewForm, time: e.target.value})}
+                  className="w-full px-4 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Nội dung lời mời</label>
+                <textarea rows={4} value={interviewForm.message} onChange={e => setInterviewForm({...interviewForm, message: e.target.value})}
+                  className="w-full px-4 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+              </div>
+              <div className="flex gap-3 justify-end pt-2">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded-xl text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">Hủy</button>
+                <button type="submit" disabled={submitLoading} className="px-5 py-2 rounded-xl text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all">
+                  {submitLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Gửi lời mời'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

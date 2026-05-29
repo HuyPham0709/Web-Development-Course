@@ -98,26 +98,31 @@ export function ProfileSidebar({
                 </p>
 
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Let recruiters discover your profile.
+                  Get discovered by recruiters.
                 </p>
               </div>
             </div>
 
             <button
-              onClick={toggleVisibility}
-              disabled={loading}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-300 ease-in-out focus:outline-none ${
-                allowSearch
-                  ? 'bg-gradient-to-r from-blue-600 to-purple-600'
-                  : 'bg-gray-400 dark:bg-gray-600'
-              } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-300 ease-in-out ${
-                  allowSearch ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
+  type="button" // Luôn thêm type="button" để tránh tự động submit form
+  onClick={toggleVisibility}
+  disabled={loading}
+  aria-pressed={allowSearch}
+  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+    allowSearch
+      ? 'bg-gradient-to-r from-blue-600 to-purple-600'
+      : 'bg-gray-300 dark:bg-gray-600'
+  } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+>
+  {/* Screen reader label */}
+  <span className="sr-only">Toggle recruiter visibility</span>
+  
+  <span
+    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-300 ease-in-out ${
+      allowSearch ? 'translate-x-6' : 'translate-x-1'
+    }`}
+  />
+</button>
           </div>
         </div>
 

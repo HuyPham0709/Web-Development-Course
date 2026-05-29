@@ -178,8 +178,10 @@ export const uploadProfileImage = async (
   const formData = new FormData();
   formData.append(type, file);
 
+  // ✅ ĐÃ ĐỔI: `/api/profile/upload-${type}` -> `/api/profile/${type}`
+  // Khi chạy thực tế sẽ sinh ra đúng endpoint: `/api/profile/avatar` hoặc `/api/profile/cover`
   const res = await fetch(
-    `${BASE_URL}/api/profile/upload-${type}`,
+    `${BASE_URL}/api/profile/${type}`,
     {
       method: 'POST',
       headers: authMultipartHeaders(),

@@ -49,8 +49,11 @@ module.exports = {
             { _id: conversationId },
             { $set: { unreadCount: 0 } },
           );
-          // Bắn tín hiệu ngược lại cho client để update badge trên Navbar
-          io.to(userId).emit("update_unread_total");
+          
+          // Bắn tín hiệu ngược lại cho client để update badge trên Navbar (ĐÃ FIX THÊM TIỀN TỐ)
+          const stringUserId = String(userId);
+          io.to(`user_${stringUserId}`).emit("update_unread_total");
+          
         } catch (error) {
           console.error("Lỗi khi mark as read via socket:", error);
         }

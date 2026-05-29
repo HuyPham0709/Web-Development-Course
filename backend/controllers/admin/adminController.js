@@ -8,7 +8,8 @@ exports.getDashboardStats = async (req, res) => {
             [companies],
             [pendingJobs],
             [activeReports],
-            [categories]
+            [categories],
+            [trends] // Lấy dữ liệu danh sách rows của câu query trends
         ] = await Promise.all([
             db.query("SELECT COUNT(*) as total FROM Users WHERE role = 'candidate'"),
             db.query("SELECT COUNT(*) as total FROM Companies WHERE is_verified = 1"),
@@ -21,8 +22,25 @@ exports.getDashboardStats = async (req, res) => {
                 LEFT JOIN Jobs j ON cat.id = j.category_id 
                 GROUP BY cat.id
                 HAVING value > 0
+            `),
+            // Câu truy vấn mới: Lấy số lượng Job theo từng thứ trong tuần của 7 ngày gần đây
+            db.query(`
+                SELECT WEEKDAY(created_at) as dayIndex, COUNT(*) as count
+                FROM Jobs
+                WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+                GROUP BY WEEKDAY(created_at)
             `)
         ]);
+
+        // Mảng định danh thứ tự để mapping (WEEKDAY trả về: 0 = Mon, 1 = Tue,..., 6 = Sun)
+        const daysMap = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+        const trendsData = daysMap.map((dayName, index) => {
+            const found = trends.find(t => t.dayIndex === index);
+            return {
+                name: dayName,
+                postings: found ? found.count : 0
+            };
+        });
 
         // 2. Mảng màu cho Pie Chart (sẽ gán tự động xoay vòng nếu có nhiều category)
         const colors = ["#4F46E5", "#0F172A", "#10B981", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6"];
@@ -40,7 +58,8 @@ exports.getDashboardStats = async (req, res) => {
                     name: c.name,
                     value: c.value,
                     color: colors[index % colors.length]
-                }))
+                })),
+                trendsData: trendsData // Trả mảng trends thật về cho frontend
             }
         });
     } catch (error) {

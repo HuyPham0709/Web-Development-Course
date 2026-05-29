@@ -16,14 +16,24 @@ import { Send, Paperclip, Trash2 } from "lucide-react";
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
+// ======================================================================
+// 🔥 HÀM HELPER CHUẨN HÓA ID: Xử lý an toàn cả Object lẫn String/Number
+// ======================================================================
+const getCleanId = (item: any): string => {
+  if (!item) return "";
+  if (typeof item === "object") {
+    return String(item._id || item.id || "");
+  }
+  return String(item);
+};
+
 const Chat = () => {
   const [user, setUser] = useState<any>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   const [conversations, setConversations] = useState<IConversation[]>([]);
-  const [activeConversation, setActiveConversation] =
-    useState<IConversation | null>(null);
+  const [activeConversation, setActiveConversation] = useState<IConversation | null>(null);
   const [messages, setMessages] = useState<IMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
@@ -36,6 +46,9 @@ const Chat = () => {
 
   const activeConvRef = useRef(activeConversation);
   const convsRef = useRef(conversations);
+  
+  // KHÓA CHỐNG LẶP LOGIC: Đảm bảo chỉ tự động định tuyến chat từ JobDetail sang DUY NHẤT một lần ban đầu
+  const initialChatProcessedRef = useRef(false);
 
   useEffect(() => {
     activeConvRef.current = activeConversation;
@@ -45,40 +58,88 @@ const Chat = () => {
     convsRef.current = conversations;
   }, [conversations]);
 
-  // LUÔN FETCH TỪ API ĐỂ ĐẢM BẢO REALTIME & TÍNH TOÁN UNREAD CHUẨN XÁC TỪ DATABASE
-  const fetchLatestConversations = () => {
-    chatService
-      .getConversations()
-      .then((response) => {
-        // 🔥 FIX: Lấy chuẩn xác mảng để không bị lỗi .reduce is not a function
-        const dataList = Array.isArray(response)
-          ? response
-          : response?.data || [];
+  // ======================================================================
+  // 🔥 FETCH DATA & XỬ LÝ NHẢY TRANG CHUNG MỘT LUỒNG (TRÁNH XUNG ĐỘT)
+  // ======================================================================
+  const fetchLatestConversations = async (updatedActiveId?: string) => {
+    try {
+      const response = await chatService.getConversations();
+      let dataList = Array.isArray(response) ? response : response?.data || [];
 
-        setConversations(dataList);
+      // 1. XỬ LÝ NHẢY TRANG TỪ JOB DETAIL (Chỉ chạy 1 lần)
+      const incomingUser = location.state?.targetUser;
+      
+      if (incomingUser && !initialChatProcessedRef.current && user) {
+        const targetIdStr = getCleanId(incomingUser.id || incomingUser._id);
+        const currentUserIdStr = getCleanId(user.id || user._id);
 
-        if (dataList && dataList.length > 0) {
-          const currentUserStr = localStorage.getItem("user");
-          const parsedUser = currentUserStr ? JSON.parse(currentUserStr) : null;
-          const currentUserId = parsedUser?.id || parsedUser?._id || user?.id;
-
-          const totalUnread = dataList.reduce((sum: number, c: any) => {
-            const senderId = c.lastMessage?.senderId || c.lastSenderId;
-            if (senderId && String(senderId) === String(currentUserId)) {
-              return sum;
-            }
-            return sum + Number(c.unreadCount ?? c.unread_count ?? 0);
-          }, 0);
-
-          // Bắn sang Navbar hiển thị chấm đỏ
-          window.dispatchEvent(
-            new CustomEvent("update-chat-count", {
-              detail: { count: totalUnread },
-            }),
+        if (targetIdStr !== currentUserIdStr) {
+          const existingConv = dataList.find((c: any) =>
+            getCleanId(c.targetUser?.id) === targetIdStr
           );
+
+          if (existingConv) {
+            setActiveConversation(existingConv);
+          } else {
+            const tempConv: IConversation = {
+              _id: "new_chat",
+              targetUser: incomingUser,
+              updatedAt: new Date().toISOString(),
+              participants: [],
+            };
+            dataList = [tempConv, ...dataList];
+            setActiveConversation(tempConv);
+          }
+          
+          initialChatProcessedRef.current = true;
+          window.history.replaceState({}, "", location.pathname);
         }
-      })
-      .catch((err) => console.error("Lỗi đồng bộ danh sách:", err));
+      }
+
+      // 2. DUY TRÌ "new_chat" NẾU ĐANG CHAT CHƯA LƯU
+      if (!incomingUser) {
+        const currentActive = activeConvRef.current;
+        if (currentActive?._id === "new_chat") {
+          const exists = dataList.some((c: any) => c._id === "new_chat");
+          if (!exists) {
+            dataList = [currentActive, ...dataList];
+          }
+        }
+      }
+
+      // 3. ĐỒNG BỘ DỮ LIỆU CHUẨN TỪ DB
+      if (updatedActiveId) {
+        const freshActiveConv = dataList.find((c: any) => c._id === updatedActiveId);
+        if (freshActiveConv) {
+          setActiveConversation(freshActiveConv);
+        }
+      }
+
+      setConversations(dataList);
+
+      // 4. TÍNH TOÁN SỐ LƯỢNG CHƯA ĐỌC VÀ BẮN SANG NAVBAR
+      if (dataList.length > 0) {
+        const currentUserStr = localStorage.getItem("user");
+        const parsedUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+        const currentUserId = parsedUser?.id || parsedUser?._id || user?.id;
+
+        const totalUnread = dataList.reduce((sum: number, c: any) => {
+          const senderId = c.lastMessage?.senderId || c.lastSenderId;
+          if (senderId && getCleanId(senderId) === getCleanId(currentUserId)) {
+            return sum;
+          }
+          return sum + Number(c.unreadCount ?? c.unread_count ?? 0);
+        }, 0);
+
+        window.dispatchEvent(
+          new CustomEvent("update-chat-count", {
+            detail: { count: totalUnread },
+          }),
+        );
+      }
+    } catch (err) {
+      console.error("Lỗi đồng bộ danh sách:", err);
+    }
   };
 
   useEffect(() => {
@@ -110,42 +171,9 @@ const Chat = () => {
     };
   }, [user]);
 
-  useEffect(() => {
-    if (!user || !isLoaded) return;
-
-    const incomingUser = location.state?.targetUser;
-    if (!incomingUser) return;
-
-    if (incomingUser.id === user.id) {
-      window.history.replaceState({}, "", location.pathname);
-      return;
-    }
-
-    const existingConversation = conversations.find((conv) =>
-      conv.participants.includes(incomingUser.id),
-    );
-
-    if (existingConversation) {
-      setActiveConversation(existingConversation);
-    } else {
-      const isNewChatExist = conversations.find((c) => c._id === "new_chat");
-      if (!isNewChatExist) {
-        const tempConversation: IConversation = {
-          _id: "new_chat",
-          participants: [user.id, incomingUser.id],
-          targetUser: incomingUser,
-          updatedAt: new Date().toISOString(),
-        };
-        setConversations((prev) => [tempConversation, ...prev]);
-        setActiveConversation(tempConversation);
-      }
-    }
-    window.history.replaceState({}, "", location.pathname);
-  }, [location.state, conversations, user, isLoaded, location.pathname]);
-
-  // ==========================================
-  // SOCKET LẮNG NGHE TIN NHẮN (LOGIC ĐÃ SỬA)
-  // ==========================================
+  // ======================================================================
+  // SOCKET LẮNG NGHE TIN NHẮN REALTIME
+  // ======================================================================
   useEffect(() => {
     if (!socket || !user) return;
 
@@ -156,11 +184,11 @@ const Chat = () => {
         currentActiveConv && msg.conversationId === currentActiveConv._id;
 
       if (isThisChatActive && isCurrentTabActive) {
-        // TRƯỜNG HỢP 1: ĐANG MỞ CHAT VÀ TAB ĐANG ACTIVE
-        // Hiển thị tin nhắn ngay lập tức và bắn socket mark_messages_as_read
         msg.isRead = true;
         setMessages((prev) => {
-          if (prev.some((m) => m._id === msg._id)) return prev;
+          // BẢO VỆ CHỐNG TRÙNG LẶP (Tránh lỗi undefined vs undefined)
+          const newId = getCleanId(msg);
+          if (newId && prev.some((m) => getCleanId(m) === newId)) return prev;
           return [...prev, msg];
         });
 
@@ -168,11 +196,7 @@ const Chat = () => {
           conversationId: currentActiveConv._id,
           userId: user.id,
         });
-
-        // Không gọi fetchLatestConversations() ở đây để tránh race-condition với server.
-        // Server sẽ xử lý reset về 0 rồi tự bắn lại "update_unread_total" về máy khách.
       } else {
-        // TRƯỜNG HỢP 2: ĐANG Ở TAB KHÁC HOẶC MỞ CHAT KHÁC
         notificationSound.current?.play().catch(() => {});
         if (Notification.permission === "granted") {
           const currentConvs = convsRef.current;
@@ -189,8 +213,6 @@ const Chat = () => {
           notification.onclick = () => window.focus();
           setTimeout(() => notification.close(), 4000);
         }
-
-        // Fetch lại API để lấy đúng số unreadCount đã tăng từ DB
         fetchLatestConversations();
       }
     };
@@ -199,8 +221,6 @@ const Chat = () => {
 
     socket.on("receive_message", handleReceiveMessage);
     socket.on("get_online_users", handleGetOnlineUsers);
-
-    // Lắng nghe tín hiệu reset hoặc cập nhật unread từ server
     socket.on("update_unread_total", () => {
       fetchLatestConversations();
     });
@@ -212,7 +232,9 @@ const Chat = () => {
     };
   }, [socket, user]);
 
-  // KHI CLICK MỞ 1 ĐOẠN CHAT
+  // ======================================================================
+  // KHI CLICK MỞ 1 ĐOẠN CHAT HOẶC ACTIVE CHAT THAY ĐỔI
+  // ======================================================================
   useEffect(() => {
     if (!activeConversation || !user?.id) return;
 
@@ -221,7 +243,6 @@ const Chat = () => {
       return;
     }
 
-    // Gửi tín hiệu reset unreadCount = 0 lên Database
     if (socket) {
       socket.emit("mark_messages_as_read", {
         conversationId: activeConversation._id,
@@ -232,8 +253,18 @@ const Chat = () => {
     chatService
       .getMessages(activeConversation._id)
       .then((res: any) => {
-        setMessages(res?.data || res || []);
-        // Bắt buộc fetch lại danh sách để DB đồng bộ số liệu unread = 0 về phía UI Navbar
+        const data = res?.data || res || [];
+        
+        // KIỂM SOÁT RACE CONDITION: Merge data từ Server với dữ liệu Local hiện tại
+        // Đề phòng trường hợp API trả về chậm hơn tốc độ gửi tin nhắn và xóa trắng UI
+        setMessages((prev) => {
+          const apiIds = new Set(data.map((m: any) => getCleanId(m)));
+          const localOnly = prev.filter(
+            (m) => !apiIds.has(getCleanId(m)) && m.conversationId === activeConversation._id
+          );
+          return [...data, ...localOnly];
+        });
+        
         fetchLatestConversations();
       })
       .catch((err) => console.error("Lỗi tải tin nhắn:", err));
@@ -254,35 +285,57 @@ const Chat = () => {
     }
   }, [messages]);
 
+  // ======================================================================
+  // 🔥 XỬ LÝ GỬI TIN NHẮN 
+  // ======================================================================
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !activeConversation || !user) return;
 
-    const targetUserId = activeConversation.participants.find(
-      (id) => id !== user.id,
+    const targetUserIdStr = getCleanId(
+      activeConversation.targetUser?.id || activeConversation.targetUser?._id
     );
-    if (!targetUserId) return;
+
+    if (!targetUserIdStr) return;
 
     const textToSend = newMessage;
     setNewMessage("");
 
     try {
-      const savedMsg = await chatService.sendMessage(targetUserId, textToSend);
+      const savedMsg = await chatService.sendMessage(Number(targetUserIdStr), textToSend);
       savedMsg.isRead = true;
 
+      let currentConvId = activeConversation._id;
+
+      // THAY THẾ ID "new_chat" THÀNH ID THẬT CỦA MONGODB NGAY LẬP TỨC
+      if (currentConvId === "new_chat" && savedMsg.conversationId) {
+        currentConvId = String(savedMsg.conversationId);
+        
+        setConversations((prev) => 
+          prev.map((c) => (c._id === "new_chat" ? { ...c, _id: currentConvId } : c))
+        );
+        setActiveConversation((prev) => 
+          prev ? { ...prev, _id: currentConvId } : null
+        );
+      }
+
+      // Gửi qua socket bằng ID chuẩn
       socket?.emit("send_message", {
         ...savedMsg,
-        receiverId: targetUserId,
+        conversationId: currentConvId, 
+        receiverId: targetUserIdStr,
       });
 
-      // Vẫn update local Messages để khung chat mượt mà
+      // BẢO VỆ CHỐNG GHI ĐÈ BẰNG HÀM getCleanId()
       setMessages((prev) => {
-        if (prev.some((m) => m._id === savedMsg._id)) return prev;
+        const msgId = getCleanId(savedMsg);
+        if (msgId && prev.some((m) => getCleanId(m) === msgId)) return prev;
         return [...prev, savedMsg];
       });
 
-      // THAY VÌ TỰ VIẾT LOGIC SET LẠI STATE BÊN TRÁI RẤT DỄ LỖI -> ĐỒNG BỘ THẲNG TỪ DB LÀ CHUẨN NHẤT
-      fetchLatestConversations();
+      // Fetch lại để đồng bộ hoàn toàn
+      fetchLatestConversations(currentConvId);
+
     } catch (error) {
       console.error("Lỗi gửi tin nhắn:", error);
       setNewMessage(textToSend);
@@ -308,16 +361,16 @@ const Chat = () => {
         setMessages([]);
       }
 
-      // Đồng bộ DB luôn
       fetchLatestConversations();
     } catch (error) {
       console.error("Lỗi xóa chat:", error);
     }
   };
 
+  const targetUserIdStr = activeConversation?.targetUser?.id || activeConversation?.targetUser?._id;
   const isTargetActiveOnline =
-    activeConversation && activeConversation.targetUser?.id
-      ? onlineUsers.includes(String(activeConversation.targetUser.id))
+    activeConversation && targetUserIdStr
+      ? onlineUsers.includes(getCleanId(targetUserIdStr))
       : false;
 
   return (
@@ -332,7 +385,7 @@ const Chat = () => {
         }
       `}</style>
 
-      {/* SIDEBAR */}
+      {/* SIDEBAR LIST */}
       <div className="w-1/3 shrink-0 border-r border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0E1422]/40 flex flex-col h-full min-h-0">
         <div className="p-4 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-[#0E1422] font-semibold text-lg text-slate-800 dark:text-white">
           Tin nhắn
@@ -346,8 +399,8 @@ const Chat = () => {
             conversations.map((conv, index) => {
               const targetUser = conv.targetUser;
               const isActive = activeConversation?._id === conv._id;
-              const isOnline = targetUser?.id
-                ? onlineUsers.includes(String(targetUser.id))
+              const isOnline = targetUser
+                ? onlineUsers.includes(getCleanId(targetUser.id || targetUser._id))
                 : false;
 
               const currentUnreadCount = Number(
@@ -356,14 +409,17 @@ const Chat = () => {
               const isUnread =
                 currentUnreadCount > 0 ||
                 (conv.lastMessage &&
-                  conv.lastMessage.senderId !== user?.id &&
+                  getCleanId(conv.lastMessage.senderId) !== getCleanId(user?.id) &&
                   !conv.lastMessage.isRead &&
                   !isActive);
 
               return (
                 <div
                   key={conv._id || index}
-                  onClick={() => setActiveConversation(conv)}
+                  onClick={() => {
+                    initialChatProcessedRef.current = true;
+                    setActiveConversation(conv);
+                  }}
                   className={`flex items-center gap-3 p-4 border-b border-gray-100 dark:border-white/5 cursor-pointer transition-all duration-200 opacity-0 animate-fade-in-up group relative
                     ${isActive ? "bg-blue-50 dark:bg-blue-950/40 border-l-2 border-l-blue-600" : "hover:bg-gray-100 dark:hover:bg-white/5"}`}
                   style={{ animationDelay: `${index * 40}ms` }}
@@ -447,7 +503,7 @@ const Chat = () => {
             <ScrollArea className="flex-1 p-4 bg-gray-50/50 dark:bg-[#0E1422]/20 min-h-0">
               <div className="flex flex-col gap-3">
                 {messages.map((msg, idx) => {
-                  const isMe = msg.senderId === user?.id;
+                  const isMe = getCleanId(msg.senderId) === getCleanId(user?.id);
                   return (
                     <div
                       key={msg._id || idx}

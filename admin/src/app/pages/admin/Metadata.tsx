@@ -159,27 +159,27 @@ export function Metadata() {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 transition-colors duration-200">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">System Metadata</h1>
-        <p className="text-slate-500 mt-1">Manage categories, locations, and skills used across the platform.</p>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight transition-colors duration-200">System Metadata</h1>
+        <p className="text-slate-500 dark:text-slate-400 mt-1 transition-colors duration-200">Manage categories, locations, and skills used across the platform.</p>
       </div>
 
       <div className="grid md:grid-cols-4 gap-6">
         {/* Sidebar */}
-        <Card className="md:col-span-1 p-2 space-y-1 h-fit">
+        <Card className="md:col-span-1 p-2 space-y-1 h-fit dark:bg-slate-900 dark:border-slate-800 transition-colors duration-200">
           {VIEWS.map(view => (
             <button
               key={view.key}
               onClick={() => setActiveView(view.key)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeView === view.key
-                ? 'bg-indigo-50 text-indigo-700'
-                : 'text-slate-600 hover:bg-slate-50'
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200 ${activeView === view.key
+                ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300'
+                : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800/50'
                 }`}
             >
               <view.icon className="w-4 h-4" />
               {view.label}
-              <span className="ml-auto text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">
+              <span className="ml-auto text-xs bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 px-1.5 py-0.5 rounded-full transition-colors duration-200">
                 {activeView === view.key ? items.length : ''}
               </span>
             </button>
@@ -187,19 +187,19 @@ export function Metadata() {
         </Card>
 
         {/* Main Table */}
-        <Card className="md:col-span-3">
+        <Card className="md:col-span-3 dark:bg-slate-900 dark:border-slate-800 transition-colors duration-200">
           {/* Toolbar */}
-          <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50 rounded-t-xl">
+          <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50 rounded-t-xl transition-colors duration-200">
             <div className="relative w-64">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 transition-colors duration-200" />
               <Input
-                className="pl-9 bg-white"
+                className="pl-9 bg-white dark:bg-slate-950 dark:text-slate-100 dark:border-slate-800 dark:placeholder:text-slate-500 transition-colors duration-200"
                 placeholder={`Tìm ${currentView.label.toLowerCase()}...`}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
-            <Button size="sm" onClick={openAdd}>
+            <Button size="sm" onClick={openAdd} className="transition-colors duration-200">
               <Plus className="w-4 h-4 mr-2" />
               Thêm mới
             </Button>
@@ -207,45 +207,45 @@ export function Metadata() {
 
           {/* Table */}
           {loading ? (
-            <div className="flex items-center justify-center py-16 gap-2 text-slate-400">
+            <div className="flex items-center justify-center py-16 gap-2 text-slate-400 dark:text-slate-500 transition-colors duration-200">
               <Loader2 className="w-5 h-5 animate-spin" />
               <span className="text-sm">Đang tải...</span>
             </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Tên</TableHead>
-                  {activeView !== 'skills' && <TableHead>Slug</TableHead>}
-                  <TableHead>Tin tuyển dụng</TableHead>
-                  {activeView === 'skills' && <TableHead>Người dùng</TableHead>}
-                  <TableHead className="text-right">Hành động</TableHead>
+                <TableRow className="dark:border-slate-800 transition-colors duration-200">
+                  <TableHead className="dark:text-slate-400">Tên</TableHead>
+                  {activeView !== 'skills' && <TableHead className="dark:text-slate-400">Slug</TableHead>}
+                  <TableHead className="dark:text-slate-400">Tin tuyển dụng</TableHead>
+                  {activeView === 'skills' && <TableHead className="dark:text-slate-400">Người dùng</TableHead>}
+                  <TableHead className="text-right dark:text-slate-400">Hành động</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-10 text-slate-400">
+                  <TableRow className="dark:border-slate-800 hover:bg-transparent dark:hover:bg-transparent transition-colors duration-200">
+                    <TableCell colSpan={4} className="text-center py-10 text-slate-400 dark:text-slate-500 transition-colors duration-200">
                       Không có dữ liệu
                     </TableCell>
                   </TableRow>
                 ) : filtered.map(item => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium text-slate-900">{item.name}</TableCell>
+                  <TableRow key={item.id} className="dark:border-slate-800 dark:hover:bg-slate-800/50 transition-colors duration-200">
+                    <TableCell className="font-medium text-slate-900 dark:text-slate-100 transition-colors duration-200">{item.name}</TableCell>
                     {activeView !== 'skills' && (
-                      <TableCell className="text-slate-400 text-xs font-mono">{item.slug || '—'}</TableCell>
+                      <TableCell className="text-slate-400 dark:text-slate-500 text-xs font-mono transition-colors duration-200">{item.slug || '—'}</TableCell>
                     )}
                     <TableCell>
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${(item.job_count || 0) > 0
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'bg-slate-100 text-slate-500'
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full transition-colors duration-200 ${(item.job_count || 0) > 0
+                        ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                        : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
                         }`}>
                         {item.job_count || 0} jobs
                       </span>
                     </TableCell>
                     {activeView === 'skills' && (
                       <TableCell>
-                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-50 text-purple-700">
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 transition-colors duration-200">
                           {item.user_count || 0} users
                         </span>
                       </TableCell>
@@ -255,7 +255,7 @@ export function Metadata() {
                         variant="ghost"
                         size="icon"
                         onClick={() => openEdit(item)}
-                        className="text-slate-400 hover:text-indigo-600"
+                        className="text-slate-400 hover:text-indigo-600 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors duration-200"
                       >
                         <Edit2 className="w-4 h-4" />
                       </Button>
@@ -264,7 +264,7 @@ export function Metadata() {
                         size="icon"
                         onClick={() => handleDelete(item)}
                         disabled={deletingId === item.id}
-                        className="text-slate-400 hover:text-rose-600"
+                        className="text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-400 transition-colors duration-200"
                       >
                         {deletingId === item.id
                           ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -282,16 +282,16 @@ export function Metadata() {
 
       {/* Modal Thêm/Sửa */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm transition-colors duration-200">
+          <div className="bg-white dark:bg-slate-900 dark:border dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden transition-colors duration-200">
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-              <h2 className="text-lg font-bold text-slate-900">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 transition-colors duration-200">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 transition-colors duration-200">
                 {editItem ? `Sửa ${currentView.label}` : `Thêm ${currentView.label}`}
               </h2>
               <button
                 onClick={() => setShowModal(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-300 dark:hover:bg-slate-800 rounded-lg transition-colors duration-200"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -300,30 +300,31 @@ export function Metadata() {
             {/* Body */}
             <div className="px-6 py-5 space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                  Tên <span className="text-red-500">*</span>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 transition-colors duration-200">
+                  Tên <span className="text-red-500 dark:text-red-400">*</span>
                 </label>
                 <Input
                   value={form.name}
                   onChange={e => handleNameChange(e.target.value)}
                   placeholder={`Nhập tên ${currentView.label.toLowerCase()}`}
                   autoFocus
+                  className="dark:bg-slate-950 dark:text-slate-100 dark:border-slate-800 dark:placeholder:text-slate-500 transition-colors duration-200"
                 />
               </div>
 
               {/* Slug chỉ hiện cho categories và locations */}
               {activeView !== 'skills' && (
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                    Slug <span className="text-slate-400 font-normal">(SEO URL)</span>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 transition-colors duration-200">
+                    Slug <span className="text-slate-400 dark:text-slate-500 font-normal transition-colors duration-200">(SEO URL)</span>
                   </label>
                   <Input
                     value={form.slug}
                     onChange={e => setForm(prev => ({ ...prev, slug: e.target.value }))}
                     placeholder="tu-dong-tao-tu-ten"
-                    className="font-mono text-sm text-slate-500"
+                    className="font-mono text-sm text-slate-500 dark:text-slate-400 dark:bg-slate-950 dark:border-slate-800 transition-colors duration-200"
                   />
-                  <p className="text-xs text-slate-400 mt-1">
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 transition-colors duration-200">
                     Dùng cho URL: /jobs?location=<span className="font-mono">{form.slug || 'slug'}</span>
                   </p>
                 </div>
@@ -331,17 +332,19 @@ export function Metadata() {
             </div>
 
             {/* Footer */}
-            <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50">
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 dark:border-slate-800 dark:bg-slate-900 transition-colors duration-200">
               <Button
                 variant="outline"
                 onClick={() => setShowModal(false)}
                 disabled={submitting}
+                className="dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors duration-200"
               >
                 Hủy
               </Button>
               <Button
                 onClick={handleSubmit}
                 disabled={submitting}
+                className="transition-colors duration-200"
               >
                 {submitting
                   ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Đang lưu...</>

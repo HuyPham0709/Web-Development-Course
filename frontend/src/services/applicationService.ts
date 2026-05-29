@@ -1,13 +1,11 @@
 import axios from "axios";
-import api from "./api"; // nhớ api export default
 
 const API_URL = "http://localhost:5000/api";
 
+// Cải tiến: Chỉ đính kèm Bearer token nếu token thực sự tồn tại trong localStorage
 function getHeaders() {
   const token = localStorage.getItem("token");
-  return {
-    Authorization: `Bearer ${token}`,
-  };
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export const applicationService = {
@@ -25,8 +23,7 @@ export const applicationService = {
       headers: getHeaders(),
     }),
 
-
-  updateStatus: (application_id: number, status: string) =>
+  updateStatus: (application_id: number | string, status: string) =>
     axios.put(
       `${API_URL}/applications/update-status`,
       { application_id, status },
@@ -38,11 +35,19 @@ export const applicationService = {
       headers: getHeaders(),
     }),
 
+  // API Gửi thư mời phỏng vấn
+  inviteInterview: (data: { application_id: string | number; location?: string; time?: string; message?: string }) =>
+    axios.post(
+      `${API_URL}/applications/interview/invite`,
+      data,
+      { headers: getHeaders() }
+    ),
+
   // =========================
   // CANDIDATE
   // =========================
 
-  applyJob: (jobId: number) =>
+  applyJob: (jobId: number | string) =>
     axios.post(
       `${API_URL}/applications/apply`,
       { jobId },
@@ -54,24 +59,23 @@ export const applicationService = {
       headers: getHeaders(),
     }),
 
+  // =========================
+  // NOTES & JOB ACTIONS
+  // =========================
 
-  // Thêm vào object applicationService:
-
-  // Notes
-  getNotes: (application_id: number) =>
+  getNotes: (application_id: number | string) =>
     axios.get(`${API_URL}/applications/notes/${application_id}`, { headers: getHeaders() }),
 
-  addNote: (application_id: number, content: string) =>
+  addNote: (application_id: number | string, content: string) =>
     axios.post(`${API_URL}/applications/notes`, { application_id, content }, { headers: getHeaders() }),
 
-  deleteNote: (note_id: number) =>
+  deleteNote: (note_id: number | string) =>
     axios.delete(`${API_URL}/applications/notes/${note_id}`, { headers: getHeaders() }),
 
   // Toggle job status
-  toggleJobStatus: (job_id: number) =>
+  toggleJobStatus: (job_id: number | string) =>
     axios.put(`${API_URL}/applications/jobs/toggle-status`, { job_id }, { headers: getHeaders() }),
 
-  deleteJob: (job_id: number) =>
+  deleteJob: (job_id: number | string) =>
     axios.delete(`${API_URL}/jobs/${job_id}`, { headers: getHeaders() }),
-
 };

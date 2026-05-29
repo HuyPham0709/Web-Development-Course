@@ -9,7 +9,7 @@ import {
   X,
 } from 'lucide-react';
 
-import { CVPreview } from '../CVBuilder';
+import CVPreview from '../CVPreview';
 import { TEMPLATES, ACCENT_COLORS } from '../CVBuilder';
 
 // ─────────────────────────────────────────────────────────────
