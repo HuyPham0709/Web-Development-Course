@@ -21,7 +21,7 @@ router.post('/bot', chatbotController.chatWithBot);
 // ─────────────────────────────────────────────────────────────
 // Middleware này sẽ bảo vệ toàn bộ các route được khai báo phía bên dưới nó
 router.use(verifyToken); 
-
+router.get('/unread', messageController.getUnreadCount);
 // Lấy danh sách các cuộc hội thoại công việc/cá nhân
 router.get('/conversations', messageController.getConversations);
 

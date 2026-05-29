@@ -52,18 +52,19 @@ export default function JobDetail() {
 
   // --- CHAT INTERACTION HANDLER ---
   const handleStartChat = () => {
-    const targetId = job?.posted_by; 
-    if (!targetId) {
-      alert("Employer profile data could not be found!");
-      return;
+    if (!job || !job.company_id) { // Đổi từ posted_by sang company_id
+        alert("Không tìm thấy thông tin công ty để bắt đầu trò chuyện.");
+        return;
     }
+
     navigate('/chat', {
       state: {
         targetUser: {
-          id: targetId,
-          name: job?.company_name || "Employer",
-          avatar_url: job?.logo_url || ""
-        }
+          id: job.company_id, // 🔥 QUAN TRỌNG: Truyền ID Công ty
+          name: job.company_name || "Nhà tuyển dụng",
+          avatar_url: job.logo_url || "" 
+        },
+        chatType: 'company' // Cờ báo hiệu đây là ID công ty
       }
     });
   };
@@ -285,12 +286,12 @@ export default function JobDetail() {
 
                 {/* Primary Premium Action Buttons (Desktop Layout) */}
                 <div className="hidden sm:flex items-center gap-3 w-full md:w-auto">
-                  <button
-                    onClick={handleStartChat}
-                    className="flex items-center justify-center gap-2 border border-blue-200 bg-blue-50/40 text-blue-600 hover:bg-blue-50 dark:border-blue-500/20 dark:bg-blue-500/5 dark:text-blue-400 dark:hover:bg-blue-500/10 px-6 py-4 rounded-2xl font-bold transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95 shadow-sm"
+                  <button 
+                    onClick={handleStartChat} 
+                    className="flex items-center justify-center w-full bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 font-bold py-3 px-4 rounded-xl transition-all"
                   >
-                    <MessageCircle className="w-5 h-5" />
-                    Chat Now
+                    <MessageCircle className="w-5 h-5 mr-2" />
+                    Chat now
                   </button>
                   <button
                     onClick={handleApply}

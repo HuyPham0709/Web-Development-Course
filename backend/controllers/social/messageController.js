@@ -3,119 +3,205 @@ const Message = require('../../models/Message');
 const db = require('../../config/db'); 
 const socketModule = require('../../utils/socket');
 
+// Hàm Helper lấy thông tin vai trò và công ty của User từ MySQL
+const getUserContext = async (userId) => {
+    const [rows] = await db.query('SELECT role, company_id FROM Users WHERE id = ?', [userId]);
+    return rows.length > 0 ? rows[0] : null;
+};
+
 // ======================================================================
-// [GET] Lấy danh sách hội thoại của user hiện tại
+// [GET] Lấy danh sách hội thoại (ĐÃ FIX LỖI ẨN CHAT EMPLOYER)
 // ======================================================================
 exports.getConversations = async (req, res, next) => {
     try {
-        const userId = req.user.id; 
+        const userId = Number(req.user.id); 
+        const userContext = await getUserContext(userId);
         
-        // 1. Lấy danh sách phòng chat từ MongoDB
-        const conversations = await Conversation.find({
-            participants: { $in: [String(userId), userId] }
-        })
-        .populate('lastMessage')
-        .sort({ updatedAt: -1 })
-        .lean(); 
+        if (!userContext) return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
 
-        // 2. Chạy vòng lặp để đính kèm thông tin Tên & Avatar từ MySQL
+        let query = {};
+        let isCandidate = userContext.role === 'candidate';
+
+        // Tìm kiếm thông minh chấp nhận cả cấu trúc Schema cũ (participants) lẫn mới (Id riêng lẻ)
+        if (isCandidate) {
+            query = {
+                $or: [
+                    { candidateId: userId },
+                    { participants: userId }
+                ]
+            };
+        } else {
+            // Nếu tài khoản Employer chưa gán vào công ty nào, trả về rỗng để bảo mật
+            if (!userContext.company_id) return res.status(200).json({ success: true, data: [] });
+            query = {
+                $or: [
+                    { companyId: userContext.company_id },
+                    { participants: userContext.company_id }
+                ]
+            };
+        }
+
+        const conversations = await Conversation.find(query)
+            .populate('lastMessage')
+            .sort({ updatedAt: -1 })
+            .lean(); 
+
         const enrichedConversations = await Promise.all(
             conversations.map(async (conv) => {
-                const targetUserId = conv.participants.find(id => String(id) !== String(userId));
+                let targetUser = { id: "", name: "Ẩn danh", avatar_url: "" };
                 
-                let targetUser = { 
-                    id: targetUserId, 
-                    name: "Người dùng ẩn danh", 
-                    avatar_url: "" 
-                };
+                // Trích xuất an toàn các ID bất kể tình trạng Schema hiện tại của bạn
+                const currentCandidateId = conv.candidateId || (conv.participants && conv.participants[0]);
+                const currentCompanyId = conv.companyId || (conv.participants && conv.participants[1]);
 
-                if (targetUserId) {
-                    const [userRows] = await db.query(
-                        'SELECT id, username, email, role FROM Users WHERE id = ?', 
-                        [targetUserId]
-                    );
-
-                    if (userRows.length > 0) {
-                        const user = userRows[0];
-                        targetUser.username = user.username;
-                        targetUser.email = user.email;
-                        targetUser.role = user.role;
-                        targetUser.name = user.username; 
-
-                        if (user.role === 'candidate') {
-                            const [profileRows] = await db.query(
-                                'SELECT full_name, avatar_url FROM Profiles WHERE user_id = ?', 
-                                [user.id]
-                            );
-                            if (profileRows.length > 0) {
-                                targetUser.name = profileRows[0].full_name || targetUser.name;
-                                targetUser.avatar_url = profileRows[0].avatar_url || "";
-                            }
-                        } else if (user.role === 'employer') {
-                            const [companyRows] = await db.query(
-                                'SELECT c.name, c.logo_url FROM Companies c JOIN Users u ON c.id = u.company_id WHERE u.id = ?', 
-                                [user.id]
-                            );
-                            if (companyRows.length > 0) {
-                                targetUser.name = companyRows[0].name || targetUser.name;
-                                targetUser.avatar_url = companyRows[0].logo_url || "";
-                            }
+                if (isCandidate) {
+                    // Ứng viên đang xem chat -> Lấy thông tin hiển thị là đối phương (Công Ty)
+                    if (currentCompanyId) {
+                        const [companyRows] = await db.query(
+                            `SELECT id, name, logo_url FROM Companies WHERE id = ?`, 
+                            [currentCompanyId]
+                        );
+                        if (companyRows.length > 0) {
+                            targetUser = { 
+                                id: companyRows[0].id, 
+                                name: companyRows[0].name, 
+                                avatar_url: companyRows[0].logo_url || "" 
+                            };
+                        }
+                    }
+                } else {
+                    // NTD đang xem chat -> Lấy thông tin hiển thị là đối phương (Ứng viên)
+                    if (currentCandidateId) {
+                        const [candidateRows] = await db.query(
+                            `SELECT u.id, p.full_name, p.avatar_url, u.username 
+                             FROM Users u 
+                             LEFT JOIN Profiles p ON u.id = p.user_id 
+                             WHERE u.id = ?`, 
+                            [currentCandidateId]
+                        );
+                        if (candidateRows.length > 0) {
+                            targetUser = { 
+                                id: candidateRows[0].id, 
+                                name: candidateRows[0].full_name || candidateRows[0].username, 
+                                avatar_url: candidateRows[0].avatar_url || "" 
+                            };
                         }
                     }
                 }
 
-                // 🔥 LOGIC ĐỒNG BỘ CHUẨN XÁC 100%: 
-                // Đếm trực tiếp các tin nhắn thuộc phòng chat này, KHÔNG PHẢI do mình gửi, và CÒN CHƯA ĐỌC.
-                // (Nếu Model Message của bạn dùng trường `is_read` thay vì `isRead`, hãy sửa lại chữ isRead bên dưới nhé)
-                const realUnreadCount = await Message.countDocuments({
-                    conversationId: conv._id,
-                    senderId: { $ne: String(userId) }, // Của người khác gửi
-                    isRead: false                      // Trạng thái chưa đọc
-                });
+                // 🔥 ĐIỂM MẤT CHỐT: Tạo mảng giả lập tương thích gửi về cho Frontend (Chat.tsx)
+                // Cần nạp chính xác userId của Employer hiện tại vào mảng để vượt qua bộ lọc Client .includes()
+                const mockParticipants = isCandidate 
+                    ? [userId, Number(targetUser.id || currentCompanyId)] 
+                    : [Number(targetUser.id || currentCandidateId), userId];
 
-                return {
-                    ...conv,
-                    unreadCount: realUnreadCount, // Trả về con số chính xác nhất cho Navbar hiển thị
-                    targetUser
+                return { 
+                    ...conv, 
+                    candidateId: currentCandidateId,
+                    companyId: currentCompanyId,
+                    participants: mockParticipants, // Cứu cánh cấu trúc mảng cho Frontend
+                    targetUser 
                 };
             })
         );
 
         res.status(200).json({ success: true, data: enrichedConversations });
     } catch (error) {
-        console.error("Lỗi getConversations:", error);
         next(error);
     }
 };
 
 // ======================================================================
-// [GET] Lấy tin nhắn của 1 hội thoại (Đồng thời XÓA số lượng chưa đọc)
+// [POST] Gửi tin nhắn mới (ĐỒNG BỘ CẢ HAI CẤU TRÚC LƯU TRỮ)
+// ======================================================================
+exports.sendMessage = async (req, res, next) => {
+    try {
+        const senderId = Number(req.user.id);
+        const targetId = Number(req.body.receiverId); 
+        
+        if (!targetId || isNaN(targetId)) {
+            return res.status(400).json({ success: false, message: "ID người nhận không hợp lệ" });
+        }
+
+        const userContext = await getUserContext(senderId);
+        if (!userContext) return res.status(404).json({ success: false, message: "User không tồn tại" });
+
+        let candidateId, companyId;
+
+        if (userContext.role === 'candidate') {
+            candidateId = senderId;
+            companyId = targetId; 
+        } else {
+            companyId = userContext.company_id; 
+            candidateId = targetId; 
+        }
+
+        if (!companyId) return res.status(400).json({ success: false, message: "Nhà tuyển dụng chưa thuộc công ty nào" });
+
+        // Tìm kiếm bằng $or để check cả 2 kiểu viết của DB nhằm tránh duplicate phòng chat
+        let conversation = await Conversation.findOne({
+            $or: [
+                { candidateId, companyId },
+                { participants: { $all: [candidateId, companyId] } }
+            ]
+        });
+
+        if (!conversation) {
+            conversation = await Conversation.create({
+                candidateId,
+                companyId,
+                participants: [candidateId, companyId], // Gán cả mảng lẫn trường rời rạc
+                unreadCount: 0
+            });
+        }
+
+        const newMessage = await Message.create({
+            conversationId: conversation._id,
+            senderId,
+            text: req.body.text || "",
+            fileUrl: req.body.fileUrl || "",
+            isRead: false
+        });
+
+        conversation.lastMessage = newMessage._id;
+        conversation.unreadCount = (conversation.unreadCount || 0) + 1;
+        conversation.lastSenderId = senderId;
+        await conversation.save();
+
+        // Phát tín hiệu thông báo realtime
+        try {
+            if (userContext.role === 'candidate') {
+                const [employers] = await db.query(
+                    'SELECT id FROM Users WHERE company_id = ? AND role = "employer"', 
+                    [companyId]
+                );
+                employers.forEach(emp => {
+                    socketModule.sendNotification(emp.id, {
+                        type: "chat", title: "Có tin nhắn mới", message: "Công ty của bạn nhận được tin nhắn từ ứng viên", is_read: false, link_url: "/chat"
+                    });
+                });
+            } else {
+                socketModule.sendNotification(candidateId, {
+                    type: "chat", title: "Có tin nhắn mới", message: "Bạn có tin nhắn từ Nhà tuyển dụng", is_read: false, link_url: "/chat"
+                });
+            }
+        } catch (e) {
+            console.error("Lỗi gửi socket notification:", e);
+        }
+
+        res.status(201).json({ success: true, data: newMessage });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ======================================================================
+// [GET] Lấy tin nhắn chi tiết
 // ======================================================================
 exports.getMessages = async (req, res, next) => {
     try {
         const { conversationId } = req.params;
-        const userId = req.user.id;
-
-        // 1. Reset unreadCount trong Collection Conversation
-        await Conversation.updateOne(
-            { _id: conversationId },
-            { $set: { unreadCount: 0 } }
-        );
-
-        // 2. 🔥 FIX QUAN TRỌNG: Phải đánh dấu toàn bộ tin nhắn của đối phương là "đã đọc" (isRead: true)
-        // Nếu không làm bước này, hàm đếm countDocuments ở trên sẽ luôn ra kết quả > 0
-        await Message.updateMany(
-            { 
-                conversationId: conversationId, 
-                senderId: { $ne: String(userId) },
-                isRead: false 
-            },
-            { $set: { isRead: true } }
-        );
-
-        // Lấy danh sách tin nhắn để hiển thị
         const messages = await Message.find({ conversationId }).sort({ createdAt: 1 });
-        
         res.status(200).json({ success: true, data: messages });
     } catch (error) {
         next(error);
@@ -123,93 +209,33 @@ exports.getMessages = async (req, res, next) => {
 };
 
 // ======================================================================
-// [POST] Gửi tin nhắn HTTP (Đã tích hợp lưu trữ unreadCount vào Database)
-// ======================================================================
-exports.sendMessage = async (req, res, next) => {
-    try {
-        const { receiverId, text, fileUrl } = req.body;
-        const senderId = req.user.id;
-
-        if (!receiverId) {
-            return res.status(400).json({ success: false, message: "Thiếu thông tin người nhận (receiverId)." });
-        }
-
-        // 1. Tìm hoặc tạo cuộc hội thoại trong MongoDB
-        let conversation = await Conversation.findOne({
-            participants: { $all: [String(senderId), String(receiverId)] }
-        });
-
-        if (!conversation) {
-            conversation = await Conversation.create({
-                participants: [String(senderId), String(receiverId)],
-                unreadCount: 0
-            });
-        }
-
-        // 2. Lưu tin nhắn mới vào MongoDB (Set rõ trạng thái là chưa đọc)
-        const newMessage = await Message.create({
-            conversationId: conversation._id,
-            senderId: String(senderId),
-            text,
-            fileUrl,
-            isRead: false // Mặc định tin nhắn mới là chưa đọc
-        });
-
-        // 3. Logic phụ (Giữ nguyên của bạn để caching unreadCount nếu cần)
-        if (conversation.lastSenderId && String(conversation.lastSenderId) !== String(senderId)) {
-            conversation.unreadCount = 1;
-        } else {
-            conversation.unreadCount = (conversation.unreadCount || 0) + 1;
-        }
-
-        conversation.lastMessage = newMessage._id;
-        conversation.lastSenderId = String(senderId);
-        await conversation.save();
-
-        // ✅ CẦU NỐI REALTIME
-        try {
-            // Gửi tin nhắn cho người nhận
-            socketModule.emitToUser(receiverId, 'receive_message', {
-                ...newMessage._doc // Gửi toàn bộ data tin nhắn
-            });
-
-            // Kích hoạt cập nhật unread (Chỉ gửi cho người nhận)
-            socketModule.emitToUser(receiverId, 'update_unread_total');
-
-            // Gửi gói thông báo đẩy lên Quả chuông
-            const chatNotificationPayload = {
-                _id: `chat_msg_${Date.now()}`,
-                title: "Tin nhắn mới",
-                message: text || (fileUrl ? "📷 Đã gửi một tệp đính kèm..." : ""),
-                created_at: new Date().toISOString(),
-                is_read: false,
-                link_url: "/chat"
-            };
-            socketModule.sendNotification(receiverId, chatNotificationPayload);
-
-        } catch (socketBridgeErr) {
-            console.error("⚠️ Lỗi chuyển tiếp dữ liệu qua cổng Socket Bridge:", socketBridgeErr.message);
-        }
-
-        res.status(201).json({ success: true, data: newMessage });
-    } catch (error) {
-        console.error("Lỗi khi chạy sendMessage API:", error);
-        next(error);
-    }
-};
-
-// ======================================================================
-// [DELETE] Xóa cuộc trò chuyện và tất cả tin nhắn liên quan
+// [DELETE] Xóa cuộc trò chuyện
 // ======================================================================
 exports.deleteConversation = async (req, res, next) => {
     try {
         const { conversationId } = req.params;
-        const userId = req.user.id;
+        const userId = Number(req.user.id);
+        const userContext = await getUserContext(userId);
 
-        const conversation = await Conversation.findOne({
-            _id: conversationId,
-            participants: { $in: [String(userId), userId] }
-        });
+        if (!userContext) return res.status(404).json({ success: false, message: "User không tồn tại." });
+
+        let query = { _id: conversationId };
+        
+        if (userContext.role === 'candidate') {
+            query.$or = [
+                { candidateId: userId },
+                { participants: userId }
+            ];
+        } else if (userContext.company_id) {
+            query.$or = [
+                { companyId: userContext.company_id },
+                { participants: userContext.company_id }
+            ];
+        } else {
+            return res.status(403).json({ success: false, message: "Không có quyền xóa." });
+        }
+
+        const conversation = await Conversation.findOne(query);
 
         if (!conversation) {
             return res.status(404).json({ 
@@ -221,11 +247,53 @@ exports.deleteConversation = async (req, res, next) => {
         await Message.deleteMany({ conversationId });
         await Conversation.findByIdAndDelete(conversationId);
 
-        res.status(200).json({ 
-            success: true, 
-            message: "Xóa đoạn chat thành công." 
-        });
+        res.status(200).json({ success: true, message: "Xóa đoạn chat thành công." });
     } catch (error) {
+        next(error);
+    }
+};
+
+// ======================================================================
+// [GET] Lấy tổng số tin nhắn chưa đọc
+// ======================================================================
+exports.getUnreadCount = async (req, res, next) => {
+    try {
+        const userId = Number(req.user.id);
+        const userContext = await getUserContext(userId);
+        
+        if (!userContext) return res.status(200).json({ success: true, data: 0 });
+
+        let query = {};
+        if (userContext.role === 'candidate') {
+            query = {
+                $or: [
+                    { candidateId: userId },
+                    { participants: userId }
+                ]
+            };
+        } else {
+            if (!userContext.company_id) return res.status(200).json({ success: true, data: 0 });
+            query = {
+                $or: [
+                    { companyId: userContext.company_id },
+                    { participants: userContext.company_id }
+                ]
+            };
+        }
+
+        const conversations = await Conversation.find(query).lean();
+
+        let totalUnread = 0;
+        conversations.forEach(conv => {
+            const senderId = conv.lastSenderId;
+            if (senderId && Number(senderId) !== userId) {
+                totalUnread += Number(conv.unreadCount || 0);
+            }
+        });
+
+        res.status(200).json({ success: true, data: totalUnread });
+    } catch (error) {
+        console.error("Lỗi khi đếm tin nhắn chưa đọc:", error);
         next(error);
     }
 };

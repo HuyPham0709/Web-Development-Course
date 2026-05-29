@@ -11,13 +11,14 @@ export interface IMessage {
 
 export interface IConversation {
   _id: string;
-  participants: number[];
+  candidateId?: number; // Thêm
+  companyId?: number;   // Thêm
   lastMessage?: IMessage;
   updatedAt: string;
   targetUser?: {
     id: number;
     name: string;
     avatar_url: string;
-    isOnline?: boolean; // <-- CHỨC NĂNG MỚI: Thêm cờ nhận diện online
+    isOnline?: boolean; 
   }
 }
