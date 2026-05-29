@@ -158,12 +158,12 @@ export function Reports() {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 h-[calc(100vh-8rem)] flex flex-col">
 
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center transition-colors duration-200">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Resolution Center</h1>
-          <p className="text-slate-500 mt-1">Investigate and resolve user reports regarding jobs and companies.</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight transition-colors duration-200">Resolution Center</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1 transition-colors duration-200">Investigate and resolve user reports regarding jobs and companies.</p>
         </div>
-        <Button variant="outline" onClick={fetchReports} disabled={loading}>
+        <Button variant="outline" onClick={fetchReports} disabled={loading} className="transition-colors duration-200">
           <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
         </Button>
       </div>
@@ -171,14 +171,14 @@ export function Reports() {
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: 'Total Reports', value: stats.total, color: 'text-slate-700' },
-          { label: 'Pending', value: stats.total_pending, color: 'text-red-600' },
-          { label: 'Resolved', value: stats.total_resolved, color: 'text-emerald-600' },
-          { label: 'Ignored', value: stats.total_ignored, color: 'text-slate-400' },
+          { label: 'Total Reports', value: stats.total, color: 'text-slate-700 dark:text-slate-200' },
+          { label: 'Pending', value: stats.total_pending, color: 'text-red-600 dark:text-red-400' },
+          { label: 'Resolved', value: stats.total_resolved, color: 'text-emerald-600 dark:text-emerald-400' },
+          { label: 'Ignored', value: stats.total_ignored, color: 'text-slate-400 dark:text-slate-500' },
         ].map(s => (
-          <Card key={s.label} className="p-4 text-center">
-            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-            <p className="text-xs text-slate-500 mt-1">{s.label}</p>
+          <Card key={s.label} className="p-4 text-center dark:bg-slate-900 dark:border-slate-800 transition-colors duration-200">
+            <p className={`text-2xl font-bold transition-colors duration-200 ${s.color}`}>{s.value}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 transition-colors duration-200">{s.label}</p>
           </Card>
         ))}
       </div>
@@ -187,14 +187,14 @@ export function Reports() {
       <div className="flex-1 grid md:grid-cols-3 gap-6 min-h-0">
 
         {/* Left — Report List */}
-        <Card className="md:col-span-1 flex flex-col overflow-hidden">
+        <Card className="md:col-span-1 flex flex-col overflow-hidden dark:bg-slate-900 dark:border-slate-800 transition-colors duration-200">
           {/* Search + Filter */}
-          <div className="p-3 border-b border-slate-200 bg-slate-50 space-y-2">
+          <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 space-y-2 transition-colors duration-200">
             <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 transition-colors duration-200" />
               <input
                 placeholder="Tìm theo job, reporter..."
-                className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-md text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-sm outline-none focus:border-indigo-500 dark:focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-colors duration-200"
                 value={searchInput}
                 onChange={e => setSearchInput(e.target.value)}
               />
@@ -205,14 +205,14 @@ export function Reports() {
                 <button
                   key={tab.key}
                   onClick={() => setFilterStatus(tab.key)}
-                  className={`flex-1 text-xs py-1.5 rounded-md font-medium transition-colors ${filterStatus === tab.key
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'
+                  className={`flex-1 text-xs py-1.5 rounded-md font-medium transition-colors duration-200 ${filterStatus === tab.key
+                    ? 'bg-indigo-600 text-white dark:bg-indigo-500'
+                    : 'bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
                     }`}
                 >
                   {tab.label}
                   {tab.count > 0 && (
-                    <span className={`ml-1 ${filterStatus === tab.key ? 'opacity-80' : 'text-slate-400'}`}>
+                    <span className={`ml-1 transition-colors duration-200 ${filterStatus === tab.key ? 'opacity-80' : 'text-slate-400 dark:text-slate-500'}`}>
                       ({tab.count})
                     </span>
                   )}
@@ -225,10 +225,10 @@ export function Reports() {
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {loading ? (
               <div className="flex justify-center py-10">
-                <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                <Loader2 className="w-5 h-5 animate-spin text-slate-400 dark:text-slate-500" />
               </div>
             ) : reports.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+              <div className="flex flex-col items-center justify-center py-12 text-slate-400 dark:text-slate-500 transition-colors duration-200">
                 <AlertOctagon className="w-10 h-10 mb-2 opacity-20" />
                 <p className="text-sm">Không có report nào</p>
               </div>
@@ -238,23 +238,23 @@ export function Reports() {
                 <button
                   key={report.id}
                   onClick={() => setSelectedReport(report)}
-                  className={`w-full text-left p-3.5 rounded-lg border transition-all ${selectedReport?.id === report.id
-                    ? 'border-indigo-500 bg-indigo-50/50 shadow-sm'
-                    : 'border-transparent hover:bg-slate-50'
+                  className={`w-full text-left p-3.5 rounded-lg border transition-all duration-200 ${selectedReport?.id === report.id
+                    ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20 shadow-sm'
+                    : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50'
                     }`}
                 >
                   <div className="flex justify-between items-start mb-1.5">
                     <Badge variant={cfg.variant} className="text-[10px] uppercase tracking-wider">
                       {report.reason.length > 20 ? report.reason.slice(0, 20) + '…' : report.reason}
                     </Badge>
-                    <span className="text-xs text-slate-400 shrink-0 ml-1">{timeAgo(report.created_at)}</span>
+                    <span className="text-xs text-slate-400 dark:text-slate-500 shrink-0 ml-1 transition-colors duration-200">{timeAgo(report.created_at)}</span>
                   </div>
-                  <h4 className="font-semibold text-slate-900 text-sm truncate">{report.job_title}</h4>
+                  <h4 className="font-semibold text-slate-900 dark:text-slate-100 text-sm truncate transition-colors duration-200">{report.job_title}</h4>
                   <div className="flex items-center justify-between mt-1">
-                    <p className="text-xs text-slate-500 truncate">{report.company_name}</p>
-                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${report.status === 'pending' ? 'bg-red-100 text-red-600' :
-                      report.status === 'resolved' ? 'bg-emerald-100 text-emerald-600' :
-                        'bg-slate-100 text-slate-500'
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate transition-colors duration-200">{report.company_name}</p>
+                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full transition-colors duration-200 ${report.status === 'pending' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' :
+                      report.status === 'resolved' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' :
+                        'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                       }`}>
                       {cfg.label}
                     </span>
@@ -266,21 +266,35 @@ export function Reports() {
         </Card>
 
         {/* Right — Detail */}
-        <Card className="md:col-span-2 flex flex-col overflow-hidden">
+        <Card className="md:col-span-2 flex flex-col overflow-hidden dark:bg-slate-900 dark:border-slate-800 transition-colors duration-200">
           {selectedReport ? (
             <>
               {/* Header */}
-              <div className="p-6 border-b border-slate-200 bg-slate-50">
+              <div className="p-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 transition-colors duration-200">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-3 mb-1 flex-wrap">
-                      <h2 className="text-xl font-bold text-slate-900">{selectedReport.job_title}</h2>
-                      <Badge variant="outline">{selectedReport.company_name}</Badge>
+                      <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 transition-colors duration-200">
+                        {selectedReport.job_title}
+                      </h2>
+                      
+                      <Badge 
+                        variant="outline" 
+                        className="dark:border-slate-700 dark:text-slate-300 transition-colors duration-200"
+                      >
+                        {selectedReport.company_name}
+                      </Badge>
+
                       {selectedReport.job_status === 'closed' && (
-                        <Badge variant="secondary">Job Closed</Badge>
+                        <Badge 
+                          variant="secondary" 
+                          className="dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/80 transition-colors duration-200"
+                        >
+                          Job Closed
+                        </Badge>
                       )}
                     </div>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-slate-500 dark:text-slate-400 transition-colors duration-200">
                       Report #{selectedReport.id} • {timeAgo(selectedReport.created_at)}
                     </p>
                   </div>
@@ -293,8 +307,8 @@ export function Reports() {
               {/* Body */}
               <div className="flex-1 overflow-y-auto p-6 space-y-5">
                 {/* Reason */}
-                <div className="bg-rose-50 border border-rose-100 rounded-xl p-4 flex gap-3 text-rose-900">
-                  <AlertOctagon className="w-5 h-5 flex-shrink-0 mt-0.5 text-rose-500" />
+                <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/50 rounded-xl p-4 flex gap-3 text-rose-900 dark:text-rose-200 transition-colors duration-200">
+                  <AlertOctagon className="w-5 h-5 flex-shrink-0 mt-0.5 text-rose-500 dark:text-rose-400 transition-colors duration-200" />
                   <div>
                     <h4 className="font-semibold text-sm">Lý do báo cáo: {selectedReport.reason}</h4>
                     <p className="text-sm mt-1 opacity-80">
@@ -305,21 +319,21 @@ export function Reports() {
 
                 {/* Info grid */}
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="bg-slate-50 rounded-lg p-3">
-                    <p className="text-slate-500 text-xs mb-1">Job ID</p>
-                    <p className="font-semibold text-slate-800">#{selectedReport.job_id}</p>
+                  <div className="bg-slate-50 dark:bg-slate-900/80 rounded-lg p-3 transition-colors duration-200">
+                    <p className="text-slate-500 dark:text-slate-400 text-xs mb-1 transition-colors duration-200">Job ID</p>
+                    <p className="font-semibold text-slate-800 dark:text-slate-200 transition-colors duration-200">#{selectedReport.job_id}</p>
                   </div>
-                  <div className="bg-slate-50 rounded-lg p-3">
-                    <p className="text-slate-500 text-xs mb-1">Job Status</p>
-                    <p className="font-semibold text-slate-800 capitalize">{selectedReport.job_status}</p>
+                  <div className="bg-slate-50 dark:bg-slate-900/80 rounded-lg p-3 transition-colors duration-200">
+                    <p className="text-slate-500 dark:text-slate-400 text-xs mb-1 transition-colors duration-200">Job Status</p>
+                    <p className="font-semibold text-slate-800 dark:text-slate-200 capitalize transition-colors duration-200">{selectedReport.job_status}</p>
                   </div>
-                  <div className="bg-slate-50 rounded-lg p-3">
-                    <p className="text-slate-500 text-xs mb-1">Reporter</p>
-                    <p className="font-semibold text-slate-800">{selectedReport.reporter_username}</p>
+                  <div className="bg-slate-50 dark:bg-slate-900/80 rounded-lg p-3 transition-colors duration-200">
+                    <p className="text-slate-500 dark:text-slate-400 text-xs mb-1 transition-colors duration-200">Reporter</p>
+                    <p className="font-semibold text-slate-800 dark:text-slate-200 transition-colors duration-200">{selectedReport.reporter_username}</p>
                   </div>
-                  <div className="bg-slate-50 rounded-lg p-3">
-                    <p className="text-slate-500 text-xs mb-1">Ngày báo cáo</p>
-                    <p className="font-semibold text-slate-800">
+                  <div className="bg-slate-50 dark:bg-slate-900/80 rounded-lg p-3 transition-colors duration-200">
+                    <p className="text-slate-500 dark:text-slate-400 text-xs mb-1 transition-colors duration-200">Ngày báo cáo</p>
+                    <p className="font-semibold text-slate-800 dark:text-slate-200 transition-colors duration-200">
                       {new Date(selectedReport.created_at).toLocaleDateString('vi-VN')}
                     </p>
                   </div>
@@ -327,22 +341,22 @@ export function Reports() {
 
                 {/* Notes */}
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center">
-                    <MessageSquare className="w-4 h-4 mr-2 text-slate-400" />
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3 flex items-center transition-colors duration-200">
+                    <MessageSquare className="w-4 h-4 mr-2 text-slate-400 dark:text-slate-500 transition-colors duration-200" />
                     Investigation Notes
                   </h3>
                   <textarea
-                    className="w-full h-28 p-3 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none bg-slate-50"
+                    className="w-full h-28 p-3 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:border-indigo-500 dark:focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-colors duration-200"
                     placeholder="Ghi chú nội bộ về quá trình xử lý..."
                   />
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-between items-center gap-3">
+              <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-between items-center gap-3 transition-colors duration-200">
                 <Button
                   variant="ghost"
-                  className="text-slate-500 hover:text-slate-900"
+                  className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 transition-colors duration-200"
                   onClick={() => handleUpdateStatus('ignored')}
                   disabled={actionLoading || selectedReport.status === 'ignored'}
                 >
@@ -356,7 +370,7 @@ export function Reports() {
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    className="text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                    className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-900/30 transition-colors duration-200"
                     onClick={() => handleUpdateStatus('resolved')}
                     disabled={actionLoading || selectedReport.status === 'resolved'}
                   >
@@ -366,6 +380,7 @@ export function Reports() {
                     variant="destructive"
                     onClick={handleDeleteJob}
                     disabled={actionLoading || selectedReport.job_status === 'closed'}
+                    className="transition-colors duration-200"
                   >
                     {actionLoading
                       ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -377,7 +392,7 @@ export function Reports() {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 transition-colors duration-200">
               <AlertOctagon className="w-12 h-12 mb-4 opacity-20" />
               <p>Chọn một report để xem chi tiết</p>
             </div>
