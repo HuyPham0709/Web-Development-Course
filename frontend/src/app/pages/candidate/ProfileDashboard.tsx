@@ -4,7 +4,8 @@ import { FileText, X, Plus, Trash2, Edit2, MapPin, Phone, Calendar, Loader2, Upl
 import { Link } from 'react-router-dom';
 
 import { CVBuilder } from '../../components/candidate/CVBuilder';
-
+import ViewedByEmployers from '../../components/candidate/profile/ViewedByEmployers';
+import { InvitationsPage } from '../../components/candidate/profile/InvitationsPage';
 import {
   getProfile, saveProfile, uploadCV, deleteCV,
   PersonalInfo, WorkExperience, Education
@@ -24,6 +25,7 @@ import { CvLibraryTab } from '../../components/candidate/profile/CvLibraryTab';
 import { RecommendedJobsAside } from '../../components/candidate/profile/RecommendedJobsAside';
 import { ProfileTab } from '../../components/candidate/profile/ProfileTab';
 import { ProfileSkeleton } from '../../components/candidate/profile/ProfileSkeleton';
+import { invalidateProfileCache } from '../../../hooks/useSharedProfile';
 
 interface RecommendedJob {
   id: number;
@@ -186,6 +188,7 @@ export default function ProfileDashboard() {
       setEducation(newEdu);
       setSkills(newSkills);
       setModal(null);
+      invalidateProfileCache();
       showToast('success', 'Profile updated successfully!');
 
       if (modal === 'personalInfo') {
@@ -390,6 +393,8 @@ export default function ProfileDashboard() {
             {activeTab === 'applications' && <MyApplications />}
             {activeTab === 'search-criteria' && <JobCriteria />}
             {activeTab === 'saved' && <SavedJobs />}
+            {activeTab === 'apply' && <InvitationsPage />}
+            {activeTab === 'viewed-by-employer' && <ViewedByEmployers />}
             
             {activeTab === 'account' && (
               <Settings topJob={recommendedJobs.length > 0
@@ -398,7 +403,7 @@ export default function ProfileDashboard() {
               />
             )}
 
-            {!['profile', 'cv-builder', 'applications', 'search-criteria', 'saved', 'account'].includes(activeTab) && (
+            {!['profile', 'cv-builder', 'applications', 'search-criteria', 'saved', 'account', 'apply', 'viewed-by-employer'].includes(activeTab) && (
               <div className="rounded-3xl border border-gray-200 bg-white p-12 text-center flex flex-col items-center justify-center min-h-[400px] shadow-sm transition-colors duration-300 dark:border-white/10 dark:bg-white/5">
                 <div className="w-16 h-16 flex items-center justify-center rounded-2xl mb-4 bg-gray-50 dark:bg-white/5 text-gray-400 dark:text-gray-500 shadow-sm border border-gray-100 dark:border-white/10">
                   <FileText className="w-8 h-8" />
@@ -410,13 +415,15 @@ export default function ProfileDashboard() {
           </div>
         </main>
 
-        {/* Aside */}
-        <aside className="hidden 2xl:block w-[360px] flex-shrink-0 p-4 md:p-8 xl:pl-0 xl:h-full xl:overflow-y-auto no-scrollbar">
-          <RecommendedJobsAside 
-            recommendedJobs={recommendedJobs} 
-            openModal={openModal} 
-          />
-        </aside>
+        {activeTab !== 'cv-builder' && (
+  <aside className="hidden 2xl:block w-[360px] flex-shrink-0 p-4 md:p-8 xl:pl-0 xl:h-full xl:overflow-y-auto no-scrollbar">
+    <RecommendedJobsAside
+      recommendedJobs={recommendedJobs}
+      userData={personalInfo}
+      openModal={openModal}
+    />
+  </aside>
+)}
       </div>
 
       {/* MODALS */}

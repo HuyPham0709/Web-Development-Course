@@ -9,11 +9,12 @@ import {
   ChevronDown,
   Briefcase
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 // Import thêm Component và Service cho mục Recommended
 import { RecommendedJobsAside } from '../../components/candidate/profile/RecommendedJobsAside';
 import { getRecommendations } from '../../../services/recommendationService';
+import { useSharedProfile } from '../../../hooks/useSharedProfile';
 
 interface Application {
   id: number;
@@ -31,7 +32,9 @@ export default function MyApplications() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [withdrawingId, setWithdrawingId] = useState<number | null>(null);
-  
+  const { userData } = useSharedProfile();
+  const navigate = useNavigate();
+
   // States cho lọc và tìm kiếm
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All");
@@ -327,11 +330,13 @@ export default function MyApplications() {
 
           {/* CỘT PHẢI: SIDEBAR RECOMMENDED JOBS */}
           <aside className="sticky top-24 hidden lg:flex lg:flex-col gap-6 lg:col-span-1 overflow-x-hidden">
-            <RecommendedJobsAside 
+            <RecommendedJobsAside
               recommendedJobs={recommendedJobs}
-              openModal={() => {
-                // Điều hướng sang trang Profile nếu click Upgrade Profile từ trang này
-                window.location.href = "/candidate/profile";
+              userData={userData}
+              openModal={(type) => {
+                if (type === "personalInfo") {
+                  navigate('/profile');
+                }
               }}
             />
           </aside>

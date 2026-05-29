@@ -143,3 +143,11 @@ export interface CategoryChartItem {
     value: number;
     color: string;
 }
+
+export interface CompanyFeedback {
+  id: string;
+  employerName: string;
+  note: string;
+  rating: number;
+  addedAt: string;
+}

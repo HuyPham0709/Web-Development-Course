@@ -343,12 +343,23 @@ exports.uploadCover = async (req, res) => {
 exports.searchCandidates = async (req, res) => {
     try {
         const { keyword, location, skills, exp_min, exp_max } = req.query;
-        let query = `
-          SELECT p.id, p.full_name AS name, p.title, p.location, p.avatar_url AS avatar,
-            (SELECT GROUP_CONCAT(s.name) FROM User_Skills us JOIN Skills s ON us.skill_id = s.id WHERE us.profile_id = p.id) AS skills,
-            (SELECT COALESCE(SUM(TIMESTAMPDIFF(YEAR, start_date, IFNULL(end_date, CURRENT_DATE))), 0) FROM Work_Experience we WHERE we.profile_id = p.id) AS years_of_exp
-          FROM Profiles p JOIN Users u ON p.user_id = u.id WHERE u.role = 'candidate' AND u.is_active = 1 AND p.allow_employer_search = 1
-        `;
+let query = `
+    SELECT 
+        p.id, 
+        p.user_id, 
+        p.full_name AS name, 
+        p.title, 
+        p.location, 
+        p.avatar_url AS avatar,
+        p.phone,
+        p.gender,
+        p.dob,   
+        (SELECT GROUP_CONCAT(s.name) FROM User_Skills us JOIN Skills s ON us.skill_id = s.id WHERE us.profile_id = p.id) AS skills,
+        (SELECT COALESCE(SUM(TIMESTAMPDIFF(YEAR, start_date, IFNULL(end_date, CURRENT_DATE))), 0) FROM Work_Experience we WHERE we.profile_id = p.id) AS years_of_exp
+    FROM Profiles p 
+    JOIN Users u ON p.user_id = u.id 
+    WHERE u.role = 'candidate' AND u.is_active = 1 AND p.allow_employer_search = 1
+`;
         const queryParams = [];
 
         if (keyword) { query += ` AND (p.title LIKE ? OR p.full_name LIKE ?)`; queryParams.push(`%${keyword}%`, `%${keyword}%`); }
@@ -371,6 +382,7 @@ exports.searchCandidates = async (req, res) => {
         const [rows] = await db.query(query, queryParams);
         const candidates = rows.map(row => ({
           id: row.id,
+          user_id: row.user_id,
           name: row.name || 'Ứng viên',
           title: row.title || 'Chưa cập nhật',
           exp: row.years_of_exp ? `${row.years_of_exp} năm` : 'Chưa có KN',

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useSearchParams } from "react-router-dom"; 
+import { useNavigate, useSearchParams } from "react-router-dom"; 
 import { 
   Search, 
   MapPin, 
@@ -27,6 +27,7 @@ import { Link } from "react-router-dom";
 import { api } from "../../../services/api";
 // 2. Import SearchAutocomplete theo đúng cấu trúc thư mục của Jobs.tsx
 import { SearchAutocomplete } from "../../components/shared/SearchAutocomplete";
+import { useSharedProfile } from '../../../hooks/useSharedProfile';
 
 interface IExtendedFilters extends IJobFilters {
   experience_level?: string;
@@ -35,6 +36,8 @@ interface IExtendedFilters extends IJobFilters {
 
 export const Jobs: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const { userData } = useSharedProfile();
 
   // Main Filter State
   const [filters, setFilters] = useState<IExtendedFilters>(
@@ -49,11 +52,11 @@ export const Jobs: React.FC = () => {
       limit: 12
     }
   );
-
+  const navigate = useNavigate();
   // Local Immediate UI States
   const [salarySlider, setSalarySlider] = useState<number>(0);
   const [searchInput, setSearchInput] = useState("");
-
+  
   // Data States
   const [jobs, setJobs] = useState<IJob[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -234,13 +237,23 @@ export const Jobs: React.FC = () => {
     }
   }, []);
 
+  const [activeModal, setActiveModal] = useState<
+  'personalInfo' | 'experience' | 'education' | 'skills' | null
+>(null);
+
+const handleOpenModal = (
+  type: 'personalInfo' | 'experience' | 'education' | 'skills' | null
+) => {
+  setActiveModal(type);
+};
+
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
       handleInputChange("page", newPage);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
-
+  
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-gray-900 transition-colors duration-300 dark:bg-[#070A13] dark:text-gray-100">
       <style>
@@ -536,8 +549,14 @@ export const Jobs: React.FC = () => {
             </div>
 
             <RecommendedJobsAside 
-              recommendedJobs={aiRecommendations} 
-              openModal={() => {}} 
+              recommendedJobs={aiRecommendations}
+              userData={userData}
+              
+              openModal={(type) => {
+                if (type === "personalInfo") {
+                  navigate('/profile');
+                }
+              }}
             />
 
           </aside>

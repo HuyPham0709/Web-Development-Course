@@ -46,6 +46,9 @@ const applicationRoutes = require("./routes/core/applicationRoutes");
 const companyRoutes = require("./routes/core/companyRoutes");
 const cvBuilderRoutes = require("./routes/core/cvBuilderRoutes");
 const candidateVisibilityRoutes = require("./routes/core/candidateVisibilityRoutes");
+const employerCandidateRoutes = require("./routes/employer/employerCandidateRoutes");
+const candidateViewRoutes = require('./routes/candidate/candidateViewRoutes');
+const invitationRoutes = require("./routes/employer/invitationRoutes");
 
 // Phân hệ Social
 const favoriteRoutes = require("./routes/social/favoriteRoutes");
@@ -66,7 +69,6 @@ const adminReportRoutes = require("./routes/admin/reportRoutes");
 // Custom Middlewares & Utils
 const { verifyToken, authorizeRole } = require("./middlewares/authMiddleware");
 const socketUtils = require("./utils/socket");
-
 // ─────────────────────────────────────────────────────────────
 // 3. API ROUTES CONFIGURATION (Đăng ký các tuyến đường)
 // ─────────────────────────────────────────────────────────────
@@ -90,7 +92,13 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/messages", messageRoutes);       
 app.use("/api/cv-builder", cvBuilderRoutes);     
 app.use("/api/candidate", candidateVisibilityRoutes);
-app.use('/api', routes);         
+app.use("/api/employer", employerCandidateRoutes);
+app.use('/api/candidate', candidateViewRoutes);
+
+// Route lời mời ứng tuyển
+app.use("/api/invitations", invitationRoutes);
+
+app.use('/api', routes);  
 
 // Phân hệ Admin Routes
 app.use("/api/admin", adminRoutes);

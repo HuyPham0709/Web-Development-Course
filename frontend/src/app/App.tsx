@@ -8,7 +8,7 @@ import { Toaster } from 'react-hot-toast';
 // Import Navbar và Footer
 import { Navbar } from './components/shared/Navbar';
 import { Footer } from './components/shared/Footer';
-
+import ViewedByEmployers from '../app/components/candidate/profile/ViewedByEmployers';
 // 🔥 IMPORT CHATBOT TẠI ĐÂY
 import ChatbotFloating from './components/shared/ChatbotFloating';
 
@@ -20,7 +20,7 @@ export default function App() {
       <div className="min-h-screen bg-white text-gray-900 transition-colors duration-300 dark:bg-[#0B0F19] dark:text-white font-sans relative">
         
         <Navbar />
-
+          
         <main>
           <Outlet />
         </main>

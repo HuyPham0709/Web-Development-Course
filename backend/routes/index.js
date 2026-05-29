@@ -33,6 +33,7 @@ const companyRoutes = require("./core/companyRoutes");
 const applicationRoutes = require("./core/applicationRoutes");
 const cvBuilderRoutes = require("./core/cvBuilderRoutes");
 const candidateVisibilityRoutes = require('./core/candidateVisibilityRoutes');
+const employerCandidateRoutes = require('./employer/employerCandidateRoutes');
 
 // ─────────────────────────────────────────────────────────────
 // 5. Nhóm Social (Tương tác & Kết nối)
@@ -86,6 +87,7 @@ safeRegisterRoute("/companies", companyRoutes, "companyRoutes");
 safeRegisterRoute("/applications", applicationRoutes, "applicationRoutes");
 safeRegisterRoute("/cv-builder", cvBuilderRoutes, "cvBuilderRoutes");
 safeRegisterRoute("/candidate", candidateVisibilityRoutes, "candidateVisibilityRoutes");
+safeRegisterRoute("/employer", employerCandidateRoutes, "employerCandidateRoutes");
 
 // Phân hệ Social
 safeRegisterRoute("/messages", messageRoutes, "messageRoutes");

@@ -30,10 +30,11 @@ export const SIDEBAR_MENU: MenuItem[] = [
     icon: Briefcase,
     subItems: [
       { id: 'saved', label: 'Saved Jobs' },
-      { id: 'pending', label: 'Pending Applications' },
+      { id: 'apply', label: 'Invitations to Apply' },
       { id: 'viewed-by-employer', label: 'Employers Viewed Your Profile' },
     ]
   },
+
   {
     id: 'account',
     label: 'Appearance Settings',
