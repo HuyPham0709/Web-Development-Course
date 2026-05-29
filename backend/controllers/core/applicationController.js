@@ -1,6 +1,7 @@
 const db = require("../../config/db");
 const Notification = require("../../models/Notification"); 
 const socketUtils = require("../../utils/socket");
+const { sendMail } = require('../../config/mailer');
 
 // ======================================================
 // APPLY JOB
@@ -516,4 +517,246 @@ exports.toggleJobStatus = async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
+};
+
+// ======================================================
+// INVITE INTERVIEW (EMPLOYER SENDS INTERVIEW INVITATION)
+// ======================================================
+exports.inviteInterview = async (req, res, next) => {
+  try {
+    const { application_id, location, time, message } = req.body;
+
+    // 1. Get application profile details from MySQL DB system
+    const [rows] = await db.execute(`
+      SELECT 
+        a.candidate_id AS candidate_user_id,
+        u.email AS candidate_email,
+        COALESCE(p.full_name, u.username) AS candidate_name,
+        j.title AS job_title,
+        c.name AS company_name
+      FROM Applications a
+      JOIN Users u ON a.candidate_id = u.id
+      LEFT JOIN Profiles p ON u.id = p.user_id
+      JOIN Jobs j ON a.job_id = j.id
+      LEFT JOIN Companies c ON j.company_id = c.id
+      WHERE a.id = ?
+    `, [application_id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Application profile information not found!' });
+    }
+
+    const application = rows[0];
+
+    // 2. Execute UPDATE application status to 'reviewed' (Under Review) in MySQL
+    await db.execute("UPDATE Applications SET status = 'reviewed' WHERE id = ?", [application_id]);
+
+    // 3. Send interview invitation mail via SMTP
+    const baseUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+    await sendMail({
+      to: application.candidate_email,
+      subject: `[${application.company_name}] Interview Invitation for ${application.job_title} position`,
+      html: `
+        <h3>Dear ${application.candidate_name},</h3>
+        <p>We are pleased to invite you for an interview with <strong>${application.company_name}</strong>:</p>
+        <ul>
+          <li><strong>Job Position:</strong> ${application.job_title}</li>
+          <li><strong>Time:</strong> ${new Date(time).toLocaleString('en-US')}</li>
+          <li><strong>Location:</strong> ${location}</li>
+        </ul>
+        ${message ? `<p><strong>Message from Employer:</strong> ${message}</p>` : ''}
+        <br/>
+        <p>Please confirm your availability by choosing an option below:</p>
+        <div style="margin-top: 20px;">
+          <a href="${baseUrl}/api/applications/interview/accept/${application_id}" style="background:#10b981;color:white;padding:12px 24px;text-decoration:none;border-radius:6px;font-weight:bold;margin-right:15px;display:inline-block;">Accept Invitation</a>
+          <a href="${baseUrl}/api/applications/interview/decline-form/${application_id}" style="background:#ef4444;color:white;padding:12px 24px;text-decoration:none;border-radius:6px;font-weight:bold;display:inline-block;">Decline Invitation</a>
+        </div>
+      `
+    });
+
+    // 4. Save notification to MongoDB to store notification bell history
+    const targetCandidateId = String(application.candidate_user_id);
+    const newNotify = await Notification.create({
+      user_id: targetCandidateId,
+      title: "New interview appointment 📅",
+      message: `Company ${application.company_name} has sent an interview schedule for the position ${application.job_title}.`,
+      is_read: false,
+      type: "system",
+      link_url: "/profile/applications",
+      created_at: new Date()
+    });
+
+    // 5. ⚡ Realtime: Instantly synchronize status to 'reviewed' on Candidate's screen if they are online
+    socketUtils.emitToUser(targetCandidateId, 'applicationStatusChanged', {
+      application_id: Number(application_id),
+      newStatus: 'reviewed'
+    });
+
+    // 6. 🔔 Realtime: Dispatch notification to Candidate's system notification bell
+    socketUtils.sendNotification(targetCandidateId, newNotify);
+
+    return res.status(200).json({ success: true, message: 'Invitation sent and status updated successfully!' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ======================================================
+// INTERVIEW ACCEPT (CANDIDATE CLICKS "ACCEPT" FROM EMAIL)
+// ======================================================
+exports.acceptInterview = async (req, res, next) => {
+  try {
+    const { id } = req.params; // id is the application_id from the Email Link sent out
+
+    // 1. Query application details to find which Employer is in charge of the post
+    const [rows] = await db.execute(`
+      SELECT 
+        j.posted_by AS employer_user_id,
+        COALESCE(p.full_name, u.username) AS candidate_name,
+        j.title AS job_title
+      FROM Applications a
+      JOIN Users u ON a.candidate_id = u.id
+      LEFT JOIN Profiles p ON u.id = p.user_id
+      JOIN Jobs j ON a.job_id = j.id
+      WHERE a.id = ?
+    `, [id]);
+
+    if (rows.length === 0) {
+      return res.send('<h3 style="color:red;text-align:center;margin-top:50px;">Error: Invalid link or application profile does not exist!</h3>');
+    }
+
+    const application = rows[0];
+
+    // 2. Execute UPDATE application status to 'interviewing' in MySQL DB
+    await db.execute("UPDATE Applications SET status = 'interviewing' WHERE id = ?", [id]);
+
+    // 3. Save notification to MongoDB for Employer to review later
+    const targetEmployerId = String(application.employer_user_id);
+    const newNotify = await Notification.create({
+      user_id: targetEmployerId,
+      title: "Candidate accepted interview 🎉",
+      message: `Candidate ${application.candidate_name} has agreed to attend the interview for position ${application.job_title}.`,
+      is_read: false,
+      type: "system",
+      link_url: "/employer/candidates",
+      created_at: new Date()
+    });
+
+    // 4. ⚡ Realtime: Automatically move the candidate card to the "Interviewing" column on Employer's Kanban board without reloading
+    socketUtils.emitToUser(targetEmployerId, 'applicationStatusChanged', {
+      application_id: Number(id),
+      newStatus: 'interviewing'
+    });
+
+    // 5. 🔔 Realtime: Dispatch notification bell directly to Employer
+    socketUtils.sendNotification(targetEmployerId, newNotify);
+
+    return res.send(`
+      <div style="text-align:center; margin-top:50px; font-family: Arial, sans-serif; padding: 20px;">
+        <h2 style="color:#10b981;">Attendance Confirmed Successfully!</h2>
+        <p style="color:#4b5563; font-size:16px;">The system has automatically sent your feedback notification to the Employer.</p>
+      </div>
+    `);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ======================================================
+// INTERVIEW DECLINE (CANDIDATE CONFIRMS "DECLINE" VIA FORM)
+// ======================================================
+exports.declineInterview = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    // 1. Get application details from MySQL DB
+    const [rows] = await db.execute(`
+      SELECT 
+        j.posted_by AS employer_user_id,
+        COALESCE(p.full_name, u.username) AS candidate_name,
+        j.title AS job_title
+      FROM Applications a
+      JOIN Users u ON a.candidate_id = u.id
+      LEFT JOIN Profiles p ON u.id = p.user_id
+      JOIN Jobs j ON a.job_id = j.id
+      WHERE a.id = ?
+    `, [id]);
+
+    if (rows.length === 0) {
+      return res.send('<h3 style="color:red;text-align:center;margin-top:50px;">Error: Matching application profile not found!</h3>');
+    }
+
+    const application = rows[0];
+
+    // 2. Execute UPDATE application status to 'rejected' in the DB
+    await db.execute("UPDATE Applications SET status = 'rejected' WHERE id = ?", [id]);
+
+    // 3. Save notification to MongoDB for Employer with specific decline reason
+    const targetEmployerId = String(application.employer_user_id);
+    const textReason = reason ? reason.trim() : "No specific reason provided";
+
+    const newNotify = await Notification.create({
+      user_id: targetEmployerId,
+      title: "Candidate declined interview ❌",
+      message: `Candidate ${application.candidate_name} has declined the interview for position ${application.job_title}. Reason: ${textReason}`,
+      is_read: false,
+      type: "system",
+      link_url: "/employer/candidates",
+      created_at: new Date()
+    });
+
+    // 4. ⚡ Realtime: Instantly push candidate card to the Rejected column on Employer's Kanban screen
+    socketUtils.emitToUser(targetEmployerId, 'applicationStatusChanged', {
+      application_id: Number(id),
+      newStatus: 'rejected'
+    });
+
+    // 5. 🔔 Realtime: Direct system notification bell with reason to Employer
+    socketUtils.sendNotification(targetEmployerId, newNotify);
+
+    return res.send(`
+      <div style="text-align:center; margin-top:50px; font-family: Arial, sans-serif; padding: 20px;">
+        <h2 style="color:#ef4444;">Interview cancellation confirmed!</h2>
+        <p style="color:#4b5563; font-size:16px;">We have recorded your response and forwarded your decline reason to the Employer.</p>
+      </div>
+    `);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ======================================================
+// GET DECLINE FORM 
+// ======================================================
+exports.getDeclineForm = (req, res) => {
+  const { id } = req.params; // id is application_id from email link
+  
+  // Return a clean HTML interface for candidate to fill in the reason directly from browser
+  res.send(`
+    <div style="max-width: 500px; margin: 50px auto; font-family: Arial, sans-serif; padding: 30px; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+      <h2 style="color: #ef4444; margin-top: 0; margin-bottom: 10px;">Decline Interview Invitation</h2>
+      <p style="color: #4b5563; font-size: 14px; margin-bottom: 20px; line-height: 1.5;">
+        You are declining this interview invitation. Please provide a brief reason so we can forward it to the Employer.
+      </p>
+      
+      <form action="/api/applications/interview/decline/${id}" method="POST">
+        <label style="display: block; font-weight: bold; margin-bottom: 8px; font-size: 14px; color: #374151;">
+          Reason for declining <span style="color:red;">*</span>
+        </label>
+        <textarea 
+          name="reason" 
+          rows="4" 
+          required 
+          style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; resize: none; margin-bottom: 20px; font-size: 14px;" 
+          placeholder="Example: I have accepted another offer / Schedule conflict / Cannot arrange time..."></textarea>
+          
+        <button 
+          type="submit" 
+          style="background: #ef4444; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; font-size: 15px; transition: background 0.2s;">
+          Confirm Decline
+        </button>
+      </form>
+    </div>
+  `);
 };
