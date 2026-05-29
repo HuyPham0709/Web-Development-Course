@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useSearchParams } from "react-router-dom"; // Đã thêm import này để lấy query params từ URL
+import { useSearchParams } from "react-router-dom"; 
 import { 
   Search, 
   MapPin, 
@@ -18,11 +18,15 @@ import {
 } from "lucide-react";
 
 import { IJob, IJobFilters } from "../../../types/job";
-import { getJobs, getLocations, getCategories } from "../../../services/jobService";
+// 1. Đã thêm getJobSuggestions vào đây
+import { getJobs, getLocations, getCategories, getJobSuggestions } from "../../../services/jobService";
 import { getRecommendations } from "../../../services/recommendationService";
 import { JobCard } from "../../components/public/home/JobCard";
 import { RecommendedJobsAside } from "../../components/candidate/profile/RecommendedJobsAside";
 import { Link } from "react-router-dom";
+import { api } from "../../../services/api";
+// 2. Import SearchAutocomplete theo đúng cấu trúc thư mục của Jobs.tsx
+import { SearchAutocomplete } from "../../components/shared/SearchAutocomplete";
 
 interface IExtendedFilters extends IJobFilters {
   experience_level?: string;
@@ -30,7 +34,6 @@ interface IExtendedFilters extends IJobFilters {
 }
 
 export const Jobs: React.FC = () => {
-  // Khởi tạo hook quản lý URL query parameters
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Main Filter State
@@ -47,7 +50,7 @@ export const Jobs: React.FC = () => {
     }
   );
 
-  // Local Immediate UI States for fast-changing controls
+  // Local Immediate UI States
   const [salarySlider, setSalarySlider] = useState<number>(0);
   const [searchInput, setSearchInput] = useState("");
 
@@ -63,11 +66,8 @@ export const Jobs: React.FC = () => {
   const [savedJobs, setSavedJobs] = useState<number[]>([]);
   const [totalJobs, setTotalJobs] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-
-  // State quản lý Dropdown Custom nào đang được mở mở rộng tự đóng khi mở cái khác
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
-  // Ref to track the latest API Request ID to prevent Race Conditions
   const apiRequestCountRef = useRef<number>(0);
 
   // ĐỒNG BỘ HOÁ DỮ LIỆU TỪ URL PARAMETERS VÀO FILTER STATE
@@ -80,7 +80,6 @@ export const Jobs: React.FC = () => {
       const nextCategoryId = categoryIdParam ? Number(categoryIdParam) : "";
       const nextTitle = titleParam || "";
 
-      // Chỉ cập nhật state nếu giá trị thực sự thay đổi để tránh lặp render vô hạn
       if (prev.category_id !== nextCategoryId || prev.title !== nextTitle) {
         return {
           ...prev,
@@ -97,21 +96,21 @@ export const Jobs: React.FC = () => {
     }
   }, [searchParams]);
 
-  // Sync Slider UI if filters are modified externally (like Reset All)
+  // Sync Slider UI
   useEffect(() => {
     if (filters.salary_min !== undefined) {
       setSalarySlider(filters.salary_min);
     }
   }, [filters.salary_min]);
 
-  // Debounce logic for Salary Slider (Wait 250ms after user stops dragging)
+  // Debounce logic for Salary Slider
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       if (salarySlider !== filters.salary_min) {
         setFilters(prev => ({ 
           ...prev, 
           salary_min: salarySlider, 
-          page: 1 // Reset back to page 1 on filter alteration
+          page: 1 
         }));
       }
     }, 250);
@@ -134,7 +133,6 @@ export const Jobs: React.FC = () => {
 
       if (response && response.data) {
         setJobs(response.data);
-        
         const total = response.meta?.total || response.data.length;
         setTotalJobs(total);
         setTotalPages(Math.ceil(total / (currentFilters.limit || 12)) || 1);
@@ -148,7 +146,7 @@ export const Jobs: React.FC = () => {
     }
   }, []);
 
-  // Init Data (Categories, Locations, AI Side panel)
+  // Init Data
   useEffect(() => {
     const initData = async () => {
       try {
@@ -164,6 +162,15 @@ export const Jobs: React.FC = () => {
             setAiRecommendations(Array.isArray(data) ? data : []);
           } catch (err) {
             setAiRecommendations([]);
+          }
+
+          // GIẢI PHÁP SỬA LỖI: Gọi API lấy danh sách các Job đã được user save từ trước để hiển thị tim đỏ
+          try {
+            const res = await api.get("/api/favorites"); 
+            const savedIds = res.data.data.map((job: any) => job.id);
+            setSavedJobs(savedIds);
+          } catch (err) {
+            console.error("Fetch saved jobs error in Jobs.tsx:", err);
           }
         }
       } catch (error) {
@@ -207,14 +214,25 @@ export const Jobs: React.FC = () => {
       page: 1,
       limit: 12
     });
-    setSearchParams({}); // Xóa bỏ toàn bộ query parameters trên thanh URL
+    setSearchParams({}); 
   };
 
-  const handleToggleSaveJob = (jobId: number) => {
-    setSavedJobs(prev => 
-      prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]
-    );
-  };
+  const handleToggleSaveJob = useCallback(async (jobId: number) => {
+    try {
+      setSavedJobs(prev => {
+        const isSaved = prev.includes(jobId);
+        if (isSaved) {
+          api.delete(`/api/favorites/${jobId}`).catch(err => console.error(err));
+          return prev.filter(id => id !== jobId);
+        } else {
+          api.post(`/api/favorites/${jobId}`, {}).catch(err => console.error(err));
+          return [...prev, jobId];
+        }
+      });
+    } catch (err) {
+      console.error("Save job error:", err);
+    }
+  }, []);
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
@@ -258,15 +276,25 @@ export const Jobs: React.FC = () => {
           </p>
 
           <div className="mt-8 grid grid-cols-1 gap-3 rounded-3xl border border-gray-200 bg-white p-3 shadow-xl shadow-gray-100/50 transition-all dark:border-white/5 dark:bg-[#0B0F19]/80 dark:shadow-none md:grid-cols-12 md:gap-2">
-            <div className="relative flex items-center md:col-span-5 px-3">
-              <Search className="absolute left-4 text-blue-500" size={20} />
-              <input
-                type="text"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleTriggerSearch()}
+            
+            {/* Ô TÌM KIẾM CHÍNH ĐÃ TÍCH HỢP AUTOCOMPLETE */}
+            <div className="relative flex items-center md:col-span-5 px-3 w-full">
+              <SearchAutocomplete
                 placeholder="Job title, keywords, or company name..."
-                className="w-full bg-transparent py-3 pl-9 pr-4 text-sm text-gray-800 outline-none placeholder-gray-400 dark:text-gray-100"
+                initialValue={searchInput}
+                onSelect={(item) => {
+                  setSearchInput(item.label);
+                  setFilters(prev => ({
+                    ...prev,
+                    title: item.label,
+                    page: 1
+                  }));
+                }}
+                onInputChange={(value) => setSearchInput(value)}
+                onFetchSuggestions={async (query, signal) => {
+                  if (!query.trim()) return [];
+                  return await getJobSuggestions(query, signal);
+                }}
               />
             </div>
             
@@ -507,91 +535,12 @@ export const Jobs: React.FC = () => {
               </div>
             </div>
 
-            {/* RECOMMENDED JOBS ASIDE */}
-            {/* Thay RecommendedJobsAside bằng inline card */}
-<div className="rounded-3xl border border-gray-200 bg-white dark:border-white/5 dark:bg-[#0B0F19] overflow-hidden">
-  <div className="px-5 py-4 border-b border-gray-100 dark:border-white/5 flex items-center justify-between bg-gray-50/50 dark:bg-white/[0.02]">
-    <div className="flex items-center gap-3">
-      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-        <Sparkles className="w-4 h-4 text-white" />
-      </div>
-      <div>
-        <h3 className="text-[12px] font-black uppercase tracking-wider text-gray-900 dark:text-white">AI Job Matches</h3>
-        <p className="text-[10px] text-gray-500 dark:text-gray-400">Top picks for you</p>
-      </div>
-    </div>
-    <span className="px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-[9px] font-bold text-blue-600 dark:text-blue-400">PREMIUM</span>
-  </div>
-
-  <div className="p-3 max-h-[400px] overflow-y-auto custom-scrollbar space-y-2">
-    {aiRecommendations.length === 0 ? (
-      <div className="py-10 text-center">
-        <Briefcase className="w-7 h-7 mx-auto text-gray-300 mb-2" />
-        <p className="text-xs font-bold text-gray-500 dark:text-gray-400">No recommendations</p>
-        <p className="text-[10px] text-gray-400">Complete profile to unlock</p>
-      </div>
-    ) : (
-      aiRecommendations.map((job, idx) => (
-        <Link
-          key={job.id || idx}
-          to={`/job/${job.id}`}
-          className="group flex gap-3 rounded-2xl p-3 border border-transparent bg-gray-50/50 dark:bg-white/[0.03] hover:border-blue-500/30 hover:bg-white dark:hover:bg-white/[0.06] hover:shadow-sm transition-all"
-        >
-          <div className="w-10 h-10 flex-shrink-0 rounded-xl overflow-hidden border border-gray-100 dark:border-white/10 bg-white p-1.5">
-            <img
-              src={job.company_logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company_name || 'C')}&background=random`}
-              alt={job.company_name}
-              className="w-full h-full object-contain"
+            <RecommendedJobsAside 
+              recommendedJobs={aiRecommendations} 
+              openModal={() => {}} 
             />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-[12px] text-gray-900 dark:text-white line-clamp-1 group-hover:text-blue-600 transition-colors">{job.title}</p>
-            <p className="text-[10px] text-gray-500 truncate">{job.company_name}</p>
-            <div className="mt-1.5 flex items-center justify-between">
-              <span className="text-[11px] font-bold text-emerald-500">
-                {job.salary_min ? `$${job.salary_min/1000}k+` : 'Negotiable'}
-              </span>
-              {job.match_score > 0 && (
-                <span className="text-[10px] font-bold text-purple-500">{job.match_score}% match</span>
-              )}
-            </div>
-          </div>
-        </Link>
-      ))
-    )}
-  </div>
-</div>
 
-{/* ───────────────── PROFILE BOOST: Làm gọn card ───────────────── */}
-        <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-indigo-600 to-blue-700 p-5 text-white shadow-lg">
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="w-3.5 h-3.5 text-cyan-300" />
-              <span className="text-[10px] font-black tracking-widest uppercase opacity-90">Profile Boost</span>
-            </div>
-            
-            <h3 className="text-lg font-bold leading-tight">Increase Match Score</h3>
-            
-            <div className="mt-4 p-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/10">
-              <div className="flex justify-between text-[10px] font-bold mb-1.5">
-                <span>Strength</span>
-                <span>80%</span>
-              </div>
-              <div className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
-                <div className="h-full w-[80%] bg-gradient-to-r from-cyan-400 to-white" />
-              </div>
-            </div>
-
-            <button
-              // onClick={() => openModal('personalInfo')}
-              className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl bg-white py-2.5 text-[12px] font-black text-indigo-700 transition-all hover:bg-blue-50 active:scale-[0.98]"
-            >
-              Upgrade Profile
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-      </aside>
+          </aside>
 
           {/* MAIN JOBS LIST AREA */}
           <main className="lg:col-span-3 space-y-5 min-h-[600px]">
