@@ -46,7 +46,7 @@ exports.getAllJobs = async (req, res) => {
             ${whereClause}
             ORDER BY j.created_at DESC
             LIMIT ${limit} OFFSET ${offset}
-        `, params); 
+        `, params);
 
         const [countResult] = await db.execute(`
             SELECT COUNT(*) AS total
@@ -298,7 +298,9 @@ exports.exportJobsCSV = async (req, res) => {
     }
 };
 
-// Lấy chi tiết 1 Job theo ID
+// ==========================================
+// 1. Lấy chi tiết Job bằng ID (Dành cho trang View Details)
+// ==========================================
 exports.getJobById = async (req, res) => {
     const { job_id } = req.params;
     try {
@@ -315,27 +317,42 @@ exports.getJobById = async (req, res) => {
         `, [job_id]);
 
         if (jobs.length === 0) {
-            return res.status(404).json({ success: false, message: 'Không tìm thấy tin tuyển dụng' });
+            return res.status(404).json({ success: false, message: 'Không tìm thấy tin tuyển dụng này trên hệ thống' });
         }
+
         res.status(200).json({ success: true, data: jobs[0] });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({ success: false, message: "Lỗi kết nối database: " + error.message });
     }
 };
 
-// Cập nhật Job (Sửa tin)
+// ==========================================
+// 2. Cập nhật chi tiết Job (Dành cho trang lưu Edit Job)
+// ==========================================
 exports.updateJob = async (req, res) => {
     const { job_id } = req.params;
-    const { title, description, requirements, salary_min, salary_max, status } = req.body;
-    try {
-        await db.execute(`
-            UPDATE Jobs 
-            SET title = ?, description = ?, requirements = ?, salary_min = ?, salary_max = ?, status = ?
-            WHERE id = ? AND deleted_at IS NULL
-        `, [title, description, requirements, salary_min, salary_max, status, job_id]);
+    const { title, description, requirements, benefit, salary_min, salary_max, status } = req.body;
 
-        res.status(200).json({ success: true, message: 'Cập nhật tin tuyển dụng thành công!' });
+    try {
+        // Đồng bộ chuẩn xác toàn bộ các trường text, số và enum từ Frontend truyền lên
+        const [result] = await db.execute(`
+            UPDATE Jobs 
+            SET title = ?, 
+                description = ?, 
+                requirements = ?, 
+                benefit = ?, 
+                salary_min = ?, 
+                salary_max = ?, 
+                status = ?
+            WHERE id = ? AND deleted_at IS NULL
+        `, [title, description, requirements, benefit, salary_min, salary_max, status, job_id]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'Không thể cập nhật, tin tuyển dụng không tồn tại' });
+        }
+
+        res.status(200).json({ success: true, message: 'Thông tin công việc đã được lưu cập nhật thành công!' });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({ success: false, message: "Lỗi máy chủ khi cập nhật: " + error.message });
     }
 };

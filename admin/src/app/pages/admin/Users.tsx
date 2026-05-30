@@ -10,6 +10,7 @@ import { Badge } from "../../components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "../../components/ui/Tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/Dialog"
+import { UserItem, UserStats, Pagination } from '../../../types'
 
 const API_URL = 'http://localhost:5000/api/admin';
 
@@ -18,41 +19,12 @@ function getHeaders() {
   return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 }
 
-interface UserItem {
-  id: number;
-  username: string;
-  display_name: string | null;
-  email: string;
-  role: 'candidate' | 'employer';
-  is_active: number;
-  is_verified: number;
-  created_at: string;
-  company_id: number | null;
-  company_name: string | null;
-  company_verified: number | null;
-}
-
-interface Stats {
-  total: number;
-  total_candidates: number;
-  total_employers: number;
-  total_banned: number;
-  total_pending: number;
-}
-
-interface Pagination {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
 export function Users() {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [users, setUsers] = useState<UserItem[]>([]);
-  const [stats, setStats] = useState<Stats>({ total: 0, total_candidates: 0, total_employers: 0, total_banned: 0, total_pending: 0 });
+  const [stats, setStats] = useState<UserStats>({ total: 0, total_candidates: 0, total_employers: 0, total_banned: 0, total_pending: 0 });
   const [pagination, setPagination] = useState<Pagination>({ total: 0, page: 1, limit: 10, totalPages: 1 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -429,7 +401,21 @@ export function Users() {
                 <div><p className="text-slate-500">Username</p><p className="font-medium">{detailData.username}</p></div>
                 <div><p className="text-slate-500">Email</p><p className="font-medium">{detailData.email}</p></div>
                 <div><p className="text-slate-500">Role</p><p className="font-medium capitalize">{detailData.role}</p></div>
-                <div><p className="text-slate-500">Status</p><p className="font-medium">{detailData.is_active ? 'Active' : 'Banned'}</p></div>
+                <div>
+                  <p className="text-slate-500">Status</p>
+                  <p className="font-medium">{detailData.is_active ? 'Active' : 'Banned'}</p>
+                </div>
+                {!detailData.is_active && (
+                  <div className="col-span-2">
+                    <p className="text-slate-500">Ban Reason</p>
+                    <div className="mt-1 flex items-start gap-2 bg-red-50 border border-red-100 rounded-md px-3 py-2">
+                      <span className="text-red-500 mt-0.5">⚠️</span>
+                      <p className="text-red-700 font-medium text-sm">
+                        {detailData.ban_reason || 'Không có lý do cụ thể.'}
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {detailData.role === 'candidate' && (
                   <>
                     <div><p className="text-slate-500">Full Name</p><p className="font-medium">{detailData.full_name || '—'}</p></div>

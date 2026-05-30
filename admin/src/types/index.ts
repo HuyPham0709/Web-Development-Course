@@ -41,6 +41,10 @@ export interface AdminJob {
     salary_max: number
     status: 'pending' | 'approved' | 'rejected' | 'closed'
     created_at: string
+    description: string
+    requirements: string
+    benefit: string
+    rejection_reason?: string
 }
 
 // Đổi tên Pagination thành PaginationMeta để không trùng

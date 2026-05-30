@@ -119,8 +119,6 @@ export function JobManagement() {
 
     setIsBulkDeleting(true)
     try {
-      // Giả định API xóa nhiều tin dạng: DELETE /api/admin/jobs/bulk-delete truyền mảng id lên body
-      // Hoặc nếu Back-end chưa có Bulk, bạn có thể loop gọi từng cái hoặc chỉnh sửa endpoint này theo thiết kế của bạn.
       const res = await fetch(`${ADMIN_JOBS_API}/bulk-delete`, {
         method: 'POST', // Đôi khi DELETE không cho truyền Body nên Back-end hay dùng POST
         headers: { ...getHeaders(), 'Content-Type': 'application/json' },

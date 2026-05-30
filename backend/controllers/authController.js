@@ -51,7 +51,7 @@ exports.register = async (req, res) => {
     });
   }
 
-  const { name, username, email, password, role,phone } = req.body;
+  const { name, username, email, password, role, phone } = req.body;
   const finalName = name || username;
 
   if (!finalName) {
@@ -70,10 +70,10 @@ exports.register = async (req, res) => {
   try {
     // 🎯 ĐÃ SỬA: Bắt lỗi trùng cả Email và Username ngay từ đầu để tránh lỗi 500
     const [rows] = await db.execute(
-      "SELECT * FROM Users WHERE email = ? OR username = ?", 
+      "SELECT * FROM Users WHERE email = ? OR username = ?",
       [email, finalName]
     );
-    
+
     if (rows.length > 0) {
       const isEmailTaken = rows.some(user => user.email === email);
       const isUsernameTaken = rows.some(user => user.username === finalName);
@@ -82,9 +82,9 @@ exports.register = async (req, res) => {
         return res.status(400).json({ success: false, message: "Email này đã tồn tại!" });
       }
       if (isUsernameTaken) {
-        return res.status(400).json({ 
-          success: false, 
-          message: `Tên đăng nhập '${finalName}' đã có người sử dụng. Vui lòng chọn tên khác!` 
+        return res.status(400).json({
+          success: false,
+          message: `Tên đăng nhập '${finalName}' đã có người sử dụng. Vui lòng chọn tên khác!`
         });
       }
     }
@@ -108,7 +108,7 @@ exports.register = async (req, res) => {
         `Công ty của ${finalName}`,
       ]);
       const companyId = companyResult.insertId;
-      
+
       // FIX LỖI: Cập nhật ngược lại trường company_id vào bảng Users để liên kết dữ liệu
       await db.execute("UPDATE Users SET company_id = ? WHERE id = ?", [companyId, userId]);
     } else {
@@ -152,10 +152,10 @@ exports.login = async (req, res) => {
   try {
     const [users] = await db.execute(
       `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name 
-       FROM Users u 
-       LEFT JOIN Profiles p ON p.user_id = u.id 
-       WHERE u.email = ?`,
-      [email],
+     FROM Users u 
+     LEFT JOIN Profiles p ON p.user_id = u.id 
+     WHERE u.email = ?`,
+      [email]
     );
     if (users.length === 0) {
       return res
@@ -174,6 +174,13 @@ exports.login = async (req, res) => {
         success: false,
         message: `Sai cổng đăng nhập! Tài khoản này là của ${roleName}. Vui lòng chuyển tab.`,
       });
+    }
+
+    if (!user.is_active) {
+      const banMsg = user.ban_reason
+        ? `Tài khoản của bạn đã bị khóa. Lý do: ${user.ban_reason}`
+        : "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ hỗ trợ.";
+      return res.status(403).json({ success: false, message: banMsg });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -417,7 +424,7 @@ exports.googleLogin = async (req, res) => {
             `Công ty của ${name}`,
           ]);
           companyId = companyResult.insertId;
-          
+
           // FIX LỖI: Cập nhật ngược company_id cho tài khoản Employer tạo qua Google
           await db.execute("UPDATE Users SET company_id = ? WHERE id = ?", [companyId, userId]);
         } else {
@@ -425,6 +432,12 @@ exports.googleLogin = async (req, res) => {
             "INSERT INTO Profiles (user_id, full_name, avatar_url) VALUES (?, ?, ?)",
             [userId, name, picture],
           );
+        }
+        if (!user.is_active) {
+          const banMsg = user.ban_reason
+            ? `Tài khoản của bạn đã bị khóa. Lý do: ${user.ban_reason}`
+            : "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ hỗ trợ.";
+          return res.status(403).json({ success: false, message: banMsg });
         }
       } catch (subError) {
         console.error(
