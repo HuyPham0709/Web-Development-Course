@@ -63,7 +63,7 @@ export function ProfileSidebar({
   };
 
   return (
-    <aside className="w-full bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-sm rounded-2xl flex flex-col h-[calc(100vh-2rem)] md:h-[calc(100vh-4rem)] sticky top-4 md:top-8 z-10 transition-all duration-300">
+    <aside className="w-full bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-sm rounded-2xl flex flex-col sticky top-4 md:top-8 transition-all duration-300">
 
       <div className="p-5 overflow-y-auto custom-scrollbar h-full">
 
