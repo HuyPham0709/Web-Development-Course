@@ -65,10 +65,10 @@ export function Users() {
         setStats(data.stats);
         setPagination(data.pagination);
       } else {
-        setError(data.message || 'Lỗi khi tải dữ liệu');
+        setError(data.message || 'Error loading data');
       }
     } catch {
-      setError('Không thể kết nối đến máy chủ');
+      setError('Unable to connect to the server');
     } finally {
       setLoading(false);
     }
@@ -104,7 +104,7 @@ export function Users() {
         alert(data.message);
       }
     } catch {
-      alert('Lỗi kết nối');
+      alert('Connection error');
     } finally {
       setBanLoading(false);
     }
@@ -128,7 +128,7 @@ export function Users() {
         alert(data.message);
       }
     } catch {
-      alert('Lỗi kết nối');
+      alert('Connection error');
     } finally {
       setVerifyLoading(false);
     }
@@ -143,7 +143,7 @@ export function Users() {
       const data = await res.json();
       if (data.success) setDetailData(data.data);
     } catch {
-      alert('Lỗi kết nối');
+      alert('Connection error');
     } finally {
       setDetailLoading(false);
     }
@@ -224,7 +224,7 @@ export function Users() {
 
         {loading ? (
           <div className="flex items-center justify-center py-16 gap-2 text-slate-400 dark:text-slate-500 transition-colors duration-200">
-            <Loader2 className="w-5 h-5 animate-spin" /><span>Đang tải...</span>
+            <Loader2 className="w-5 h-5 animate-spin" /><span>Loading...</span>
           </div>
         ) : error ? (
           <div className="text-center py-16 text-red-500 dark:text-red-400 text-sm transition-colors duration-200">{error}</div>
@@ -244,7 +244,7 @@ export function Users() {
                 {users.filter(Boolean).length === 0 ? (
                   <TableRow className="dark:border-slate-800">
                     <TableCell colSpan={5} className="text-center py-12 text-slate-400 dark:text-slate-500 transition-colors duration-200">
-                      Không có dữ liệu
+                      No data available
                     </TableCell>
                   </TableRow>
                 ) : users.filter(Boolean).map(user => (
@@ -412,7 +412,7 @@ export function Users() {
                     <div className="mt-1 flex items-start gap-2 bg-red-50 border border-red-100 rounded-md px-3 py-2">
                       <span className="text-red-500 mt-0.5">⚠️</span>
                       <p className="text-red-700 font-medium text-sm">
-                        {detailData.ban_reason || 'Không có lý do cụ thể.'}
+                        {detailData.ban_reason || 'No specific reason provided.'}
                       </p>
                     </div>
                   </div>

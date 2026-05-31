@@ -50,7 +50,7 @@ router.post('/verify-email', authController.verifyEmail);
 router.post('/google', authController.googleLogin);
 router.post('/admin-login', authController.adminLogin);
 router.post('/verify-login-otp', authController.verifyLoginOTP);
-
+router.post('/resend-otp', authController.resendOtp);
 // ─── PROFILE ROUTES ────────────────────────────────────────────
 
 router.get('/profile', verifyToken, profileController.getMyProfile);

@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom'; // 1. Import useNavigate
 import axios from 'axios';
-import { 
-  Eye, 
-  Search, 
-  ArrowUpRight, 
-  Clock, 
+import {
+  Eye,
+  Search,
+  ArrowUpRight,
+  Clock,
   FilterX
 } from 'lucide-react';
 
@@ -23,7 +23,7 @@ const ViewedByEmployers: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
-  
+
   const navigate = useNavigate(); // 3. Khởi tạo navigate
 
   useEffect(() => {
@@ -32,7 +32,7 @@ const ViewedByEmployers: React.FC = () => {
         setIsLoading(true);
         const token = localStorage.getItem('token');
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        
+
         const res = await axios.get(`${apiUrl}/api/candidate/viewed-by-employers`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -51,7 +51,7 @@ const ViewedByEmployers: React.FC = () => {
   }, []);
 
   const filteredViewers = useMemo(() => {
-    return viewers.filter(v => 
+    return viewers.filter(v =>
       v.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       v.employer_name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -88,7 +88,7 @@ const ViewedByEmployers: React.FC = () => {
 
         <div className="relative group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={18} />
-          <input 
+          <input
             type="text"
             placeholder="Search company..."
             className="w-full md:w-64 pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white"
@@ -109,25 +109,25 @@ const ViewedByEmployers: React.FC = () => {
           </div>
         ) : filteredViewers.length > 0 ? (
           filteredViewers.map((v, i) => (
-            <div 
-              key={i} 
+            <div
+              key={i}
               // 4. Cho phép click vào toàn bộ card để chuyển trang (tùy chọn)
               // Hoặc bạn có thể chỉ để click vào nút mũi tên bên dưới
               className="group flex items-center justify-between p-4 bg-white dark:bg-[#0E1422] border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-500/30 transition-all duration-300 transform hover:-translate-y-0.5 cursor-pointer"
-              onClick={() => navigate(`/companies/${v.company_id}`)} 
+              onClick={() => navigate(`/company/${v.company_id}`)}
             >
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10">
-                    <img 
-                      src={v.company_logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(v.company_name)}&background=random`} 
-                      className="w-full h-full object-cover" 
-                      alt="company logo" 
+                    <img
+                      src={v.company_logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(v.company_name)}&background=random`}
+                      className="w-full h-full object-cover"
+                      alt="company logo"
                     />
                   </div>
                   <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-white dark:border-[#0E1422] rounded-full shadow-sm" title="Active"></div>
                 </div>
-                
+
                 <div>
                   <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                     {v.company_name}
@@ -147,10 +147,10 @@ const ViewedByEmployers: React.FC = () => {
 
               <div className="flex flex-col items-end gap-2">
                 {/* 5. Nút mũi tên có logic chuyển trang */}
-                <button 
+                <button
                   onClick={(e) => {
-                    e.stopPropagation(); // Ngăn chặn sự kiện click lan ra card cha nếu card cũng có onClick
-                    navigate(`/companies/${v.company_id}`);
+                    e.stopPropagation();
+                    navigate(`/company/${v.company_id}`);
                   }}
                   className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-full transition-all group-hover:bg-blue-50 dark:group-hover:bg-blue-500/10 group-hover:text-blue-600"
                 >

@@ -53,7 +53,7 @@ export function Metadata() {
 
   const currentView = VIEWS.find(v => v.key === activeView)!
 
-  // Load data khi đổi tab
+  // Load data when changing tabs
   useEffect(() => {
     fetchItems()
     setSearch('')
@@ -65,32 +65,32 @@ export function Metadata() {
       const res = await axios.get(`${API_URL}/${currentView.apiPath}`, { headers: getHeaders() })
       setItems(res.data.data)
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Lỗi tải dữ liệu')
+      toast.error(err.response?.data?.message || 'Error loading data')
     } finally {
       setLoading(false)
     }
   }
 
-  // Filter theo search
+  // Filter items by search query
   const filtered = items.filter(item =>
     item.name.toLowerCase().includes(search.toLowerCase())
   )
 
-  // Mở modal thêm mới
+  // Open add modal
   const openAdd = () => {
     setEditItem(null)
     setForm({ name: '', slug: '' })
     setShowModal(true)
   }
 
-  // Mở modal chỉnh sửa
+  // Open edit modal
   const openEdit = (item: MetaItem) => {
     setEditItem(item)
     setForm({ name: item.name, slug: item.slug || '' })
     setShowModal(true)
   }
 
-  // Auto-generate slug từ name (Hỗ trợ tiếng Việt không dấu chuẩn SEO)
+  // Auto-generate slug from name (Supports SEO-friendly conversion)
   const handleNameChange = (value: string) => {
     const generatedSlug = value
       .toLowerCase()
@@ -108,51 +108,51 @@ export function Metadata() {
     }));
   }
 
-  // Submit form thêm/sửa
+  // Submit form create/update
   const handleSubmit = async () => {
     if (!form.name.trim()) {
-      toast.error('Tên không được để trống')
+      toast.error('Name field cannot be empty')
       return
     }
     setSubmitting(true)
     try {
       if (editItem) {
-        // Cập nhật
+        // Update
         const res = await axios.put(
           `${API_URL}/${currentView.apiPath}/${editItem.id}`,
           form,
           { headers: getHeaders() }
         )
         setItems(prev => prev.map(i => i.id === editItem.id ? { ...i, ...res.data.data } : i))
-        toast.success('Đã cập nhật thành công')
+        toast.success('Updated successfully')
       } else {
-        // Thêm mới
+        // Create new
         const res = await axios.post(
           `${API_URL}/${currentView.apiPath}`,
           form,
           { headers: getHeaders() }
         )
         setItems(prev => [...prev, res.data.data])
-        toast.success('Đã thêm thành công')
+        toast.success('Added successfully')
       }
       setShowModal(false)
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Lỗi khi lưu')
-    } finally { // <-- Đã sửa 'filly' thành từ khóa 'finally' chuẩn tại đây
+      toast.error(err.response?.data?.message || 'Error occurred while saving')
+    } finally {
       setSubmitting(false)
     }
   }
 
-  // Xóa item
+  // Delete item
   const handleDelete = async (item: MetaItem) => {
-    if (!window.confirm(`Xóa "${item.name}"?`)) return
+    if (!window.confirm(`Delete "${item.name}"?`)) return
     setDeletingId(item.id)
     try {
       await axios.delete(`${API_URL}/${currentView.apiPath}/${item.id}`, { headers: getHeaders() })
       setItems(prev => prev.filter(i => i.id !== item.id))
-      toast.success('Đã xóa thành công')
+      toast.success('Deleted successfully')
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Lỗi khi xóa')
+      toast.error(err.response?.data?.message || 'Error occurred while deleting')
     } finally {
       setDeletingId(null)
     }
@@ -194,14 +194,14 @@ export function Metadata() {
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 transition-colors duration-200" />
               <Input
                 className="pl-9 bg-white dark:bg-slate-950 dark:text-slate-100 dark:border-slate-800 dark:placeholder:text-slate-500 transition-colors duration-200"
-                placeholder={`Tìm ${currentView.label.toLowerCase()}...`}
+                placeholder={`Search ${currentView.label.toLowerCase()}...`}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
             <Button size="sm" onClick={openAdd} className="transition-colors duration-200">
               <Plus className="w-4 h-4 mr-2" />
-              Thêm mới
+              Add New
             </Button>
           </div>
 
@@ -209,24 +209,24 @@ export function Metadata() {
           {loading ? (
             <div className="flex items-center justify-center py-16 gap-2 text-slate-400 dark:text-slate-500 transition-colors duration-200">
               <Loader2 className="w-5 h-5 animate-spin" />
-              <span className="text-sm">Đang tải...</span>
+              <span className="text-sm">Loading...</span>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow className="dark:border-slate-800 transition-colors duration-200">
-                  <TableHead className="dark:text-slate-400">Tên</TableHead>
+                  <TableHead className="dark:text-slate-400">Name</TableHead>
                   {activeView !== 'skills' && <TableHead className="dark:text-slate-400">Slug</TableHead>}
-                  <TableHead className="dark:text-slate-400">Tin tuyển dụng</TableHead>
-                  {activeView === 'skills' && <TableHead className="dark:text-slate-400">Người dùng</TableHead>}
-                  <TableHead className="text-right dark:text-slate-400">Hành động</TableHead>
+                  <TableHead className="dark:text-slate-400">Job Posts</TableHead>
+                  {activeView === 'skills' && <TableHead className="dark:text-slate-400">Users</TableHead>}
+                  <TableHead className="text-right dark:text-slate-400">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow className="dark:border-slate-800 hover:bg-transparent dark:hover:bg-transparent transition-colors duration-200">
                     <TableCell colSpan={4} className="text-center py-10 text-slate-400 dark:text-slate-500 transition-colors duration-200">
-                      Không có dữ liệu
+                      No data available
                     </TableCell>
                   </TableRow>
                 ) : filtered.map(item => (
@@ -280,14 +280,14 @@ export function Metadata() {
         </Card>
       </div>
 
-      {/* Modal Thêm/Sửa */}
+      {/* Add/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm transition-colors duration-200">
           <div className="bg-white dark:bg-slate-900 dark:border dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden transition-colors duration-200">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 transition-colors duration-200">
               <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 transition-colors duration-200">
-                {editItem ? `Sửa ${currentView.label}` : `Thêm ${currentView.label}`}
+                {editItem ? `Edit ${currentView.label}` : `Add ${currentView.label}`}
               </h2>
               <button
                 onClick={() => setShowModal(false)}
@@ -301,18 +301,18 @@ export function Metadata() {
             <div className="px-6 py-5 space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 transition-colors duration-200">
-                  Tên <span className="text-red-500 dark:text-red-400">*</span>
+                  Name <span className="text-red-500 dark:text-red-400">*</span>
                 </label>
                 <Input
                   value={form.name}
                   onChange={e => handleNameChange(e.target.value)}
-                  placeholder={`Nhập tên ${currentView.label.toLowerCase()}`}
+                  placeholder={`Enter ${currentView.label.toLowerCase()} name`}
                   autoFocus
                   className="dark:bg-slate-950 dark:text-slate-100 dark:border-slate-800 dark:placeholder:text-slate-500 transition-colors duration-200"
                 />
               </div>
 
-              {/* Slug chỉ hiện cho categories và locations */}
+              {/* Slug displayed only for categories and locations */}
               {activeView !== 'skills' && (
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 transition-colors duration-200">
@@ -321,11 +321,11 @@ export function Metadata() {
                   <Input
                     value={form.slug}
                     onChange={e => setForm(prev => ({ ...prev, slug: e.target.value }))}
-                    placeholder="tu-dong-tao-tu-ten"
+                    placeholder="auto-generated-from-name"
                     className="font-mono text-sm text-slate-500 dark:text-slate-400 dark:bg-slate-950 dark:border-slate-800 transition-colors duration-200"
                   />
                   <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 transition-colors duration-200">
-                    Dùng cho URL: /jobs?location=<span className="font-mono">{form.slug || 'slug'}</span>
+                    Used for URL: /jobs?location=<span className="font-mono">{form.slug || 'slug'}</span>
                   </p>
                 </div>
               )}
@@ -339,7 +339,7 @@ export function Metadata() {
                 disabled={submitting}
                 className="dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors duration-200"
               >
-                Hủy
+                Cancel
               </Button>
               <Button
                 onClick={handleSubmit}
@@ -347,8 +347,8 @@ export function Metadata() {
                 className="transition-colors duration-200"
               >
                 {submitting
-                  ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Đang lưu...</>
-                  : <><Check className="w-4 h-4 mr-2" /> {editItem ? 'Cập nhật' : 'Thêm mới'}</>
+                  ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
+                  : <><Check className="w-4 h-4 mr-2" /> {editItem ? 'Update' : 'Add New'}</>
                 }
               </Button>
             </div>

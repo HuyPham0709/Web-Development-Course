@@ -32,7 +32,7 @@ export function JobManagement() {
   const [error, setError] = useState('')
   const [deletingId, setDeletingId] = useState<number | null>(null)
 
-  // State phục vụ việc chọn nhiều hàng hàng loạt (Bulk Actions)
+  // State for multi-row bulk selection
   const [selectedJobIds, setSelectedJobIds] = useState<number[]>([])
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
 
@@ -68,10 +68,10 @@ export function JobManagement() {
         setPagination(data.pagination)
         setSelectedJobIds([])
       } else {
-        setError(data.message || 'Lỗi tải dữ liệu')
+        setError(data.message || 'Failed to load data')
       }
     } catch {
-      setError('Không thể kết nối máy chủ')
+      setError('Unable to connect to server')
     } finally {
       setLoading(false)
     }
@@ -89,7 +89,7 @@ export function JobManagement() {
 
   const handleDuplicate = async (jobId: number) => {
     try {
-      toast.loading("Đang nhân bản...", { id: "duplicate" })
+      toast.loading("Duplicating...", { id: "duplicate" })
       const data = await jobService.duplicateJob(jobId);
       if (data.success) {
         toast.success(data.message, { id: "duplicate" })
@@ -98,7 +98,7 @@ export function JobManagement() {
         toast.error(data.message, { id: "duplicate" })
       }
     } catch {
-      toast.error("Lỗi hệ thống máy chủ", { id: "duplicate" })
+      toast.error("Server error", { id: "duplicate" })
     }
   }
 
@@ -111,7 +111,7 @@ export function JobManagement() {
   }
 
   const handleDeleteSelected = async () => {
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa ${selectedJobIds.length} tin tuyển dụng đã chọn?`)) return
+    if (!window.confirm(`Are you sure you want to delete ${selectedJobIds.length} selected job postings?`)) return
 
     setIsBulkDeleting(true)
     try {
@@ -123,21 +123,21 @@ export function JobManagement() {
       const data = await res.json()
 
       if (data.success) {
-        toast.success(`Đã xóa thành công ${selectedJobIds.length} tin tuyển dụng`)
+        toast.success(`Successfully deleted ${selectedJobIds.length} job postings`)
         setSelectedJobIds([])
         fetchJobs(pagination.page)
       } else {
-        toast.error(data.message || 'Xóa hàng loạt thất bại')
+        toast.error(data.message || 'Bulk delete failed')
       }
     } catch {
-      toast.error('Lỗi kết nối máy chủ khi thực hiện xóa')
+      toast.error('Server connection error during deletion')
     } finally {
       setIsBulkDeleting(false)
     }
   }
 
   const handleDelete = async (job: AdminJob) => {
-    if (!window.confirm(`Xóa job "${job.title}"?`)) return
+    if (!window.confirm(`Delete job "${job.title}"?`)) return
     setDeletingId(job.id)
     try {
       const res = await fetch(`${ADMIN_JOBS_API}/${job.id}`, {
@@ -148,21 +148,20 @@ export function JobManagement() {
       if (data.success) {
         setJobs(prev => prev.filter(j => j.id !== job.id))
         setSelectedJobIds(prev => prev.filter(id => id !== job.id))
-        toast.success('Đã xóa tin tuyển dụng thành công!')
+        toast.success('Job posting deleted successfully!')
       } else {
         toast.error(data.message)
       }
     } catch {
-      toast.error('Lỗi kết nối')
+      toast.error('Connection error')
     } finally {
       setDeletingId(null)
     }
   }
 
-  // --- SỬA LỖI EXPORT CSV CHO EXCEL ---
   const handleExportCSV = async () => {
     try {
-      toast.info('Đang chuẩn bị file tải xuống...')
+      toast.info('Preparing file for download...')
       const params = new URLSearchParams()
       if (filterStatus) params.append('status', filterStatus)
       if (filterType) params.append('job_type', filterType)
@@ -175,10 +174,10 @@ export function JobManagement() {
 
       if (!res.ok) throw new Error();
 
-      // Đọc nội dung thô dưới dạng Text thay vì Blob trực tiếp
+      // Read raw content as text
       const textData = await res.text();
 
-      // Thêm ký tự BOM (\uFEFF) vào đầu nội dung text giúp Excel hiểu Unicode (Tiếng Việt & Định dạng chuẩn)
+      // Add BOM character to help Excel recognize Unicode encoding
       const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), textData], { type: 'text/csv;charset=utf-8;' });
 
       const url = window.URL.createObjectURL(blob)
@@ -189,9 +188,9 @@ export function JobManagement() {
       a.click()
       document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
-      toast.success('Xuất file dữ liệu CSV thành công!')
+      toast.success('CSV file exported successfully!')
     } catch {
-      toast.error('Không thể xuất file dữ liệu lúc này')
+      toast.error('Unable to export file at this time')
     }
   }
 
@@ -215,12 +214,9 @@ export function JobManagement() {
               <p className="text-slate-500 dark:text-slate-400 mt-1">Manage, moderate, and monitor all job postings across the platform.</p>
             </div>
             <div className="flex items-center gap-3">
-              {/* Nút Export CSV */}
               <Button variant="outline" onClick={handleExportCSV} className="border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800">
                 <Download className="w-4 h-4 mr-2" /> Export CSV
               </Button>
-
-              {/* ĐÃ XÓA NÚT "Add New Job" Ở ĐÂY THEO YÊU CẦU */}
 
               <Button
                 onClick={() => navigate('/jobs')}
@@ -267,7 +263,7 @@ export function JobManagement() {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <Input
               className="pl-9 h-10 bg-slate-50 dark:bg-slate-950 border-transparent focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 text-sm text-slate-900 dark:text-white"
-              placeholder="Tìm theo tên job hoặc công ty..."
+              placeholder="Search by job title or company..."
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
             />
@@ -313,13 +309,13 @@ export function JobManagement() {
           {loading ? (
             <div className="flex items-center justify-center py-20 gap-2 text-slate-400">
               <Loader2 className="w-5 h-5 animate-spin" />
-              <span className="text-sm">Đang tải...</span>
+              <span className="text-sm">Loading...</span>
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400">
               <AlertTriangle className="w-8 h-8 text-red-400" />
               <p className="text-sm text-red-500">{error}</p>
-              <Button variant="outline" size="sm" onClick={() => fetchJobs(1)}>Thử lại</Button>
+              <Button variant="outline" size="sm" onClick={() => fetchJobs(1)}>Retry</Button>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -429,11 +425,11 @@ export function JobManagement() {
             </div>
           )}
 
-          {/* Footer Table hỗ trợ hiển thị cả Bulk Actions và Phân trang */}
+          {/* Table footer with Bulk Actions and Pagination */}
           {!loading && !error && pagination.totalPages > 0 && (
             <div className="bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between">
 
-              {/* Vùng Bulk Action */}
+              {/* Bulk Actions area */}
               <div className="flex-1">
                 {selectedJobIds.length > 0 ? (
                   <div className="flex items-center gap-4 animate-in fade-in slide-in-from-bottom-2">
@@ -453,12 +449,12 @@ export function JobManagement() {
                   </div>
                 ) : (
                   <div className="text-sm text-slate-500 dark:text-slate-400">
-                    Select the rows to perform the batch task.
+                    Select rows to perform bulk actions.
                   </div>
                 )}
               </div>
 
-              {/* Vùng Phân trang */}
+              {/* Pagination area */}
               <div className="flex items-center gap-4">
                 <div className="text-sm text-slate-500 dark:text-slate-400">
                   Showing {Math.min((pagination.page - 1) * pagination.limit + 1, pagination.total)}–{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
