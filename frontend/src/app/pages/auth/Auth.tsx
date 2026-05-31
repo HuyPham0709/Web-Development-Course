@@ -11,7 +11,7 @@ import {
   Loader2,
   Sun,
   Moon,
-  Phone, // <-- Đã thêm icon Phone từ lucide-react
+  Phone,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { Link, useNavigate } from "react-router-dom";
@@ -21,29 +21,11 @@ import { useGoogleLogin } from "@react-oauth/google";
 
 // Google SVG Icon Component
 const GoogleIcon = () => (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-      fill="#4285F4"
-    />
-    <path
-      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-      fill="#34A853"
-    />
-    <path
-      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-      fill="#FBBC05"
-    />
-    <path
-      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-      fill="#EA4335"
-    />
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
   </svg>
 );
 
@@ -51,18 +33,12 @@ export default function AuthPage() {
   const navigate = useNavigate();
 
   // --- THEME STATE ---
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return document.documentElement.classList.contains("dark");
-  });
+  const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains("dark"));
 
-  // Toggle Theme Logic
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
-    if (isDarkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
+    if (isDarkMode) document.documentElement.classList.add("dark");
+    else document.documentElement.classList.remove("dark");
   }, [isDarkMode]);
 
   // --- STATES & UI CONTROLS ---
@@ -74,18 +50,22 @@ export default function AuthPage() {
 
   // --- DATA STATES ---
   const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    phone: "", // <-- Thêm trường phone vào state
-    password: "",
-    confirmPassword: "",
-    newPassword: "",
+    fullName: "", email: "", phone: "", password: "", confirmPassword: "", newPassword: "",
   });
 
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showOTP, setShowOTP] = useState(false);
   const [otpCode, setOtpCode] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (resendCooldown > 0) {
+      timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   // --- HANDLERS ---
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,7 +75,6 @@ export default function AuthPage() {
   const handleTabChange = (tab: "login" | "register") => {
     setActiveTab(tab);
     setError("");
-    // Reset lại cả trường phone khi chuyển tab
     setFormData({ fullName: "", email: "", phone: "", password: "", confirmPassword: "", newPassword: "" });
     setShowOTP(false);
     setView("auth");
@@ -106,67 +85,39 @@ export default function AuthPage() {
     setError("");
 
     if (activeTab === "register") {
-      // Validate thêm điều kiện trường phone không được rỗng
       if (!formData.fullName || !formData.email || !formData.phone || !formData.password) {
-        setError("Vui lòng điền đầy đủ các thông tin bắt buộc.");
-        return;
+        return setError("Vui lòng điền đầy đủ các thông tin bắt buộc.");
       }
       if (formData.password !== formData.confirmPassword) {
-        setError("Mật khẩu xác nhận không khớp.");
-        return;
+        return setError("Mật khẩu xác nhận không khớp.");
       }
     } else {
       if (!formData.email || !formData.password) {
-        setError("Vui lòng điền Email và Mật khẩu.");
-        return;
+        return setError("Vui lòng điền Email và Mật khẩu.");
       }
     }
 
     setIsLoading(true);
     try {
       if (activeTab === "login") {
-        const response = await axios.post(
-          "http://localhost:5000/api/auth/login",
-          {
-            email: formData.email,
-            password: formData.password,
-            role: role,
-          },
-        );
+        const response = await axios.post("http://localhost:5000/api/auth/login", {
+          email: formData.email, password: formData.password, role: role,
+        });
 
         if (response.data.token) {
           localStorage.setItem("token", response.data.token);
           localStorage.setItem("user", JSON.stringify(response.data.user));
-
-          await Swal.fire({
-            title: "Thành công!",
-            text: "Chào mừng quay trở lại!",
-            icon: "success",
-            timer: 1500,
-            showConfirmButton: false,
-          });
+          await Swal.fire({ title: "Thành công!", text: "Chào mừng quay trở lại!", icon: "success", timer: 1500, showConfirmButton: false });
           navigate("/");
           window.location.reload();
         }
       } else {
-        const response = await axios.post(
-          "http://localhost:5000/api/auth/register",
-          {
-            username: formData.fullName,
-            name: formData.fullName,
-            email: formData.email,
-            phone: formData.phone, // <-- Đã truyền phone lên API đăng ký
-            password: formData.password,
-            role: role,
-          },
-        );
+        const response = await axios.post("http://localhost:5000/api/auth/register", {
+          username: formData.fullName, name: formData.fullName, email: formData.email, phone: formData.phone, password: formData.password, role: role,
+        });
 
         if (response.data.success) {
-          Swal.fire({
-            title: "Đăng ký thành công!",
-            text: "Mã OTP đã được gửi vào Email của bạn!",
-            icon: "success",
-          });
+          Swal.fire({ title: "Đăng ký thành công!", text: "Mã OTP đã được gửi vào Email của bạn!", icon: "success" });
           setShowOTP(true);
         }
       }
@@ -182,28 +133,30 @@ export default function AuthPage() {
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (otpCode.length < 6)
-      return setError("Vui lòng nhập đầy đủ 6 ký tự số OTP!");
+    if (otpCode.length < 6) return setError("Vui lòng nhập đầy đủ 6 ký tự số OTP!");
 
     setIsLoading(true);
     try {
-      const response = await axios.post(
-        "http://localhost:5000/api/auth/verify-email",
-        {
-          email: formData.email,
-          otp: otpCode,
-        },
-      );
+      const response = await axios.post("http://localhost:5000/api/auth/verify-email", {
+        email: formData.email, otp: otpCode,
+      });
 
       if (response.data.success) {
-        await Swal.fire({
-          title: "Xác thực thành công!",
-          text: "Hãy đăng nhập ngay nhé!",
-          icon: "success",
-        });
-        setOtpCode("");
-        setShowOTP(false);
-        setActiveTab("login");
+        // ✨ MỚI: Backend đã trả về token trực tiếp, lưu vào local và chuyển hướng
+        if (response.data.token) {
+          localStorage.setItem("token", response.data.token);
+          localStorage.setItem("user", JSON.stringify(response.data.user));
+          
+          await Swal.fire({ title: "Thành công!", text: "Xác thực và đăng nhập thành công!", icon: "success", timer: 1500, showConfirmButton: false });
+          navigate("/");
+          window.location.reload();
+        } else {
+          // Fallback an toàn
+          await Swal.fire({ title: "Xác thực thành công!", text: "Hãy đăng nhập ngay nhé!", icon: "success" });
+          setOtpCode("");
+          setShowOTP(false);
+          setActiveTab("login");
+        }
       }
     } catch (err: any) {
       setError(err.response?.data?.message || "OTP không hợp lệ!");
@@ -212,65 +165,22 @@ export default function AuthPage() {
     }
   };
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleResendOTP = async () => {
+    if (resendCooldown > 0) return; 
+    
     setError("");
-    if (!formData.email) return setError("Vui lòng nhập Email để nhận mã!");
-
     setIsLoading(true);
+    
     try {
-      const response = await axios.post(
-        "http://localhost:5000/api/auth/forgot-password",
-        { email: formData.email }
-      );
+      const response = await axios.post("http://localhost:5000/api/auth/resend-otp", { email: formData.email });
+
       if (response.data.success) {
-        Swal.fire({
-          title: "Thành công!",
-          text: response.data.message,
-          icon: "success",
-        });
+        Swal.fire({ title: "Đã gửi lại!", text: "Mã OTP mới đã được gửi vào Email của bạn.", icon: "success", toast: true, position: "top-end", showConfirmButton: false, timer: 3000 });
+        setResendCooldown(300); // 300 giây = 5 phút
         setOtpCode("");
-        setView("reset");
       }
     } catch (err: any) {
-      const msg = err.response?.data?.message || "Có lỗi xảy ra!";
-      setError(msg);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    if (!otpCode || !formData.newPassword) {
-      return setError("Vui lòng nhập đầy đủ OTP và mật khẩu mới!");
-    }
-
-    setIsLoading(true);
-    try {
-      const response = await axios.post(
-        "http://localhost:5000/api/auth/reset-password",
-        {
-          email: formData.email,
-          otp: otpCode,
-          newPassword: formData.newPassword,
-        }
-      );
-      if (response.data.success) {
-        await Swal.fire({
-          title: "Thành công!",
-          text: response.data.message,
-          icon: "success",
-        });
-        setOtpCode("");
-        setFormData({ ...formData, password: "", newPassword: "" });
-        setView("auth");
-        setActiveTab("login");
-      }
-    } catch (err: any) {
-      const msg = err.response?.data?.message || "Có lỗi xảy ra!";
-      setError(msg);
+      setError(err.response?.data?.message || "Lỗi khi gửi lại mã OTP. Vui lòng thử lại!");
     } finally {
       setIsLoading(false);
     }
@@ -280,38 +190,81 @@ export default function AuthPage() {
     onSuccess: async (tokenResponse) => {
       setIsLoading(true);
       try {
-        const response = await axios.post(
-          "http://localhost:5000/api/auth/google",
-          {
-            accessToken: tokenResponse.access_token,
-            role: role,
-          },
-        );
+        const response = await axios.post("http://localhost:5000/api/auth/google", {
+          accessToken: tokenResponse.access_token, role: role,
+        });
 
-        if (response.data.token) {
+        // ✨ MỚI: Xử lý luồng OTP cho tài khoản Google mới
+        if (response.data.requireOtp) {
+          setFormData({ ...formData, email: response.data.email }); // Lưu lại email để dùng cho API verify
+          setShowOTP(true); // Bật giao diện nhập OTP
+          Swal.fire({
+            title: "Xác thực bảo mật",
+            text: response.data.message,
+            icon: "info"
+          });
+        } else if (response.data.token) {
+          // Luồng bình thường: Đã có sẵn tài khoản
           localStorage.setItem("token", response.data.token);
           localStorage.setItem("user", JSON.stringify(response.data.user));
 
-          await Swal.fire({
-            title: "Thành công!",
-            text: "Đăng nhập Google thành công!",
-            icon: "success",
-            timer: 1500,
-            showConfirmButton: false,
-          });
+          await Swal.fire({ title: "Thành công!", text: "Đăng nhập Google thành công!", icon: "success", timer: 1500, showConfirmButton: false });
           navigate("/");
           window.location.reload();
         }
       } catch (err: any) {
-        setError(
-          err.response?.data?.message || "Lỗi khi đăng nhập bằng Google!",
-        );
+        setError(err.response?.data?.message || "Lỗi khi đăng nhập bằng Google!");
       } finally {
         setIsLoading(false);
       }
     },
     onError: () => setError("Đăng nhập Google thất bại!"),
   });
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (!formData.email) return setError("Vui lòng nhập Email để nhận mã!");
+
+    setIsLoading(true);
+    try {
+      const response = await axios.post("http://localhost:5000/api/auth/forgot-password", { email: formData.email });
+      if (response.data.success) {
+        Swal.fire({ title: "Thành công!", text: response.data.message, icon: "success" });
+        setOtpCode("");
+        setView("reset");
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Có lỗi xảy ra!");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (!otpCode || !formData.newPassword) return setError("Vui lòng nhập đầy đủ OTP và mật khẩu mới!");
+
+    setIsLoading(true);
+    try {
+      const response = await axios.post("http://localhost:5000/api/auth/reset-password", {
+        email: formData.email, otp: otpCode, newPassword: formData.newPassword,
+      });
+      if (response.data.success) {
+        await Swal.fire({ title: "Thành công!", text: response.data.message, icon: "success" });
+        setOtpCode("");
+        setFormData({ ...formData, password: "", newPassword: "" });
+        setView("auth");
+        setActiveTab("login");
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Có lỗi xảy ra!");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   return (
     <div className="flex min-h-screen w-full bg-[#F8FAFC] dark:bg-[#0B0F19] text-gray-900 dark:text-white font-sans transition-colors duration-300 selection:bg-[#8B5CF6]/30 selection:text-white">
@@ -448,9 +401,17 @@ export default function AuthPage() {
                     Didn't receive the code?{" "}
                     <button
                       type="button"
-                      className="ml-1 text-[#0052FF] hover:text-[#0040CC] dark:hover:text-[#8B5CF6] transition-colors"
+                      onClick={handleResendOTP}
+                      disabled={resendCooldown > 0 || isLoading}
+                      className={`ml-1 transition-colors ${
+                        resendCooldown > 0 || isLoading
+                          ? "text-gray-400 cursor-not-allowed opacity-70"
+                          : "text-[#0052FF] hover:text-[#0040CC] dark:hover:text-[#8B5CF6]"
+                      }`}
                     >
-                      Resend code
+                      {resendCooldown > 0
+                        ? `Resend in ${Math.floor(resendCooldown / 60)}:${(resendCooldown % 60).toString().padStart(2, '0')}`
+                        : "Resend code"}
                     </button>
                   </p>
                 </div>
@@ -657,10 +618,7 @@ export default function AuthPage() {
                       : "border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/20 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"
                   }`}
                 >
-                  <User
-                    size={24}
-                    className={role === "candidate" ? "text-[#0052FF]" : ""}
-                  />
+                  <User size={24} className={role === "candidate" ? "text-[#0052FF]" : ""} />
                   <span className="text-sm font-semibold">I'm a Candidate</span>
                 </button>
                 <button
@@ -672,10 +630,7 @@ export default function AuthPage() {
                       : "border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/20 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"
                   }`}
                 >
-                  <Building
-                    size={24}
-                    className={role === "employer" ? "text-[#8B5CF6]" : ""}
-                  />
+                  <Building size={24} className={role === "employer" ? "text-[#8B5CF6]" : ""} />
                   <span className="text-sm font-semibold">I'm an Employer</span>
                 </button>
               </div>
@@ -684,7 +639,6 @@ export default function AuthPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 {activeTab === "register" && (
                   <>
-                    {/* Ô Nhập Full Name */}
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 dark:text-gray-500 transition-colors duration-300">
                         <User size={18} />
@@ -699,7 +653,6 @@ export default function AuthPage() {
                       />
                     </div>
 
-                    {/* 🌟 ĐÃ THÊM: Ô Nhập Số điện thoại hiển thị khi Đăng ký */}
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 dark:text-gray-500 transition-colors duration-300">
                         <Phone size={18} />
@@ -766,16 +719,10 @@ export default function AuthPage() {
                     />
                     <button
                       type="button"
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-white transition-colors"
                     >
-                      {showConfirmPassword ? (
-                        <EyeOff size={18} />
-                      ) : (
-                        <Eye size={18} />
-                      )}
+                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
                 )}
@@ -784,19 +731,11 @@ export default function AuthPage() {
                 <div className="mt-5 mb-8 flex items-center justify-between">
                   <label className="flex items-center gap-2 cursor-pointer group">
                     <div className="relative flex items-center justify-center w-4 h-4 rounded border border-gray-300 dark:border-white/20 bg-white dark:bg-[#0B0F19] group-hover:border-[#0052FF] transition-colors">
-                      <input
-                        type="checkbox"
-                        className="peer sr-opacity absolute opacity-0 w-full h-full cursor-pointer"
-                      />
+                      <input type="checkbox" className="peer sr-opacity absolute opacity-0 w-full h-full cursor-pointer" />
                       <div className="pointer-events-none peer-checked:bg-[#0052FF] absolute inset-0 rounded-[3px] transition-colors"></div>
                       <svg
                         className="pointer-events-none absolute w-3 h-3 text-white opacity-0 peer-checked:opacity-100"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>

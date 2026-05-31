@@ -1,6 +1,6 @@
 // backend/controllers/chatbotController.js
 
-const promisePool = require('../../config/db');
+const db = require('../../config/db');
 const Message = require('../../models/Message');
 // ======================================================================
 // [POST] Chatbot nội bộ thông minh - Phiên bản Hiện đại & Gọn gàng
