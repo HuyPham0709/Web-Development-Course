@@ -49,6 +49,7 @@ interface CandidateProfileModalProps {
   candidateId: number | null;
   candidateName?: string;
   onClose: () => void;
+  onReject?: (candidateId: number) => void; // Đã thêm prop xử lý reject
 }
 
 const API_BASE = 'http://127.0.0.1:5000';
@@ -66,13 +67,16 @@ const formatDate = (dateStr: string | null) => {
   return isNaN(d.getTime()) ? 'N/A' : `${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 };
 
-export function CandidateProfileModal({ candidateId, candidateName, onClose }: CandidateProfileModalProps) {
+export function CandidateProfileModal({ candidateId, candidateName, onClose, onReject }: CandidateProfileModalProps) {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'info' | 'experience' | 'education' | 'skills' | 'views'>('info');
   const [profileViews, setProfileViews] = useState<ProfileView[]>([]);
   const [loadingViews, setLoadingViews] = useState(false);
+  
+  // State xử lý loading cho nút Bỏ qua
+  const [isRejecting, setIsRejecting] = useState(false);
 
   // 1. Fetch Profile
   const fetchProfile = useCallback(async () => {
@@ -141,6 +145,42 @@ export function CandidateProfileModal({ candidateId, candidateName, onClose }: C
       console.error('Error recording view', err);
     }
   }, [candidateId]);
+
+  // 4. Handle Reject Candidate
+  const handleReject = async () => {
+    if (!candidateId) return;
+    
+    const confirm = window.confirm('Bạn có chắc chắn muốn bỏ qua ứng viên này?');
+    if (!confirm) return;
+
+    setIsRejecting(true);
+    try {
+      const token = localStorage.getItem('token');
+      // Đảm bảo Endpoint này khớp với thiết kế API của Backend
+      const res = await fetch(`${API_BASE}/api/employer/candidate/${candidateId}/reject`, {
+        method: 'POST', 
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!res.ok) throw new Error('Lỗi khi gọi API từ chối ứng viên');
+
+      // Gọi callback để xóa ở Component cha
+      if (onReject) {
+        onReject(candidateId);
+      }
+      
+      // Đóng modal
+      onClose();
+    } catch (err) {
+      console.error('Error rejecting candidate:', err);
+      alert('Có lỗi xảy ra khi bỏ qua ứng viên. Vui lòng thử lại sau.');
+    } finally {
+      setIsRejecting(false);
+    }
+  };
 
   useEffect(() => {
     if (candidateId) {
@@ -322,8 +362,18 @@ export function CandidateProfileModal({ candidateId, candidateName, onClose }: C
                     <Download size={18} /> Download CV
                  </a>
                )}
-               <button className="flex-[2] py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 transition-all">
-                  Invite to Apply
+               <button 
+                 onClick={handleReject}
+                 disabled={isRejecting}
+                 className="flex-[2] flex items-center justify-center gap-2 py-3 bg-gray-700 text-white rounded-2xl font-bold hover:bg-gray-600 shadow-lg shadow-gray-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+               >
+                 {isRejecting ? (
+                   <>
+                     <Loader2 size={18} className="animate-spin" /> Đang xử lý...
+                   </>
+                 ) : (
+                   'Bỏ qua ứng viên này'
+                 )}
                </button>
             </div>
           </>

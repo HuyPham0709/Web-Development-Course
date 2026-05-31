@@ -44,13 +44,13 @@ router.get(
       }
       const profile = profileRows[0];
 
-      // 3. Kiểm tra quyền riêng tư (allow_employer_search)
-      if (profile.allow_employer_search === 0) {
-        return res.status(403).json({ 
-          success: false, 
-          message: 'Ứng viên hiện đang để hồ sơ ở chế độ riêng tư.' 
-        });
-      }
+      // // 3. Kiểm tra quyền riêng tư (allow_employer_search)
+      // if (profile.allow_employer_search === 0) {
+      //   return res.status(403).json({ 
+      //     success: false, 
+      //     message: 'Ứng viên hiện đang để hồ sơ ở chế độ riêng tư.' 
+      //   });
+      // }
 
       // 4. Lấy Kinh nghiệm, Học vấn, Kỹ năng (Giữ nguyên logic cũ)
       const [experiences] = await db.query(
@@ -162,4 +162,84 @@ router.get(
   }
 );
 
+/**
+ * @route   GET /api/employer/candidates/search
+ * @desc    Lấy danh sách tất cả ứng viên (Loại bỏ những người đã bị ignore)
+ */
+router.get(
+  '/candidates/search', // Hoặc đường dẫn nào mà Frontend của bạn đang gọi để hiện danh sách
+  verifyToken,
+  authorizeRole(['employer']),
+  async (req, res) => {
+    const employerId = req.user.id;
+
+    try {
+      const query = `
+  SELECT 
+    u.id, 
+    p.full_name as name, 
+    p.title, 
+    p.location, 
+    p.avatar_url
+  FROM Users u
+  JOIN Profiles p ON u.id = p.user_id
+  WHERE u.role = 'candidate'
+    -- Chỉ lấy những người KHÔNG nằm trong danh sách bị 'ignored' bởi NTD này
+    AND u.id NOT IN (
+      SELECT candidate_id 
+      FROM Employer_Profile_Views 
+      WHERE employer_id = ? AND status = 'ignored'
+    )
+    AND p.allow_employer_search = 1
+`;
+
+      const [candidates] = await db.query(query, [employerId]);
+
+      return res.json({ 
+        success: true, 
+        data: candidates 
+      });
+    } catch (error) {
+      console.error('Lỗi lấy danh sách ứng viên:', error);
+      return res.status(500).json({ success: false, message: 'Lỗi server.' });
+    }
+  }
+);
+
+/**
+ * @route   POST /api/employer/candidate/:candidateId/reject
+ * @desc    Cập nhật trạng thái thành 'ignored' trong bảng profile views
+ */
+router.post(
+  '/candidate/:candidateId/reject',
+  verifyToken,
+  authorizeRole(['employer']),
+  async (req, res) => {
+    const employerId = req.user.id;
+    const { candidateId } = req.params;
+
+    try {
+      // Sử dụng INSERT ... ON DUPLICATE KEY UPDATE 
+      // Nếu chưa có lượt xem thì tạo mới với status ignored
+      // Nếu đã có lượt xem (viewed) thì cập nhật status thành ignored
+      await db.query(
+        `INSERT INTO Employer_Profile_Views (employer_id, candidate_id, status) 
+         VALUES (?, ?, 'ignored')
+         ON DUPLICATE KEY UPDATE status = 'ignored'`,
+        [employerId, candidateId]
+      );
+
+      return res.json({ 
+        success: true, 
+        message: 'Đã bỏ qua ứng viên thành công.' 
+      });
+    } catch (error) {
+      console.error('Lỗi khi bỏ qua ứng viên:', error);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Lỗi server khi cập nhật trạng thái.' 
+      });
+    }
+  }
+);
 module.exports = router;
