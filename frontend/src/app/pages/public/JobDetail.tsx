@@ -153,7 +153,7 @@ export default function JobDetail() {
         reason: finalReason
       };
 
-      await axios.post("http://127.0.0.1:5000/api/reports", payload, {
+      await axios.post("http://127.0.0.1:5000/api/admin/reports", payload, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,

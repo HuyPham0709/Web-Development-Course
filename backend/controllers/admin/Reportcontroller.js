@@ -1,6 +1,50 @@
 const db = require('../../config/db'); // Đường dẫn cấp 2 đi từ controllers/admin/ ra config/db
+const { createAdminNotification } = require("../admin/adminNotificationController");
 
-// 1. GET /api/admin/reports - Lấy danh sách kèm phân loại và thống kê số liệu
+// =======================================================
+// 1. DÀNH CHO ỨNG VIÊN: Tạo báo cáo vi phạm công việc (MỚI BỔ SUNG)
+// =======================================================
+exports.createReport = async (req, res) => {
+    try {
+        const { job_id, reason } = req.body;
+        const reporter_id = req.user.id; // Lấy ID của người dùng từ token đăng nhập
+
+        if (!job_id || !reason) {
+            return res.status(400).json({ success: false, message: "Thiếu thông tin job hoặc lý do báo cáo." });
+        }
+
+        const [result] = await db.execute(
+            'INSERT INTO Reports (reporter_id, job_id, reason, status) VALUES (?, ?, ?, "pending")',
+            [reporter_id, job_id, reason]
+        );
+        const [jobRows] = await db.execute(
+            `SELECT j.title, u.username 
+     FROM Jobs j, Users u 
+     WHERE j.id = ? AND u.id = ?`,
+            [job_id, reporter_id]
+        );
+        const jobTitle = jobRows[0]?.title || `Job #${job_id}`;
+        const reporterName = jobRows[0]?.username || `User #${reporter_id}`;
+
+        await createAdminNotification({
+            title: "🚨 New Violation Report",
+            message: `${reporterName} reported job: "${jobTitle}" for: "${reason}"`,
+            link_url: `/reports`
+        });
+
+        return res.status(201).json({
+            success: true,
+            message: "Gửi báo cáo vi phạm thành công! Ban quản trị sẽ sớm xem xét."
+        });
+    } catch (error) {
+        console.error("Lỗi createReport:", error);
+        return res.status(500).json({ success: false, message: "Lỗi hệ thống không thể gửi báo cáo." });
+    }
+};
+
+// =======================================================
+// 2. DÀNH CHO ADMIN: Lấy danh sách kèm phân loại và thống kê số liệu
+// =======================================================
 exports.getReports = async (req, res) => {
     try {
         const { status, search } = req.query;
@@ -51,7 +95,7 @@ exports.getReports = async (req, res) => {
             queryParams.push(status);
         }
 
-        // Tìm kiếm theo tiêu đề job hoặc thông tin người gửi báo cáo giống như placeholder trên FE
+        // Tìm kiếm theo tiêu đề job hoặc thông tin người gửi báo cáo
         if (search) {
             query += ` AND (j.title LIKE ? OR u.username LIKE ? OR u.email LIKE ? OR r.reason LIKE ?)`;
             const searchPattern = `%${search}%`;
@@ -63,62 +107,38 @@ exports.getReports = async (req, res) => {
 
         const [reports] = await db.execute(query, queryParams);
 
-        // Trả về cấu trúc JSON chuẩn mực mà Reports.tsx đang bóc tách (.data và .stats)
+        // Trả về cấu trúc JSON chuẩn mực mà Frontend đang bóc tách (.data và .stats)
         return res.status(200).json({
             success: true,
             data: reports,
             stats: stats
         });
-
     } catch (error) {
         console.error('Error in getReports:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Lỗi máy chủ khi lấy danh sách báo cáo vi phạm.'
-        });
+        return res.status(500).json({ success: false, message: 'Lỗi máy chủ khi lấy danh sách báo cáo vi phạm.' });
     }
 };
 
-// 2. PUT /api/admin/reports/:id/status - Cập nhật trạng thái báo cáo (Resolved / Ignored)
+// =======================================================
+// 3. DÀNH CHO ADMIN: Cập nhật trạng thái báo cáo (Resolved / Ignored)
+// =======================================================
 exports.updateReportStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        const { status } = req.body; // Nhận 'resolved' hoặc 'ignored' từ body bài đăng
+        const { status } = req.body;
 
-        if (!['resolved', 'ignored'].includes(status)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Trạng thái cập nhật không hợp lệ.'
-            });
-        }
+        await db.execute('UPDATE Reports SET status = ? WHERE id = ?', [status, id]);
 
-        const [result] = await db.execute(
-            'UPDATE Reports SET status = ? WHERE id = ?',
-            [status, id]
-        );
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'Không tìm thấy bản ghi báo cáo yêu cầu.'
-            });
-        }
-
-        return res.status(200).json({
-            success: true,
-            message: status === 'resolved' ? 'Đã xử lý báo cáo thành công.' : 'Đã bỏ qua báo cáo vi phạm.'
-        });
-
+        return res.status(200).json({ success: true, message: 'Cập nhật trạng thái thành công.' });
     } catch (error) {
-        console.error('Error in updateReportStatus:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Lỗi máy chủ khi cập nhật trạng thái báo cáo.'
-        });
+        console.error("Lỗi updateReportStatus:", error);
+        return res.status(500).json({ success: false, message: "Lỗi hệ thống khi cập nhật trạng thái." });
     }
 };
 
-// 3. DELETE /api/admin/reports/:id/job - Đóng/Xóa bài tuyển dụng vi phạm
+// =======================================================
+// 4. DÀNH CHO ADMIN: Xóa/Gỡ bỏ bài đăng vi phạm (Khóa Job)
+// =======================================================
 exports.deleteReportedJob = async (req, res) => {
     try {
         const { id } = req.params;
@@ -139,7 +159,6 @@ exports.deleteReportedJob = async (req, res) => {
         const jobId = reportRows[0].job_id;
 
         // Thay vì xóa cứng làm mất toàn bộ liên kết dữ liệu, chuyển trạng thái tin tuyển dụng sang 'closed'
-        // Điều này hoàn toàn khớp với logic check `job_status === 'closed'` trên Frontend của bạn
         await db.execute(
             "UPDATE Jobs SET status = 'closed' WHERE id = ?",
             [jobId]
@@ -160,7 +179,7 @@ exports.deleteReportedJob = async (req, res) => {
         console.error('Error in deleteReportedJob:', error);
         return res.status(500).json({
             success: false,
-            message: 'Lỗi hệ thống khi xử lý gỡ bỏ bài tuyển dụng.'
+            message: 'Lỗi server khi xử lý gỡ bài đăng.'
         });
     }
 };

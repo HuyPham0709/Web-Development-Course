@@ -9,7 +9,7 @@ const adminRoutes = require("./admin/adminRoutes");
 const adminUserRoutes = require("./admin/userRoutes"); 
 const adminJobRoutes = require("./admin/adminJobRoutes");
 const metadataRoutes = require("./admin/metadataRoutes");
-const adminReportRoutes = require("./admin/reportRoutes"); 
+const adminReportRoutes = require("./admin/reportRoutes")
 
 // ─────────────────────────────────────────────────────────────
 // 2. Nhóm Auth & Profile

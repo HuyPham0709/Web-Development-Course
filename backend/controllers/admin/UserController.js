@@ -33,17 +33,21 @@ exports.getUsers = async (req, res) => {
         }
 
         if (search) {
-            where.push('(u.username LIKE ? OR u.email LIKE ? OR u.display_name LIKE ?)');
+            // 🎯 FIX LỖI: Thay u.display_name thành p.full_name vì đã chuyển sang bảng Profiles
+            where.push('(u.username LIKE ? OR u.email LIKE ? OR p.full_name LIKE ?)');
             params.push(`%${search}%`, `%${search}%`, `%${search}%`);
         }
 
         const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
 
+        // 🎯 FIX LỖI & TỐI ƯU: JOIN với Profiles và chọn p.full_name, p.avatar_url, p.phone
         const [rows] = await db.execute(`
             SELECT
                 u.id,
                 u.username,
-                u.display_name,
+                p.full_name AS display_name, /* Ánh xạ full_name thành display_name để Frontend không bị lỗi */
+                p.avatar_url,
+                p.phone,
                 u.email,
                 u.role,
                 u.is_active,
@@ -54,20 +58,22 @@ exports.getUsers = async (req, res) => {
                 c.is_verified AS company_verified
             FROM Users u
             LEFT JOIN Companies c ON u.company_id = c.id
+            LEFT JOIN Profiles p ON u.id = p.user_id /* Phải JOIN thêm bảng Profiles */
             ${whereClause}
             ORDER BY u.created_at DESC
             LIMIT ${Number(limit)} OFFSET ${Number(offset)} 
         `, params);
 
-        // Query đếm tổng
+        // 🎯 FIX LỖI: Query đếm tổng cũng bắt buộc phải JOIN Profiles nếu có search theo tên
         const [countResult] = await db.execute(`
             SELECT COUNT(*) AS total
             FROM Users u
             LEFT JOIN Companies c ON u.company_id = c.id
+            LEFT JOIN Profiles p ON u.id = p.user_id 
             ${whereClause}
         `, params);
 
-        // Stats tổng quan
+        // Stats tổng quan (Không ảnh hưởng, giữ nguyên)
         const [stats] = await db.execute(`
             SELECT
                 COUNT(*) AS total,
@@ -101,6 +107,7 @@ exports.getUsers = async (req, res) => {
             }
         });
     } catch (error) {
+        console.error("Lỗi tại getUsers:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -222,14 +229,14 @@ exports.getUserDetail = async (req, res) => {
     const { user_id } = req.params;
 
     try {
+        // 🎯 FIX LỖI: Bỏ u.display_name và u.avatar_url. Lấy p.full_name và p.avatar_url thay thế.
         const [users] = await db.execute(`
             SELECT
-                u.id, u.username, u.display_name, u.email, u.role,
-                u.is_active, u.is_verified, u.avatar_url, u.created_at,
-                u.ban_reason,
+                u.id, u.username, u.email, u.role,
+                u.is_active, u.is_verified, u.created_at,u.ban_reason,
                 c.id AS company_id, c.name AS company_name,
                 c.is_verified AS company_verified, c.website, c.address,
-                p.full_name, p.phone, p.bio
+                p.full_name, p.avatar_url, p.phone, p.bio
             FROM Users u
             LEFT JOIN Companies c ON u.company_id = c.id
             LEFT JOIN Profiles p ON u.id = p.user_id
@@ -240,7 +247,7 @@ exports.getUserDetail = async (req, res) => {
             return res.status(404).json({ success: false, message: "Không tìm thấy người dùng!" });
         }
 
-        // Thống kê thêm tùy role
+        // Đoạn code thống kê bên dưới giữ nguyên...
         let extra = {};
         if (users[0].role === 'candidate') {
             const [appCount] = await db.execute(
