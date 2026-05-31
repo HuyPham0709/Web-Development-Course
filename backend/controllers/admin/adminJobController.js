@@ -62,7 +62,8 @@ exports.getAllJobs = async (req, res) => {
                 SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS total_approved,
                 SUM(CASE WHEN status = 'pending'  THEN 1 ELSE 0 END) AS total_pending,
                 SUM(CASE WHEN status = 'closed'   THEN 1 ELSE 0 END) AS total_closed,
-                SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) AS total_rejected
+                SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) AS total_rejected,
+                SUM(CASE WHEN status = 'banned' THEN 1 ELSE 0 END) AS total_banned
             FROM Jobs
             WHERE deleted_at IS NULL
         `);

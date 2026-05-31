@@ -1,5 +1,5 @@
 const db = require("../../config/db");
-const Notification = require("../../models/Notification"); 
+const Notification = require("../../models/Notification");
 const socketUtils = require("../../utils/socket");
 const { sendMail } = require('../../config/mailer');
 
@@ -66,7 +66,7 @@ exports.applyJob = async (req, res) => {
         message: `Candidate ${candidateName} has applied for the position "${job.title}"`,
         is_read: false,
         type: "apply",
-        link_url: "/employer/candidates", 
+        link_url: "/employer/candidates",
         created_at: new Date(),
       });
 
@@ -254,13 +254,13 @@ exports.updateApplicationStatus = async (req, res) => {
 
     if (notifyTitle && notifyMessage) {
       const newCandidateNotify = await Notification.create({
-        user_id: candidateId, 
+        user_id: candidateId,
         title: notifyTitle,
         message: notifyMessage,
         is_read: false,
         type: "system",
-        link_url: "/profile/applications", 
-        created_at: new Date(), 
+        link_url: "/profile/applications",
+        created_at: new Date(),
       });
       console.log("🍃 [MongoDB] Successfully generated a target review evaluation notification.");
       socketUtils.sendNotification(candidateId, newCandidateNotify);
@@ -483,19 +483,20 @@ exports.toggleJobStatus = async (req, res) => {
     }
 
     const currentStatus = jobs[0].status;
+    if (currentStatus === "banned") {
+      return res.status(403).json({
+        success: false,
+        message: "This job has been banned by admin and cannot be reopened."
+      });
+    }
+
     const newStatus = currentStatus === "closed" ? "approved" : "closed";
 
-    await db.execute("UPDATE Jobs SET status = ? WHERE id = ?", [
-      newStatus,
-      job_id,
-    ]);
+    await db.execute("UPDATE Jobs SET status = ? WHERE id = ?", [newStatus, job_id]);
 
     res.status(200).json({
       success: true,
-      message:
-        newStatus === "closed"
-          ? "Job post has been closed"
-          : "Job post has been reopened",
+      message: newStatus === "closed" ? "Job post has been closed" : "Job post has been reopened",
       new_status: newStatus,
     });
   } catch (error) {
@@ -534,7 +535,7 @@ exports.inviteInterview = async (req, res, next) => {
     await db.execute("UPDATE Applications SET status = 'reviewed' WHERE id = ?", [application_id]);
 
     const baseUrl = process.env.BACKEND_URL || 'http://localhost:5000';
-    
+
     // NÂNG CẤP GIAO DIỆN EMAIL THEO THIẾT KẾ PREMIUM GRADIENT
     const htmlEmailContent = `
     <!DOCTYPE html>
@@ -832,7 +833,7 @@ exports.declineInterview = async (req, res, next) => {
 // ======================================================
 exports.getDeclineForm = (req, res) => {
   const { id } = req.params;
-  
+
   // NÂNG CẤP GIAO DIỆN FORM ĐIỀN LÝ DO TỪ CHỐI CHUẨN PREMIUM ĐỒNG BỘ AUTH.TSX
   res.send(`
     <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #F8FAFC; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">

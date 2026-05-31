@@ -109,7 +109,7 @@ export function EditJob() {
     }
 
     return (
-        <div className="min-h-full bg-[#F8FAFC] dark:bg-slate-950 p-8 animate-in fade-in duration-500">
+        <div className="min-h-full bg-slate-50 dark:bg-slate-900 p-8 animate-in fade-in duration-500">
             <div className="max-w-3xl mx-auto space-y-6">
 
                 {/* Nút Cancel & Go Back */}

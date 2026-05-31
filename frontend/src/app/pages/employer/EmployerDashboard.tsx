@@ -149,6 +149,20 @@ export default function EmployerDashboard() {
             onClick: () => { setOpenMenuId(null); navigate(`/employer/jobs/edit/${job.id}`); },
           },
         ];
+      case 'banned':
+        return [
+          {
+            label: 'View ban reason',
+            icon: <AlertCircle className="w-4 h-4 text-red-500" />,
+            onClick: () => { setOpenMenuId(null); setRejectionModal('Your job was banned due to violation reports from users.'); }
+          },
+          {
+            label: 'Delete job',
+            icon: <Trash2 className="w-4 h-4 text-red-500 dark:text-red-400" />,
+            danger: true,
+            onClick: () => handleDeleteJob(job.id),
+          },
+        ]; // Không có action nào
       default:
         return [];
     }
@@ -159,6 +173,11 @@ export default function EmployerDashboard() {
     pending: { label: 'Pending', dotColor: 'bg-yellow-400', badgeClass: 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-400 dark:border-yellow-500/20' },
     closed: { label: 'Closed', dotColor: 'bg-gray-400', badgeClass: 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-white/10 dark:text-gray-400 dark:border-white/5' },
     rejected: { label: 'Rejected', dotColor: 'bg-red-400', badgeClass: 'bg-red-50 text-red-600 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-500/20' },
+    banned: {
+      label: 'Banned',
+      dotColor: 'bg-red-600',
+      badgeClass: 'bg-red-100 text-red-700 border-red-300 dark:bg-red-950/40 dark:text-red-400 dark:border-red-500/20'
+    },
   };
 
   const STATS_DISPLAY = [

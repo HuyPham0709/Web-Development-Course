@@ -327,7 +327,11 @@ exports.forgotPassword = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = formatToMySQLDateTime(new Date(Date.now() + 10 * 60 * 1000));
 
-    await db.execute("UPDATE Users SET otp_code = ?, otp_expires = ? WHERE email = ?", [otp, otpExpires, email]);
+    // Bỏ dòng: const otpExpires = formatToMySQLDateTime(...);
+    await db.execute(
+      "UPDATE Users SET otp_code = ?, otp_expires = DATE_ADD(NOW(), INTERVAL 10 MINUTE) WHERE email = ?",
+      [otp, email]
+    );
 
     const emailHTML = generateEmailHTML(
       email.split("@")[0],
@@ -352,8 +356,8 @@ exports.resetPassword = async (req, res) => {
   try {
     const currentTime = formatToMySQLDateTime(new Date());
     const [users] = await db.execute(
-      "SELECT * FROM Users WHERE email = ? AND otp_code = ? AND otp_expires > ?",
-      [email, otp, currentTime]
+      "SELECT * FROM Users WHERE email = ? AND otp_code = ? AND otp_expires > NOW()",
+      [email, otp]
     );
     if (users.length === 0) return res.status(400).json({ success: false, message: "Invalid or expired OTP code!" });
 
@@ -458,7 +462,10 @@ exports.adminLogin = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = formatToMySQLDateTime(new Date(Date.now() + 5 * 60 * 1000));
 
-    await db.execute("UPDATE Users SET otp_code = ?, otp_expires = ? WHERE email = ?", [otp, otpExpires, email]);
+    await db.execute(
+      "UPDATE Users SET otp_code = ?, otp_expires = DATE_ADD(NOW(), INTERVAL 5 MINUTE) WHERE email = ?",
+      [otp, email]
+    );
 
     const emailHTML = generateEmailHTML(
       "Admin",
@@ -484,8 +491,11 @@ exports.verifyLoginOTP = async (req, res) => {
   try {
     const currentTime = formatToMySQLDateTime(new Date());
     const [users] = await db.execute(
-      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name FROM Users u LEFT JOIN Profiles p ON u.id = p.user_id WHERE u.email = ? AND u.otp_code = ? AND u.otp_expires > ?`,
-      [email, otp, currentTime]
+      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name 
+   FROM Users u 
+   LEFT JOIN Profiles p ON u.id = p.user_id 
+   WHERE u.email = ? AND u.otp_code = ? AND u.otp_expires > NOW()`,
+      [email, otp]
     );
     if (users.length === 0) return res.status(400).json({ success: false, message: "Invalid or expired OTP code!" });
 
