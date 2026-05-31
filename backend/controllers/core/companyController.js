@@ -1,5 +1,5 @@
 const db = require('../../config/db');
-const cloudinary = require('../../config/cloudinary');
+const { cloudinary, uploadToCloudinary } = require('../../config/cloudinary');
 
 // ─── 1. GET /api/companies/:id HOẶC /api/companies/:slug ─────────────────────
 // Lấy thông tin chi tiết của một công ty dựa trên ID hoặc Slug
