@@ -325,3 +325,5 @@ CREATE TABLE Job_Invitations (
     INDEX idx_invitation_employer (employer_id),
     INDEX idx_invitation_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE Users ADD COLUMN ban_reason TEXT NULL;

@@ -1,4 +1,5 @@
 const db = require('../../config/db'); // Đường dẫn cấp 2 đi từ controllers/admin/ ra config/db
+const { createAdminNotification } = require("../admin/adminNotificationController");
 
 // =======================================================
 // 1. DÀNH CHO ỨNG VIÊN: Tạo báo cáo vi phạm công việc (MỚI BỔ SUNG)
@@ -16,6 +17,20 @@ exports.createReport = async (req, res) => {
             'INSERT INTO Reports (reporter_id, job_id, reason, status) VALUES (?, ?, ?, "pending")',
             [reporter_id, job_id, reason]
         );
+        const [jobRows] = await db.execute(
+            `SELECT j.title, u.username 
+     FROM Jobs j, Users u 
+     WHERE j.id = ? AND u.id = ?`,
+            [job_id, reporter_id]
+        );
+        const jobTitle = jobRows[0]?.title || `Job #${job_id}`;
+        const reporterName = jobRows[0]?.username || `User #${reporter_id}`;
+
+        await createAdminNotification({
+            title: "🚨 New Violation Report",
+            message: `${reporterName} reported job: "${jobTitle}" for: "${reason}"`,
+            link_url: `/reports`
+        });
 
         return res.status(201).json({
             success: true,

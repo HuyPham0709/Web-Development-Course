@@ -41,42 +41,27 @@ export const resolveFileUrl = (url: string | null | undefined): string => {
 export function formatSalary(
   min: number | string | null | undefined,
   max: number | string | null | undefined,
-  currency = "VND"
+  currency = "USD"
 ): string {
   const numMin = min !== null && min !== undefined ? Number(min) : 0;
   const numMax = max !== null && max !== undefined ? Number(max) : 0;
-  const currentCurrency = String(currency || "VND").toUpperCase();
 
-  if (!numMin && !numMax) return 'Thỏa thuận';
+  if (!numMin && !numMax) return "Negotiable";
 
-  if (currentCurrency === "VND") {
-    // Hàm phụ để biến đổi từng số đơn lẻ thành chuỗi hiển thị thông minh
-    const formatSingleValue = (val: number): string => {
-      if (val >= 1000000) {
-        const valueM = val / 1000000;
-        // Nếu là số nguyên (ví dụ 1.0) thì lấy 1M, nếu lẻ (ví dụ 1.5) thì giữ 1.5M
-        return Number(valueM.toFixed(1)) + "M";
-      } else if (val >= 1000) {
-        const valueK = val / 1000;
-        // Chuyển thành dạng "500 nghìn" hoặc "50k" tùy bạn thích. 
-        // Ở đây mình để chữ "nghìn" cho thân thiện, bạn có thể đổi chữ " nghìn" thành "k" nếu muốn ngắn gọn.
-        return Number(valueK.toFixed(0)) + " K";
-      }
-      return val.toString();
-    };
+  const fmt = (val: number) =>
+    val.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
-    return `${formatSingleValue(numMin)} - ${formatSingleValue(numMax)}`;
-  }
-
-  // Fallback định dạng chuẩn cho ngoại tệ khác (USD...)
-  return `${numMin.toLocaleString()} - ${numMax.toLocaleString()} ${currentCurrency}`;
+  if (numMin && numMax) return `${fmt(numMin)} - ${fmt(numMax)}`;
+  if (numMin) return `From ${fmt(numMin)}`;
+  return `Up to ${fmt(numMax)}`;
 }
+
 export function formatRelativeTime(dateString?: string) {
   if (!dateString) return "Recently posted";
   const date = new Date(dateString);
   const now = new Date();
   const diffInMs = now.getTime() - date.getTime();
-  
+
   const diffInMins = Math.floor(diffInMs / (1000 * 60));
   const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
   const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));

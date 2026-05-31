@@ -11,7 +11,10 @@ module.exports = {
   init: (httpServer) => {
     io = new Server(httpServer, {
       cors: {
-        origin: process.env.CLIENT_URL || "http://localhost:5173",
+        origin: [
+          process.env.CLIENT_URL || "http://localhost:5173",
+          "http://localhost:5174"
+        ],
         methods: ["GET", "POST"],
       },
     });
@@ -26,6 +29,10 @@ module.exports = {
 
           // ✅ GIẢI PHÁP VÀNG: Ép socket này tham gia vào phòng riêng của User
           socket.join(`user_${stringUserId}`);
+          if (stringUserId === "admin") {
+            socket.join("user_admin");
+            console.log(`🛡️ Admin đã gia nhập ROOM [user_admin]`);
+          }
 
           // Quản lý danh sách online hỗ trợ đa kết nối (Nhiều tab / Nhiều component)
           if (!onlineUsers.has(stringUserId)) {
@@ -49,11 +56,11 @@ module.exports = {
             { _id: conversationId },
             { $set: { unreadCount: 0 } },
           );
-          
+
           // Bắn tín hiệu ngược lại cho client để update badge trên Navbar (ĐÃ FIX THÊM TIỀN TỐ)
           const stringUserId = String(userId);
           io.to(`user_${stringUserId}`).emit("update_unread_total");
-          
+
         } catch (error) {
           console.error("Lỗi khi mark as read via socket:", error);
         }

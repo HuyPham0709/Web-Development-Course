@@ -36,11 +36,11 @@ interface Stats {
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'Vừa xong'
-  if (mins < 60) return `${mins} phút trước`
+  if (mins < 1) return 'Just now'
+  if (mins < 60) return `${mins}m ago`
   const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs} giờ trước`
-  return `${Math.floor(hrs / 24)} ngày trước`
+  if (hrs < 24) return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
 }
 
 const STATUS_CONFIG = {
@@ -77,15 +77,15 @@ export function Reports() {
       if (data.success) {
         setReports(data.data)
         setStats(data.stats)
-        // Auto-select report đầu tiên
+        // Auto-select first report
         if (data.data.length > 0 && !selectedReport) {
           setSelectedReport(data.data[0])
         }
       } else {
-        toast.error(data.message || 'Lỗi tải dữ liệu')
+        toast.error(data.message || 'Error loading data')
       }
     } catch {
-      toast.error('Không thể kết nối máy chủ')
+      toast.error('Unable to connect to the server')
     } finally {
       setLoading(false)
     }
@@ -93,7 +93,7 @@ export function Reports() {
 
   useEffect(() => { fetchReports() }, [fetchReports])
 
-  // Cập nhật status report
+  // Update report status
   const handleUpdateStatus = async (status: 'resolved' | 'ignored') => {
     if (!selectedReport) return
     setActionLoading(true)
@@ -107,21 +107,21 @@ export function Reports() {
       if (data.success) {
         setReports(prev => prev.map(r => r.id === selectedReport.id ? { ...r, status } : r))
         setSelectedReport(prev => prev ? { ...prev, status } : prev)
-        toast.success(status === 'resolved' ? 'Đã đánh dấu resolved' : 'Đã ignore report')
+        toast.success(status === 'resolved' ? 'Marked as resolved' : 'Report ignored')
       } else {
         toast.error(data.message)
       }
     } catch {
-      toast.error('Lỗi kết nối')
+      toast.error('Connection error')
     } finally {
       setActionLoading(false)
     }
   }
 
-  // Xóa job
+  // Delete job
   const handleDeleteJob = async () => {
     if (!selectedReport) return
-    if (!window.confirm(`Xóa tin "${selectedReport.job_title}"? Hành động này không thể hoàn tác.`)) return
+    if (!window.confirm(`Delete job post "${selectedReport.job_title}"? This action cannot be undone.`)) return
     setActionLoading(true)
     try {
       const res = await fetch(`${API_URL}/reports/${selectedReport.id}/job`, {
@@ -136,12 +136,12 @@ export function Reports() {
             : r
         ))
         setSelectedReport(prev => prev ? { ...prev, status: 'resolved', job_status: 'closed' } : prev)
-        toast.success('Đã xóa tin tuyển dụng')
+        toast.success('Job post deleted successfully')
       } else {
         toast.error(data.message)
       }
     } catch {
-      toast.error('Lỗi kết nối')
+      toast.error('Connection error')
     } finally {
       setActionLoading(false)
     }
@@ -193,7 +193,7 @@ export function Reports() {
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 transition-colors duration-200" />
               <input
-                placeholder="Tìm theo job, reporter..."
+                placeholder="Search by job, reporter..."
                 className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-sm outline-none focus:border-indigo-500 dark:focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-colors duration-200"
                 value={searchInput}
                 onChange={e => setSearchInput(e.target.value)}
@@ -230,7 +230,7 @@ export function Reports() {
             ) : reports.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-slate-400 dark:text-slate-500 transition-colors duration-200">
                 <AlertOctagon className="w-10 h-10 mb-2 opacity-20" />
-                <p className="text-sm">Không có report nào</p>
+                <p className="text-sm">No reports available</p>
               </div>
             ) : reports.map(report => {
               const cfg = STATUS_CONFIG[report.status]
@@ -277,17 +277,17 @@ export function Reports() {
                       <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 transition-colors duration-200">
                         {selectedReport.job_title}
                       </h2>
-                      
-                      <Badge 
-                        variant="outline" 
+
+                      <Badge
+                        variant="outline"
                         className="dark:border-slate-700 dark:text-slate-300 transition-colors duration-200"
                       >
                         {selectedReport.company_name}
                       </Badge>
 
                       {selectedReport.job_status === 'closed' && (
-                        <Badge 
-                          variant="secondary" 
+                        <Badge
+                          variant="secondary"
                           className="dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/80 transition-colors duration-200"
                         >
                           Job Closed
@@ -310,7 +310,7 @@ export function Reports() {
                 <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/50 rounded-xl p-4 flex gap-3 text-rose-900 dark:text-rose-200 transition-colors duration-200">
                   <AlertOctagon className="w-5 h-5 flex-shrink-0 mt-0.5 text-rose-500 dark:text-rose-400 transition-colors duration-200" />
                   <div>
-                    <h4 className="font-semibold text-sm">Lý do báo cáo: {selectedReport.reason}</h4>
+                    <h4 className="font-semibold text-sm">Report Reason: {selectedReport.reason}</h4>
                     <p className="text-sm mt-1 opacity-80">
                       Reported by <strong>{selectedReport.reporter_username}</strong> ({selectedReport.reporter_email})
                     </p>
@@ -332,7 +332,7 @@ export function Reports() {
                     <p className="font-semibold text-slate-800 dark:text-slate-200 transition-colors duration-200">{selectedReport.reporter_username}</p>
                   </div>
                   <div className="bg-slate-50 dark:bg-slate-900/80 rounded-lg p-3 transition-colors duration-200">
-                    <p className="text-slate-500 dark:text-slate-400 text-xs mb-1 transition-colors duration-200">Ngày báo cáo</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs mb-1 transition-colors duration-200">Report Date</p>
                     <p className="font-semibold text-slate-800 dark:text-slate-200 transition-colors duration-200">
                       {new Date(selectedReport.created_at).toLocaleDateString('vi-VN')}
                     </p>
@@ -347,7 +347,7 @@ export function Reports() {
                   </h3>
                   <textarea
                     className="w-full h-28 p-3 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:border-indigo-500 dark:focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-colors duration-200"
-                    placeholder="Ghi chú nội bộ về quá trình xử lý..."
+                    placeholder="Internal notes on resolution process..."
                   />
                 </div>
               </div>
@@ -394,7 +394,7 @@ export function Reports() {
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 transition-colors duration-200">
               <AlertOctagon className="w-12 h-12 mb-4 opacity-20" />
-              <p>Chọn một report để xem chi tiết</p>
+              <p>Select a report to view details</p>
             </div>
           )}
         </Card>

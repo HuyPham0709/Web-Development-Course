@@ -1,4 +1,12 @@
 const db = require('../../config/db');
+const nodemailer = require('nodemailer');
+const emailUser = "txxh1004@gmail.com";
+const emailPass = "wrwvarvgrqlkhjwq";
+
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: { user: emailUser, pass: emailPass }
+});
 
 // ================= LẤY DANH SÁCH USERS =================
 exports.getUsers = async (req, res) => {
@@ -111,29 +119,67 @@ exports.toggleBanUser = async (req, res) => {
 
     try {
         const [users] = await db.execute(
-            "SELECT id, username, is_active, role FROM Users WHERE id = ? AND deleted_at IS NULL",
+            "SELECT id, username, email, is_active, role FROM Users WHERE id = ? AND deleted_at IS NULL",
             [user_id]
         );
 
-        if (users.length === 0) {
+        if (users.length === 0)
             return res.status(404).json({ success: false, message: "Không tìm thấy người dùng!" });
-        }
 
         const user = users[0];
 
-        if (user.role === 'admin') {
+        if (user.role === 'admin')
             return res.status(403).json({ success: false, message: "Không thể ban tài khoản Admin!" });
-        }
 
         const newStatus = user.is_active ? 0 : 1;
-        await db.execute("UPDATE Users SET is_active = ? WHERE id = ?", [newStatus, user_id]);
+        if (newStatus === 0) {
+            const banReason = reason?.trim() || "Vi phạm điều khoản sử dụng dịch vụ.";
+            await db.execute(
+                "UPDATE Users SET is_active = ?, ban_reason = ? WHERE id = ?",
+                [newStatus, banReason, user_id]
+            );
+        } else {
+            // Khi unban thì xóa lý do ban
+            await db.execute(
+                "UPDATE Users SET is_active = ?, ban_reason = NULL WHERE id = ?",
+                [newStatus, user_id]
+            );
+        }
+
+        // Gửi email thông báo khi BAN (không gửi khi unban)
+        if (newStatus === 0) {
+            const banReason = reason?.trim() || "Vi phạm điều khoản sử dụng dịch vụ.";
+            await transporter.sendMail({
+                from: `"JobSpot Admin" <${emailUser}>`,
+                to: user.email,
+                subject: "⚠️ Tài khoản của bạn đã bị tạm khóa",
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+                        <div style="background: #dc2626; padding: 20px 24px;">
+                            <h2 style="color: white; margin: 0;">⚠️ Tài khoản bị tạm khóa</h2>
+                        </div>
+                        <div style="padding: 24px;">
+                            <p>Xin chào <strong>${user.username}</strong>,</p>
+                            <p>Tài khoản của bạn trên <strong>JobSpot</strong> đã bị tạm khóa bởi quản trị viên.</p>
+                            <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 12px 16px; border-radius: 4px; margin: 16px 0;">
+                                <p style="margin: 0;"><strong>Lý do:</strong> ${banReason}</p>
+                            </div>
+                            <p>Nếu bạn cho rằng đây là nhầm lẫn, vui lòng liên hệ bộ phận hỗ trợ để được giải quyết.</p>
+                            <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Trân trọng,<br/>Đội ngũ JobSpot</p>
+                        </div>
+                    </div>
+                `
+            });
+        }
 
         const action = newStatus === 0 ? 'banned' : 'unbanned';
         console.log(`[ADMIN] User ${user.username} (ID: ${user_id}) ${action}. Reason: ${reason || 'N/A'}`);
 
         res.status(200).json({
             success: true,
-            message: newStatus === 0 ? `Đã ban tài khoản ${user.username}` : `Đã mở ban tài khoản ${user.username}`,
+            message: newStatus === 0
+                ? `Đã ban tài khoản ${user.username} và gửi email thông báo.`
+                : `Đã mở ban tài khoản ${user.username}`,
             new_status: newStatus === 1 ? 'active' : 'banned'
         });
     } catch (error) {
@@ -187,7 +233,7 @@ exports.getUserDetail = async (req, res) => {
         const [users] = await db.execute(`
             SELECT
                 u.id, u.username, u.email, u.role,
-                u.is_active, u.is_verified, u.created_at,
+                u.is_active, u.is_verified, u.created_at,u.ban_reason,
                 c.id AS company_id, c.name AS company_name,
                 c.is_verified AS company_verified, c.website, c.address,
                 p.full_name, p.avatar_url, p.phone, p.bio

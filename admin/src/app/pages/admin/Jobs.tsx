@@ -53,10 +53,10 @@ export function Jobs() {
       if (data.success) {
         setJobs(data.data);
       } else {
-        setError(data.message || 'Lỗi khi tải dữ liệu');
+        setError(data.message || 'Error loading data');
       }
     } catch {
-      setError('Không thể kết nối đến máy chủ');
+      setError('Unable to connect to the server.');
     } finally {
       setLoading(false);
     }
@@ -71,7 +71,7 @@ export function Jobs() {
     const currentJob = jobs[selectedIndex];
 
     if (action === 'reject' && !reason.trim()) {
-      toast.warning('Vui lòng nhập lý do từ chối!');
+      toast.warning('Please enter the reason for rejection!');
       return;
     }
 
@@ -103,10 +103,10 @@ export function Jobs() {
         });
         setReason('');
       } else {
-        toast.error(data.message || 'Có lỗi xảy ra');
+        toast.error(data.message || 'An error occurred');
       }
     } catch {
-      toast.error('Không thể kết nối đến máy chủ');
+      toast.error('Unable to connect to the server.');
     } finally {
       setActionLoading(false);
     }
@@ -116,7 +116,7 @@ export function Jobs() {
     return (
       <div className="h-full w-full flex flex-col items-center justify-center min-h-[600px] gap-3 bg-[#F8FAFC] dark:bg-slate-900 text-slate-400">
         <Loader2 className="w-8 h-8 animate-spin text-indigo-600 dark:text-indigo-400" />
-        <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Đang tải hàng đợi kiểm duyệt...</span>
+        <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Loading moderation queue...</span>
       </div>
     );
   }
@@ -129,7 +129,7 @@ export function Jobs() {
           onClick={fetchPendingJobs}
           className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-transparent dark:border-slate-700/50"
         >
-          <RefreshCw className="w-4 h-4" /> Thử lại
+          <RefreshCw className="w-4 h-4" /> Retry
         </button>
       </div>
     );
@@ -189,9 +189,9 @@ export function Jobs() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-        {/* Cột Trái: Chi tiết job */}
+        {/* Left column: Job details */}
         <div className="lg:col-span-2 bg-white dark:bg-slate-800/60 backdrop-blur-xl rounded-[32px] shadow-sm border border-gray-100 dark:border-slate-700/50 p-8 md:p-10 flex flex-col animate-in slide-in-from-right-8 duration-500 fade-in">
-          {/* Header job */}
+          {/* Job header */}
           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6 border-b border-gray-50 dark:border-slate-700/50 pb-8 mb-8">
             <div className="flex gap-6 items-start">
               <div className="w-20 h-20 rounded-2xl border border-gray-100 dark:border-slate-700/50 flex items-center justify-center flex-shrink-0 shadow-sm bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-2xl font-black">
@@ -226,7 +226,7 @@ export function Jobs() {
             <div className="bg-gray-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-gray-100 dark:border-slate-700/50">
               <MapPin className="w-5 h-5 text-gray-400 dark:text-slate-400 mb-2" />
               <p className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1">Location</p>
-              <p className="text-sm font-bold text-gray-900 dark:text-white">{job.location_name || "Chưa cập nhật"}</p>
+              <p className="text-sm font-bold text-gray-900 dark:text-white">{job.location_name || "Not updated"}</p>
             </div>
             <div className="bg-gray-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-gray-100 dark:border-slate-700/50">
               <DollarSign className="w-5 h-5 text-gray-400 dark:text-slate-400 mb-2" />
@@ -280,7 +280,7 @@ export function Jobs() {
           </div>
         </div>
 
-        {/* Cột Phải: Action panel (Đã đồng bộ sang hệ màu slate cho hợp tổng thể mà vẫn giữ chất Dark) */}
+        {/* Right column: Action panel */}
         <div className="bg-slate-900 dark:bg-slate-800/80 border border-slate-800 dark:border-slate-700/50 rounded-[32px] shadow-2xl p-8 lg:p-10 text-white flex flex-col relative overflow-hidden h-fit sticky top-8 animate-in slide-in-from-bottom-8 duration-500 fade-in backdrop-blur-xl">
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full opacity-20 blur-[80px] pointer-events-none"></div>
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-rose-600 rounded-full opacity-10 blur-[80px] pointer-events-none"></div>

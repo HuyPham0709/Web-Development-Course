@@ -12,16 +12,26 @@ const nodemailer = require("nodemailer");
 const rateLimit = require("express-rate-limit");
 const axios = require("axios");
 
-// 🌟 IN-MEMORY STORAGE FOR UNVERIFIED REGISTRATIONS
+// In-memory storage for unverified registrations (Both Standard & Google)
 const tempRegisterData = new Map();
 
+// Import admin notification function safely
+let createAdminNotification = null;
+try {
+  const notificationService = require('../notificationController');
+  createAdminNotification = notificationService.createAdminNotification;
+} catch (e) {
+  createAdminNotification = async (data) => { console.log("Mock Notification:", data); };
+}
+
+// JWT fallback if .env is missing
 if (!process.env.JWT_SECRET) {
   process.env.JWT_SECRET = "JobFinder_Team7_SecretKey_Moi";
 }
 
 const apiLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, 
-  max: 100, 
+  windowMs: 1 * 60 * 1000,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
   validate: { xForwardedForHeader: false },
@@ -31,7 +41,6 @@ const formatToMySQLDateTime = (date) => {
   return date.toISOString().slice(0, 19).replace("T", " ");
 };
 
-// Fixed Mail Configuration
 const emailUser = "txxh1004@gmail.com";
 const emailPass = "wrwvarvgrqlkhjwq";
 
@@ -43,7 +52,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// 🔥 EMAIL HTML TEMPLATE WITH GRADIENT OTP BOX
 const generateEmailHTML = (fullName, otp, title, description) => {
   return `
   <!DOCTYPE html>
@@ -58,32 +66,25 @@ const generateEmailHTML = (fullName, otp, title, description) => {
       <tr>
         <td align="center">
           <table width="100%" max-width="500px" border="0" cellspacing="0" cellpadding="0" style="max-width: 500px; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04); border: 1px solid #E2E8F0;">
-            
             <tr>
               <td style="background: linear-gradient(135deg, #0052FF 0%, #8B5CF6 100%); height: 6px;"></td>
             </tr>
-            
             <tr>
               <td style="padding: 40px 32px; text-align: center;">
-                
                 <div style="margin-bottom: 28px; display: inline-block;">
                   <span style="font-size: 26px; font-weight: 800; tracking: -0.5px; color: #0F172A;">
                     <span style="color: #0052FF;">Job</span><span style="color: #8B5CF6;">Spot</span>
                   </span>
                 </div>
-                
                 <h2 style="margin: 0 0 16px 0; color: #0F172A; font-size: 22px; font-weight: 700; line-height: 30px;">${title}</h2>
-                
                 <p style="margin: 0 0 24px 0; color: #475569; font-size: 15px; line-height: 24px; text-align: left;">
                   Hello <strong style="color: #0F172A;">${fullName}</strong>,<br><br>
                   ${description}
                 </p>
-                
                 <div style="background: linear-gradient(135deg, #0052FF 0%, #8B5CF6 100%); border-radius: 20px; padding: 28px 24px; margin: 32px 0; text-align: center; box-shadow: 0 8px 25px rgba(0, 82, 255, 0.25);">
                   <span style="display: block; font-size: 12px; font-weight: 700; color: #FFFFFF; opacity: 0.85; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px;">Your Security Verification Code</span>
                   <span style="font-size: 42px; font-weight: 800; color: #FFFFFF; letter-spacing: 8px; font-family: 'Courier New', Courier, monospace; display: inline-block; padding-left: 8px;">${otp}</span>
                 </div>
-                
                 <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #FFFBEB; border-radius: 12px; border: 1px solid #FEF3C7; margin-bottom: 10px;">
                   <tr>
                     <td style="padding: 12px 16px; text-align: left; font-size: 13px; color: #B45309; line-height: 18px;">
@@ -91,10 +92,8 @@ const generateEmailHTML = (fullName, otp, title, description) => {
                     </td>
                   </tr>
                 </table>
-                
               </td>
             </tr>
-            
             <tr>
               <td style="background-color: #F8FAFC; padding: 24px 32px; text-align: center; border-top: 1px solid #E2E8F0;">
                 <p style="margin: 0 0 6px 0; color: #64748B; font-size: 13px; font-weight: 600;">JobSpot Authentication System</p>
@@ -125,10 +124,10 @@ exports.register = async (req, res) => {
 
   try {
     const [rows] = await db.execute(
-      "SELECT email, username FROM Users WHERE email = ? OR username = ?", 
+      "SELECT email, username FROM Users WHERE email = ? OR username = ?",
       [email, finalName]
     );
-    
+
     if (rows.length > 0) {
       const isEmailTaken = rows.some(user => user.email === email);
       const isUsernameTaken = rows.some(user => user.username === finalName);
@@ -141,15 +140,24 @@ exports.register = async (req, res) => {
     const otpExpires = Date.now() + 10 * 60 * 1000;
 
     tempRegisterData.set(email, {
-      username: finalName, full_name: finalName, email, phone, password: hashedPassword, role: role || "candidate", avatar_url: null, otp, otpExpires
+      username: finalName, full_name: finalName, email, phone,
+      password: hashedPassword, role: role || "candidate", avatar_url: null, otp, otpExpires
     });
 
     const emailHTML = generateEmailHTML(
-      finalName, 
-      otp, 
-      "Verify Your New Account", 
+      finalName,
+      otp,
+      "Verify Your New Account",
       "Thank you for choosing to register with JobSpot tech job marketplace ecosystem. Please use the verification code below to activate your account:"
     );
+
+    if (role === "employer" && createAdminNotification) {
+      await createAdminNotification({
+        title: "🏢 New Employer Registered",
+        message: `${finalName} (${email}) just created an employer account and is awaiting company verification.`,
+        link_url: `/users`
+      });
+    }
 
     await transporter.sendMail({
       from: `"JobSpot" <${emailUser}>`,
@@ -172,24 +180,25 @@ exports.verifyEmail = async (req, res) => {
     if (!tempData) return res.status(400).json({ success: false, message: "Registration session does not exist or has expired!" });
     if (tempData.otp !== otp) return res.status(400).json({ success: false, message: "Incorrect OTP code!" });
     if (Date.now() > tempData.otpExpires) {
-      tempRegisterData.delete(email); 
+      tempRegisterData.delete(email);
       return res.status(400).json({ success: false, message: "OTP code has expired! Please try registering again." });
     }
 
+    // Insert user into DB (is_active = 1, is_verified = 1)
     const [userResult] = await db.execute(
-      "INSERT INTO Users (username, email, password, role, is_verified) VALUES (?, ?, ?, ?, 1)",
-      [tempData.username, tempData.email, tempData.password, tempData.role],
+      "INSERT INTO Users (username, email, password, role, is_verified, is_active) VALUES (?, ?, ?, ?, 1, 1)",
+      [tempData.username, tempData.email, tempData.password, tempData.role]
     );
 
     const userId = userResult.insertId;
     let companyId = null;
 
     if (tempData.role === "employer") {
-      const [companyResult] = await db.execute("INSERT INTO Companies (name) VALUES (?)", [`${tempData.full_name}'s Company`]);
+      const [companyResult] = await db.execute("INSERT INTO Companies (name) VALUES (?)", [`Company of ${tempData.full_name}`]);
       companyId = companyResult.insertId;
       await db.execute("UPDATE Users SET company_id = ? WHERE id = ?", [companyId, userId]);
     }
-    
+
     await db.execute(
       "INSERT INTO Profiles (user_id, full_name, phone, avatar_url) VALUES (?, ?, ?, ?)",
       [userId, tempData.full_name, tempData.phone, tempData.avatar_url]
@@ -197,9 +206,12 @@ exports.verifyEmail = async (req, res) => {
 
     tempRegisterData.delete(email);
 
-    const token = jwt.sign({ id: userId, role: tempData.role, company_id: companyId }, process.env.JWT_SECRET, { expiresIn: "1d" });
+    const token = jwt.sign(
+      { id: userId, role: tempData.role, company_id: companyId },
+      process.env.JWT_SECRET, { expiresIn: "1d" }
+    );
 
-    return res.status(200).json({ 
+    return res.status(200).json({
       success: true, message: "Verification successful!", token,
       user: { id: userId, username: tempData.username, full_name: tempData.full_name, role: tempData.role, company_id: companyId, avatar_url: tempData.avatar_url }
     });
@@ -223,9 +235,9 @@ exports.resendOtp = async (req, res) => {
     tempRegisterData.set(email, tempData);
 
     const emailHTML = generateEmailHTML(
-      tempData.full_name, 
-      newOtp, 
-      "Resend Verification Code Request", 
+      tempData.full_name,
+      newOtp,
+      "Resend Verification Code Request",
       "You have requested to resend your OTP code. Please use this new security verification code to continue your verification process:"
     );
 
@@ -248,20 +260,39 @@ exports.login = async (req, res) => {
   if (!email || !password) return res.status(400).json({ success: false, message: "Please enter all required information!" });
 
   try {
-    const [users] = await db.execute(`SELECT u.*, p.avatar_url AS profile_avatar, p.full_name FROM Users u LEFT JOIN Profiles p ON p.user_id = u.id WHERE u.email = ?`, [email]);
+    const [users] = await db.execute(
+      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name FROM Users u LEFT JOIN Profiles p ON p.user_id = u.id WHERE u.email = ?`,
+      [email]
+    );
     if (users.length === 0) return res.status(404).json({ success: false, message: "User does not exist!" });
 
     const user = users[0];
+
+    if (!user.is_active) {
+      const banMsg = user.ban_reason
+        ? `Your account has been suspended. Reason: ${user.ban_reason}`
+        : "Your account has been suspended. Please contact support.";
+      return res.status(403).json({ success: false, message: banMsg });
+    }
+
     if (role && user.role !== role) {
       const roleName = user.role === "employer" ? "Employer" : "Candidate";
       return res.status(403).json({ success: false, message: `Incorrect login portal! This account is registered as a ${roleName}.` });
+    }
+
+    // Security block: Prevent standard login attempts on Google-created accounts using standard passwords
+    if (user.password === "LOGIN_BY_GOOGLE") {
+      return res.status(400).json({ success: false, message: "This account uses Google Login. Please sign in via Google." });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ success: false, message: "Incorrect password!" });
     if (!user.is_verified) return res.status(401).json({ success: false, message: "Email has not been verified yet!" });
 
-    const token = jwt.sign({ id: user.id, role: user.role, company_id: user.company_id }, process.env.JWT_SECRET, { expiresIn: "1d" });
+    const token = jwt.sign(
+      { id: user.id, role: user.role, company_id: user.company_id },
+      process.env.JWT_SECRET, { expiresIn: "1d" }
+    );
 
     return res.status(200).json({
       success: true, token,
@@ -275,7 +306,10 @@ exports.login = async (req, res) => {
 // --- 5. GET PROFILE ---
 exports.getProfile = async (req, res) => {
   try {
-    const [rows] = await db.execute(`SELECT u.id, u.username, u.email, u.role, u.company_id, u.created_at, p.avatar_url, p.full_name, p.phone FROM Users u LEFT JOIN Profiles p ON u.id = p.user_id WHERE u.id = ?`, [req.user.id]);
+    const [rows] = await db.execute(
+      `SELECT u.id, u.username, u.email, u.role, u.company_id, u.created_at, p.avatar_url, p.full_name, p.phone FROM Users u LEFT JOIN Profiles p ON u.id = p.user_id WHERE u.id = ?`,
+      [req.user.id]
+    );
     if (rows.length === 0) return res.status(404).json({ success: false, message: "User not found!" });
     return res.status(200).json({ success: true, data: rows[0] });
   } catch (error) {
@@ -294,7 +328,7 @@ exports.forgotPassword = async (req, res) => {
     const otpExpires = formatToMySQLDateTime(new Date(Date.now() + 10 * 60 * 1000));
 
     await db.execute("UPDATE Users SET otp_code = ?, otp_expires = ? WHERE email = ?", [otp, otpExpires, email]);
-    
+
     const emailHTML = generateEmailHTML(
       email.split("@")[0],
       otp,
@@ -317,7 +351,10 @@ exports.resetPassword = async (req, res) => {
   const { email, otp, newPassword } = req.body;
   try {
     const currentTime = formatToMySQLDateTime(new Date());
-    const [users] = await db.execute("SELECT * FROM Users WHERE email = ? AND otp_code = ? AND otp_expires > ?", [email, otp, currentTime]);
+    const [users] = await db.execute(
+      "SELECT * FROM Users WHERE email = ? AND otp_code = ? AND otp_expires > ?",
+      [email, otp, currentTime]
+    );
     if (users.length === 0) return res.status(400).json({ success: false, message: "Invalid or expired OTP code!" });
 
     const isSamePassword = await bcrypt.compare(newPassword, users[0].password);
@@ -341,7 +378,10 @@ exports.googleLogin = async (req, res) => {
     });
     const { email, name, picture } = googleResponse.data;
 
-    const [users] = await db.execute(`SELECT u.*, p.avatar_url AS profile_avatar, p.full_name FROM Users u LEFT JOIN Profiles p ON p.user_id = u.id WHERE u.email = ?`, [email]);
+    const [users] = await db.execute(
+      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name FROM Users u LEFT JOIN Profiles p ON p.user_id = u.id WHERE u.email = ?`,
+      [email]
+    );
     let user = users[0];
 
     if (!user) {
@@ -352,14 +392,16 @@ exports.googleLogin = async (req, res) => {
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
       const otpExpires = Date.now() + 10 * 60 * 1000;
 
+      // FIX: Secure the temporary entry with a non-invertible token flag string
       tempRegisterData.set(email, {
-        username: autoUsername, full_name: name, email, phone: "Not provided", password: "LOGIN_BY_GOOGLE", role: role || "candidate", avatar_url: picture, otp, otpExpires
+        username: autoUsername, full_name: name, email, phone: "Not provided",
+        password: "LOGIN_BY_GOOGLE", role: role || "candidate", avatar_url: picture, otp, otpExpires
       });
 
       const emailHTML = generateEmailHTML(
-        name, 
-        otp, 
-        "Google Login Verification", 
+        name,
+        otp,
+        "Google Login Verification",
         "You are connecting to our application using a new Google account. To ensure maximum security for this initial login process, please enter the following verification code:"
       );
 
@@ -370,11 +412,24 @@ exports.googleLogin = async (req, res) => {
         html: emailHTML,
       });
 
-      return res.status(200).json({ success: true, requireOtp: true, email, message: "New Google account detected! Please enter the OTP code sent to your Gmail to activate the account." });
+      return res.status(200).json({
+        success: true, requireOtp: true, email,
+        message: "New Google account detected! Please enter the OTP code sent to your Gmail to activate the account."
+      });
+    }
+
+    if (!user.is_active) {
+      const banMsg = user.ban_reason
+        ? `Your account has been suspended. Reason: ${user.ban_reason}`
+        : "Your account has been suspended. Please contact support.";
+      return res.status(403).json({ success: false, message: banMsg });
     }
 
     await db.execute(`UPDATE Users SET is_verified = 1 WHERE id = ?`, [user.id]);
-    const token = jwt.sign({ id: user.id, role: user.role, company_id: user.company_id }, process.env.JWT_SECRET, { expiresIn: "1d" });
+    const token = jwt.sign(
+      { id: user.id, role: user.role, company_id: user.company_id },
+      process.env.JWT_SECRET, { expiresIn: "1d" }
+    );
 
     return res.status(200).json({
       success: true, token,
@@ -404,7 +459,7 @@ exports.adminLogin = async (req, res) => {
     const otpExpires = formatToMySQLDateTime(new Date(Date.now() + 5 * 60 * 1000));
 
     await db.execute("UPDATE Users SET otp_code = ?, otp_expires = ? WHERE email = ?", [otp, otpExpires, email]);
-    
+
     const emailHTML = generateEmailHTML(
       "Admin",
       otp,
@@ -412,7 +467,10 @@ exports.adminLogin = async (req, res) => {
       "Login activity detected from a system admin account. Enter this OTP code immediately to gain access and open the Dashboard:"
     );
 
-    await transporter.sendMail({ from: `"JobSpot Admin" <${emailUser}>`, to: email, subject: "🚨 High-Level Admin Verification Code - JobSpot", html: emailHTML });
+    await transporter.sendMail({
+      from: `"JobSpot Admin" <${emailUser}>`, to: email,
+      subject: "🚨 High-Level Admin Verification Code - JobSpot", html: emailHTML
+    });
 
     return res.status(200).json({ success: true, message: "Please check your email for the OTP code!" });
   } catch (error) {
@@ -425,13 +483,19 @@ exports.verifyLoginOTP = async (req, res) => {
   const { email, otp } = req.body;
   try {
     const currentTime = formatToMySQLDateTime(new Date());
-    const [users] = await db.execute(`SELECT u.*, p.avatar_url AS profile_avatar, p.full_name FROM Users u LEFT JOIN Profiles p ON u.id = p.user_id WHERE u.email = ? AND u.otp_code = ? AND u.otp_expires > ?`, [email, otp, currentTime]);
+    const [users] = await db.execute(
+      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name FROM Users u LEFT JOIN Profiles p ON u.id = p.user_id WHERE u.email = ? AND u.otp_code = ? AND u.otp_expires > ?`,
+      [email, otp, currentTime]
+    );
     if (users.length === 0) return res.status(400).json({ success: false, message: "Invalid or expired OTP code!" });
 
     const user = users[0];
     await db.execute("UPDATE Users SET otp_code = NULL, otp_expires = NULL WHERE email = ?", [email]);
 
-    const token = jwt.sign({ id: user.id, role: user.role, company_id: user.company_id }, process.env.JWT_SECRET, { expiresIn: "1d" });
+    const token = jwt.sign(
+      { id: user.id, role: user.role, company_id: user.company_id },
+      process.env.JWT_SECRET, { expiresIn: "1d" }
+    );
 
     return res.status(200).json({
       success: true, token,
