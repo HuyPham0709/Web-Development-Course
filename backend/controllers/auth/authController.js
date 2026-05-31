@@ -12,14 +12,26 @@ const nodemailer = require("nodemailer");
 const rateLimit = require("express-rate-limit");
 const axios = require("axios");
 
-// 🔴 CHỐT CHẶN 1: Bảo mật JWT Token dự phòng nếu file .env bị nuốt biến
+// In-memory storage for unverified registrations (Both Standard & Google)
+const tempRegisterData = new Map();
+
+// Import admin notification function safely
+let createAdminNotification = null;
+try {
+  const notificationService = require('../notificationController');
+  createAdminNotification = notificationService.createAdminNotification;
+} catch (e) {
+  createAdminNotification = async (data) => { console.log("Mock Notification:", data); };
+}
+
+// JWT fallback if .env is missing
 if (!process.env.JWT_SECRET) {
   process.env.JWT_SECRET = "JobFinder_Team7_SecretKey_Moi";
 }
 
 const apiLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 phút
-  max: 100, // Giới hạn 100 request mỗi IP
+  windowMs: 1 * 60 * 1000,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
   validate: { xForwardedForHeader: false },
@@ -29,7 +41,6 @@ const formatToMySQLDateTime = (date) => {
   return date.toISOString().slice(0, 19).replace("T", " ");
 };
 
-// Cấu hình Mail cố định chống nạp chồng biến môi trường
 const emailUser = "txxh1004@gmail.com";
 const emailPass = "wrwvarvgrqlkhjwq";
 
@@ -41,553 +52,456 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// --- ĐĂNG KÝ (REGISTER) ---
+const generateEmailHTML = (fullName, otp, title, description) => {
+  return `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title}</title>
+  </head>
+  <body style="margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #F8FAFC; padding: 45px 15px;">
+      <tr>
+        <td align="center">
+          <table width="100%" max-width="500px" border="0" cellspacing="0" cellpadding="0" style="max-width: 500px; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04); border: 1px solid #E2E8F0;">
+            <tr>
+              <td style="background: linear-gradient(135deg, #0052FF 0%, #8B5CF6 100%); height: 6px;"></td>
+            </tr>
+            <tr>
+              <td style="padding: 40px 32px; text-align: center;">
+                <div style="margin-bottom: 28px; display: inline-block;">
+                  <span style="font-size: 26px; font-weight: 800; tracking: -0.5px; color: #0F172A;">
+                    <span style="color: #0052FF;">Job</span><span style="color: #8B5CF6;">Spot</span>
+                  </span>
+                </div>
+                <h2 style="margin: 0 0 16px 0; color: #0F172A; font-size: 22px; font-weight: 700; line-height: 30px;">${title}</h2>
+                <p style="margin: 0 0 24px 0; color: #475569; font-size: 15px; line-height: 24px; text-align: left;">
+                  Hello <strong style="color: #0F172A;">${fullName}</strong>,<br><br>
+                  ${description}
+                </p>
+                <div style="background: linear-gradient(135deg, #0052FF 0%, #8B5CF6 100%); border-radius: 20px; padding: 28px 24px; margin: 32px 0; text-align: center; box-shadow: 0 8px 25px rgba(0, 82, 255, 0.25);">
+                  <span style="display: block; font-size: 12px; font-weight: 700; color: #FFFFFF; opacity: 0.85; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px;">Your Security Verification Code</span>
+                  <span style="font-size: 42px; font-weight: 800; color: #FFFFFF; letter-spacing: 8px; font-family: 'Courier New', Courier, monospace; display: inline-block; padding-left: 8px;">${otp}</span>
+                </div>
+                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #FFFBEB; border-radius: 12px; border: 1px solid #FEF3C7; margin-bottom: 10px;">
+                  <tr>
+                    <td style="padding: 12px 16px; text-align: left; font-size: 13px; color: #B45309; line-height: 18px;">
+                      ⚠️ This OTP code is valid for <strong>10 minutes</strong>. Do not share this code with anyone under any circumstances, including JobSpot support staff.
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="background-color: #F8FAFC; padding: 24px 32px; text-align: center; border-top: 1px solid #E2E8F0;">
+                <p style="margin: 0 0 6px 0; color: #64748B; font-size: 13px; font-weight: 600;">JobSpot Authentication System</p>
+                <p style="margin: 0; color: #94A3B8; font-size: 11px;">© 2026 JobSpot Inc. All rights reserved.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+  </html>
+  `;
+};
+
+// --- 1. STANDARD REGISTER ---
 exports.register = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: errors.array()[0].msg,
-    });
+    return res.status(400).json({ success: false, message: errors.array()[0].msg });
   }
 
   const { name, username, email, password, role, phone } = req.body;
   const finalName = name || username;
 
-  if (!finalName) {
-    return res.status(400).json({
-      success: false,
-      message: "Tên không được để trống!",
-    });
-  }
-  // 2. Validate sơ bộ số điện thoại (Tuỳ chọn)
-  if (!phone) {
-    return res.status(400).json({
-      success: false,
-      message: "Số điện thoại không được để trống!",
-    });
-  }
+  if (!finalName) return res.status(400).json({ success: false, message: "Name cannot be empty!" });
+  if (!phone) return res.status(400).json({ success: false, message: "Phone number cannot be empty!" });
+
   try {
-    // 🎯 ĐÃ SỬA: Bắt lỗi trùng cả Email và Username ngay từ đầu để tránh lỗi 500
     const [rows] = await db.execute(
-      "SELECT * FROM Users WHERE email = ? OR username = ?", 
+      "SELECT email, username FROM Users WHERE email = ? OR username = ?",
       [email, finalName]
     );
-    
+
     if (rows.length > 0) {
       const isEmailTaken = rows.some(user => user.email === email);
       const isUsernameTaken = rows.some(user => user.username === finalName);
-
-      if (isEmailTaken) {
-        return res.status(400).json({ success: false, message: "Email này đã tồn tại!" });
-      }
-      if (isUsernameTaken) {
-        return res.status(400).json({ 
-          success: false, 
-          message: `Tên đăng nhập '${finalName}' đã có người sử dụng. Vui lòng chọn tên khác!` 
-        });
-      }
+      if (isEmailTaken) return res.status(400).json({ success: false, message: "This email already exists!" });
+      if (isUsernameTaken) return res.status(400).json({ success: false, message: `The username '${finalName}' is already taken!` });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = Date.now() + 10 * 60 * 1000;
 
-    const otpExpiresRaw = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
-    const otpExpires = formatToMySQLDateTime(otpExpiresRaw);
+    tempRegisterData.set(email, {
+      username: finalName, full_name: finalName, email, phone,
+      password: hashedPassword, role: role || "candidate", avatar_url: null, otp, otpExpires
+    });
 
-    const [userResult] = await db.execute(
-      "INSERT INTO Users (username, email, password, role, otp_code, otp_expires, is_verified, phone) VALUES (?, ?, ?, ?, ?, ?, 0, ?)",
-      [finalName, email, hashedPassword, role || "candidate", otp, otpExpires, phone],
+    const emailHTML = generateEmailHTML(
+      finalName,
+      otp,
+      "Verify Your New Account",
+      "Thank you for choosing to register with JobSpot tech job marketplace ecosystem. Please use the verification code below to activate your account:"
     );
 
-    const userId = userResult.insertId;
-
-    if (role === "employer") {
-      // Tạo công ty mới cho Nhà tuyển dụng
-      const [companyResult] = await db.execute("INSERT INTO Companies (name) VALUES (?)", [
-        `Công ty của ${finalName}`,
-      ]);
-      const companyId = companyResult.insertId;
-      
-      // FIX LỖI: Cập nhật ngược lại trường company_id vào bảng Users để liên kết dữ liệu
-      await db.execute("UPDATE Users SET company_id = ? WHERE id = ?", [companyId, userId]);
-    } else {
-      await db.execute(
-        "INSERT INTO Profiles (user_id, full_name) VALUES (?, ?)",
-        [userId, finalName],
-      );
+    if (role === "employer" && createAdminNotification) {
+      await createAdminNotification({
+        title: "🏢 New Employer Registered",
+        message: `${finalName} (${email}) just created an employer account and is awaiting company verification.`,
+        link_url: `/users`
+      });
     }
 
     await transporter.sendMail({
       from: `"JobSpot" <${emailUser}>`,
       to: email,
-      subject: "Xác thực tài khoản mới",
-      text: `Chào ${finalName}, mã xác thực của bạn là: ${otp}`,
+      subject: "🔒 Activate Your JobSpot Account",
+      html: emailHTML,
     });
 
-    console.log("=== Đã gửi mail đăng ký cho: ", email);
-
-    return res.status(201).json({
-      success: true,
-      message:
-        "Đăng ký thành công! Vui lòng kiểm tra email để lấy mã xác thực.",
-    });
+    return res.status(201).json({ success: true, message: "Registration successful! Please check your email for the verification code." });
   } catch (error) {
-    console.error("Lỗi Register:", error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// --- ĐĂNG NHẬP (LOGIN) ---
-exports.login = async (req, res) => {
-  const { email, password, role } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({
-      success: false,
-      message: "Vui lòng nhập đầy đủ email và mật khẩu!",
-    });
-  }
-
+// --- 2. VERIFY EMAIL (VERIFY OTP) ---
+exports.verifyEmail = async (req, res) => {
+  const { email, otp } = req.body;
   try {
-    const [users] = await db.execute(
-      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name 
-       FROM Users u 
-       LEFT JOIN Profiles p ON p.user_id = u.id 
-       WHERE u.email = ?`,
-      [email],
+    const tempData = tempRegisterData.get(email);
+    if (!tempData) return res.status(400).json({ success: false, message: "Registration session does not exist or has expired!" });
+    if (tempData.otp !== otp) return res.status(400).json({ success: false, message: "Incorrect OTP code!" });
+    if (Date.now() > tempData.otpExpires) {
+      tempRegisterData.delete(email);
+      return res.status(400).json({ success: false, message: "OTP code has expired! Please try registering again." });
+    }
+
+    // Insert user into DB (is_active = 1, is_verified = 1)
+    const [userResult] = await db.execute(
+      "INSERT INTO Users (username, email, password, role, is_verified, is_active) VALUES (?, ?, ?, ?, 1, 1)",
+      [tempData.username, tempData.email, tempData.password, tempData.role]
     );
-    if (users.length === 0) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Người dùng không tồn tại!" });
+
+    const userId = userResult.insertId;
+    let companyId = null;
+
+    if (tempData.role === "employer") {
+      const [companyResult] = await db.execute("INSERT INTO Companies (name) VALUES (?)", [`Company of ${tempData.full_name}`]);
+      companyId = companyResult.insertId;
+      await db.execute("UPDATE Users SET company_id = ? WHERE id = ?", [companyId, userId]);
     }
 
-    const user = users[0];
+    await db.execute(
+      "INSERT INTO Profiles (user_id, full_name, phone, avatar_url) VALUES (?, ?, ?, ?)",
+      [userId, tempData.full_name, tempData.phone, tempData.avatar_url]
+    );
 
-    if (role && user.role !== role) {
-      const roleName =
-        user.role === "employer"
-          ? "Nhà tuyển dụng (Employer)"
-          : "Ứng viên (Candidate)";
-      return res.status(403).json({
-        success: false,
-        message: `Sai cổng đăng nhập! Tài khoản này là của ${roleName}. Vui lòng chuyển tab.`,
-      });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Mật khẩu không chính xác!" });
-    }
-
-    if (user.is_verified === 0 || user.is_verified === false) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "Tài khoản của bạn chưa được xác thực email! Vui lòng kiểm tra email để xác thực.",
-      });
-    }
+    tempRegisterData.delete(email);
 
     const token = jwt.sign(
-      { id: user.id, role: user.role, company_id: user.company_id },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" },
+      { id: userId, role: tempData.role, company_id: companyId },
+      process.env.JWT_SECRET, { expiresIn: "1d" }
     );
 
     return res.status(200).json({
-      success: true,
-      message: "Đăng nhập thành công!",
-      token,
-      user: {
-        id: user.id,
-        username: user.username,
-        full_name: user.full_name || user.username,
-        role: user.role,
-        company_id: user.company_id,
-        avatar_url: user.profile_avatar || user.avatar_url || null,
-      },
+      success: true, message: "Verification successful!", token,
+      user: { id: userId, username: tempData.username, full_name: tempData.full_name, role: tempData.role, company_id: companyId, avatar_url: tempData.avatar_url }
     });
   } catch (error) {
-    console.error("=== LỖI TẠI HÀM LOGIN ===", error);
-    return res.status(500).json({
-      success: false,
-      message: "Lỗi máy chủ: " + error.message,
-    });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// --- Lấy thông tin cá nhân ---
+// --- 3. RESEND OTP ---
+exports.resendOtp = async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ success: false, message: "Please provide an email address!" });
+
+  try {
+    const tempData = tempRegisterData.get(email);
+    if (!tempData) return res.status(400).json({ success: false, message: "Session not found! Please restart the registration process." });
+
+    const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    tempData.otp = newOtp;
+    tempData.otpExpires = Date.now() + 10 * 60 * 1000;
+    tempRegisterData.set(email, tempData);
+
+    const emailHTML = generateEmailHTML(
+      tempData.full_name,
+      newOtp,
+      "Resend Verification Code Request",
+      "You have requested to resend your OTP code. Please use this new security verification code to continue your verification process:"
+    );
+
+    await transporter.sendMail({
+      from: `"JobSpot" <${emailUser}>`,
+      to: email,
+      subject: "🔄 [Resend Code] Verify Your JobSpot Account",
+      html: emailHTML,
+    });
+
+    return res.status(200).json({ success: true, message: "New OTP code has been sent successfully!" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// --- 4. STANDARD LOGIN ---
+exports.login = async (req, res) => {
+  const { email, password, role } = req.body;
+  if (!email || !password) return res.status(400).json({ success: false, message: "Please enter all required information!" });
+
+  try {
+    const [users] = await db.execute(
+      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name FROM Users u LEFT JOIN Profiles p ON p.user_id = u.id WHERE u.email = ?`,
+      [email]
+    );
+    if (users.length === 0) return res.status(404).json({ success: false, message: "User does not exist!" });
+
+    const user = users[0];
+
+    if (!user.is_active) {
+      const banMsg = user.ban_reason
+        ? `Your account has been suspended. Reason: ${user.ban_reason}`
+        : "Your account has been suspended. Please contact support.";
+      return res.status(403).json({ success: false, message: banMsg });
+    }
+
+    if (role && user.role !== role) {
+      const roleName = user.role === "employer" ? "Employer" : "Candidate";
+      return res.status(403).json({ success: false, message: `Incorrect login portal! This account is registered as a ${roleName}.` });
+    }
+
+    // Security block: Prevent standard login attempts on Google-created accounts using standard passwords
+    if (user.password === "LOGIN_BY_GOOGLE") {
+      return res.status(400).json({ success: false, message: "This account uses Google Login. Please sign in via Google." });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ success: false, message: "Incorrect password!" });
+    if (!user.is_verified) return res.status(401).json({ success: false, message: "Email has not been verified yet!" });
+
+    const token = jwt.sign(
+      { id: user.id, role: user.role, company_id: user.company_id },
+      process.env.JWT_SECRET, { expiresIn: "1d" }
+    );
+
+    return res.status(200).json({
+      success: true, token,
+      user: { id: user.id, username: user.username, full_name: user.full_name || user.username, role: user.role, company_id: user.company_id, avatar_url: user.profile_avatar || null }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Server error: " + error.message });
+  }
+};
+
+// --- 5. GET PROFILE ---
 exports.getProfile = async (req, res) => {
   try {
     const [rows] = await db.execute(
-      "SELECT id, username, email, role, company_id, avatar_url, created_at FROM Users WHERE id = ?",
-      [req.user.id],
+      `SELECT u.id, u.username, u.email, u.role, u.company_id, u.created_at, p.avatar_url, p.full_name, p.phone FROM Users u LEFT JOIN Profiles p ON u.id = p.user_id WHERE u.id = ?`,
+      [req.user.id]
     );
-
-    if (rows.length === 0) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Không tìm thấy người dùng" });
-    }
-
+    if (rows.length === 0) return res.status(404).json({ success: false, message: "User not found!" });
     return res.status(200).json({ success: true, data: rows[0] });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// --- Quên mật khẩu ---
+// --- 6. FORGOT PASSWORD ---
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
   try {
-    const [users] = await db.execute("SELECT * FROM Users WHERE email = ?", [
-      email,
-    ]);
-    if (users.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Email không tồn tại trong hệ thống!",
-      });
-    }
+    const [users] = await db.execute("SELECT * FROM Users WHERE email = ?", [email]);
+    if (users.length === 0) return res.status(404).json({ success: false, message: "Email address does not exist!" });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresRaw = new Date(Date.now() + 10 * 60 * 1000); // 10 phút
-    const otpExpires = formatToMySQLDateTime(expiresRaw);
+    const otpExpires = formatToMySQLDateTime(new Date(Date.now() + 10 * 60 * 1000));
 
-    await db.execute(
-      "UPDATE Users SET otp_code = ?, otp_expires = ? WHERE email = ?",
-      [otp, otpExpires, email],
+    await db.execute("UPDATE Users SET otp_code = ?, otp_expires = ? WHERE email = ?", [otp, otpExpires, email]);
+
+    const emailHTML = generateEmailHTML(
+      email.split("@")[0],
+      otp,
+      "Password Reset Request",
+      "We received a request to recover your password. If this was you, please complete this verification code in the password reset window:"
     );
 
     await transporter.sendMail({
-      from: `"JobFinder" <${emailUser}>`,
-      to: email,
-      subject: "Mã xác thực khôi phục mật khẩu",
-      text: `Mã OTP của bạn là: ${otp}. Mã này sẽ hết hạn sau 10 phút.`,
+      from: `"JobSpot" <${emailUser}>`, to: email, subject: "🔑 Recover Your JobSpot Password", html: emailHTML,
     });
 
-    console.log("=== Đã gửi mail khôi phục mật khẩu cho: ", email);
-
-    return res.status(200).json({
-      success: true,
-      message: "Mã OTP đã được gửi về email của bạn!",
-    });
-  } catch (error) {
-    console.error("Lỗi ForgotPassword:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Có lỗi xảy ra khi gửi mail: " + error.message,
-    });
-  }
-};
-
-// --- Đặt lại mật khẩu ---
-exports.resetPassword = async (req, res) => {
-  const { email, otp, newPassword } = req.body;
-
-  try {
-    const currentTime = formatToMySQLDateTime(new Date());
-
-    const [users] = await db.execute(
-      "SELECT * FROM Users WHERE email = ? AND otp_code = ? AND otp_expires > ?",
-      [email, otp, currentTime],
-    );
-
-    if (users.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Mã OTP không chính xác hoặc đã hết hạn!",
-      });
-    }
-
-    const user = users[0];
-
-    const isSamePassword = await bcrypt.compare(newPassword, user.password);
-    if (isSamePassword) {
-      return res.status(400).json({
-        success: false,
-        message: "Mật khẩu mới không được trùng với mật khẩu hiện tại!",
-      });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
-
-    await db.execute(
-      "UPDATE Users SET password = ?, otp_code = NULL, otp_expires = NULL WHERE email = ?",
-      [hashedPassword, email],
-    );
-
-    return res.status(200).json({
-      success: true,
-      message: "Đặt lại mật khẩu thành công! Hãy đăng nhập bằng mật khẩu mới.",
-    });
+    return res.status(200).json({ success: true, message: "OTP code has been sent!" });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// --- Xác thực Email ---
-exports.verifyEmail = async (req, res) => {
-  const { email, otp } = req.body;
+// --- 7. RESET PASSWORD ---
+exports.resetPassword = async (req, res) => {
+  const { email, otp, newPassword } = req.body;
   try {
+    const currentTime = formatToMySQLDateTime(new Date());
     const [users] = await db.execute(
-      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name
-       FROM Users u
-       LEFT JOIN Profiles p ON p.user_id = u.id
-       WHERE u.email = ? AND u.otp_code = ?`,
-      [email, otp],
+      "SELECT * FROM Users WHERE email = ? AND otp_code = ? AND otp_expires > ?",
+      [email, otp, currentTime]
     );
+    if (users.length === 0) return res.status(400).json({ success: false, message: "Invalid or expired OTP code!" });
 
-    if (users.length === 0) {
-      return res.status(400).json({ message: "Mã xác thực không đúng!" });
-    }
+    const isSamePassword = await bcrypt.compare(newPassword, users[0].password);
+    if (isSamePassword) return res.status(400).json({ success: false, message: "New password cannot be identical to the old password!" });
 
-    await db.execute(
-      "UPDATE Users SET is_verified = 1, otp_code = NULL, otp_expires = NULL WHERE email = ?",
-      [email],
-    );
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await db.execute("UPDATE Users SET password = ?, otp_code = NULL, otp_expires = NULL WHERE email = ?", [hashedPassword, email]);
 
-    return res.status(200).json({
-      success: true,
-      message: "Xác thực tài khoản thành công! Giờ bạn có thể đăng nhập.",
-    });
+    return res.status(200).json({ success: true, message: "Password has been reset successfully!" });
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// --- ĐĂNG NHẬP BẰNG GOOGLE ---
+// --- 8. GOOGLE LOGIN ---
 exports.googleLogin = async (req, res) => {
   const { accessToken, role } = req.body;
-
   try {
-    const googleResponse = await axios.get(
-      "https://www.googleapis.com/oauth2/v3/userinfo",
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      },
-    );
-
+    const googleResponse = await axios.get("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
     const { email, name, picture } = googleResponse.data;
 
     const [users] = await db.execute(
-      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name
-       FROM Users u
-       LEFT JOIN Profiles p ON p.user_id = u.id
-       WHERE u.email = ?`,
-      [email],
+      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name FROM Users u LEFT JOIN Profiles p ON p.user_id = u.id WHERE u.email = ?`,
+      [email]
     );
     let user = users[0];
 
     if (!user) {
       let autoUsername = email.split("@")[0];
+      const [checkUser] = await db.execute("SELECT id FROM Users WHERE username = ?", [autoUsername]);
+      if (checkUser.length > 0) autoUsername += `_${Math.floor(1000 + Math.random() * 9000)}`;
 
-      const [checkUser] = await db.execute(
-        "SELECT id FROM Users WHERE username = ?",
-        [autoUsername],
-      );
-      if (checkUser.length > 0) {
-        autoUsername = `${autoUsername}_${Math.floor(1000 + Math.random() * 9000)}`;
-      }
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const otpExpires = Date.now() + 10 * 60 * 1000;
 
-      // ✅ ĐÃ SỬA: Loại bỏ hoàn toàn các trường google_name, google_avatar_url...
-      const [result] = await db.execute(
-        `INSERT INTO Users 
-          (username, email, password, role, is_verified, avatar_url, display_name) 
-          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [
-          autoUsername,
-          email,
-          "LOGIN_BY_GOOGLE",
-          role || "candidate",
-          1,
-          picture,
-          name
-        ],
+      // FIX: Secure the temporary entry with a non-invertible token flag string
+      tempRegisterData.set(email, {
+        username: autoUsername, full_name: name, email, phone: "Not provided",
+        password: "LOGIN_BY_GOOGLE", role: role || "candidate", avatar_url: picture, otp, otpExpires
+      });
+
+      const emailHTML = generateEmailHTML(
+        name,
+        otp,
+        "Google Login Verification",
+        "You are connecting to our application using a new Google account. To ensure maximum security for this initial login process, please enter the following verification code:"
       );
 
-      const userId = result.insertId;
-      let companyId = null;
+      await transporter.sendMail({
+        from: `"JobSpot" <${emailUser}>`,
+        to: email,
+        subject: "🛡️ Google Account Security Verification - JobSpot",
+        html: emailHTML,
+      });
 
-      try {
-        if (role === "employer") {
-          const [companyResult] = await db.execute("INSERT INTO Companies (name) VALUES (?)", [
-            `Công ty của ${name}`,
-          ]);
-          companyId = companyResult.insertId;
-          await db.execute("UPDATE Users SET company_id = ? WHERE id = ?", [companyId, userId]);
-        } else {
-          await db.execute(
-            "INSERT INTO Profiles (user_id, full_name, avatar_url) VALUES (?, ?, ?)",
-            [userId, name, picture],
-          );
-        }
-      } catch (subError) {
-        console.error("Lỗi tạo Profile phụ:", subError.message);
-      }
-
-      user = {
-        id: userId,
-        username: autoUsername,
-        email,
-        role: role || "candidate",
-        company_id: companyId,
-        full_name: name,
-        profile_avatar: picture,
-      };
-    } else {
-      await db.execute(
-        `UPDATE Users SET is_verified = 1 WHERE id = ?`,
-        [user.id],
-      );
-    }
-
-    const token = jwt.sign(
-      { id: user.id, role: user.role, company_id: user.company_id },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" },
-    );
-
-    return res.status(200).json({
-      success: true,
-      token: token,
-      user: {
-        id: user.id,
-        username: user.username,
-        full_name: user.full_name || user.username,
-        role: user.role,
-        company_id: user.company_id,
-        avatar_url: user.profile_avatar || user.avatar_url || null,
-      },
-    });
-  } catch (error) {
-    console.error("LỖI GOOGLE LOGIN CHI TIẾT TẠI BACKEND:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Lỗi kết nối Google hoặc DB: " + error.message,
-    });
-  }
-};
-
-// --- BƯỚC 1: KIỂM TRA MẬT KHẨU VÀ GỬI OTP (ADMIN) ---
-exports.adminLogin = async (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({
-      success: false,
-      message: "Vui lòng nhập đầy đủ email và mật khẩu!",
-    });
-  }
-
-  try {
-    const [users] = await db.execute("SELECT * FROM Users WHERE email = ?", [
-      email,
-    ]);
-    if (users.length === 0) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Người dùng không tồn tại!" });
-    }
-
-    const user = users[0];
-
-    if (user.role !== "admin") {
-      return res
-        .status(403)
-        .json({ success: false, message: "Khu vực này chỉ dành cho Admin!" });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Mật khẩu không chính xác!" });
-    }
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresRaw = new Date(Date.now() + 5 * 60 * 1000); // 5 phút
-    const otpExpires = formatToMySQLDateTime(expiresRaw);
-
-    await db.execute(
-      "UPDATE Users SET otp_code = ?, otp_expires = ? WHERE email = ?",
-      [otp, otpExpires, email],
-    );
-
-    await transporter.sendMail({
-      from: `"JobFinder Admin" <${emailUser}>`,
-      to: email,
-      subject: "Mã OTP Đăng nhập Quản trị",
-      text: `Mã OTP xác thực đăng nhập Admin của bạn là: ${otp}. Mã này sẽ hết hạn sau 5 phút.`,
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: "Mật khẩu hợp lệ. Vui lòng kiểm tra email để lấy mã OTP!",
-    });
-  } catch (error) {
-    console.error("Lỗi tại adminLogin:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Lỗi máy chủ gửi OTP Admin: " + error.message,
-    });
-  }
-};
-
-// --- BƯỚC 2: XÁC THỰC OTP VÀ CẤP TOKEN (ADMIN) ---
-exports.verifyLoginOTP = async (req, res) => {
-  const { email, otp } = req.body;
-
-  try {
-    const currentTime = formatToMySQLDateTime(new Date());
-
-    const [users] = await db.execute(
-      "SELECT * FROM Users WHERE email = ? AND otp_code = ? AND otp_expires > ?",
-      [email, otp, currentTime],
-    );
-
-    if (users.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Mã OTP không chính xác hoặc đã hết hạn!",
+      return res.status(200).json({
+        success: true, requireOtp: true, email,
+        message: "New Google account detected! Please enter the OTP code sent to your Gmail to activate the account."
       });
     }
 
-    const user = users[0];
+    if (!user.is_active) {
+      const banMsg = user.ban_reason
+        ? `Your account has been suspended. Reason: ${user.ban_reason}`
+        : "Your account has been suspended. Please contact support.";
+      return res.status(403).json({ success: false, message: banMsg });
+    }
 
-    await db.execute(
-      "UPDATE Users SET otp_code = NULL, otp_expires = NULL WHERE email = ?",
-      [email],
-    );
-
+    await db.execute(`UPDATE Users SET is_verified = 1 WHERE id = ?`, [user.id]);
     const token = jwt.sign(
       { id: user.id, role: user.role, company_id: user.company_id },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" },
+      process.env.JWT_SECRET, { expiresIn: "1d" }
     );
 
     return res.status(200).json({
-      success: true,
-      message: "Đăng nhập thành công!",
-      token,
-      user: {
-        id: user.id,
-        username: user.username,
-        full_name: user.full_name || user.username,
-        role: user.role,
-        company_id: user.company_id,
-        avatar_url: user.profile_avatar || user.avatar_url || null,
-      },
+      success: true, token,
+      user: { id: user.id, username: user.username, full_name: user.full_name || user.username, role: user.role, company_id: user.company_id, avatar_url: user.profile_avatar || null }
     });
   } catch (error) {
-    console.error("Lỗi tại verifyLoginOTP:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Lỗi server khi xác thực OTP: " + error.message,
+    return res.status(500).json({ success: false, message: "Google connection error: " + error.message });
+  }
+};
+
+// --- 9. ADMIN LOGIN ---
+exports.adminLogin = async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ success: false, message: "Please fill in all fields!" });
+
+  try {
+    const [users] = await db.execute("SELECT * FROM Users WHERE email = ?", [email]);
+    if (users.length === 0) return res.status(404).json({ success: false, message: "User does not exist!" });
+
+    const user = users[0];
+    if (user.role !== "admin") return res.status(403).json({ success: false, message: "Access denied. Admin only!" });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ success: false, message: "Incorrect password!" });
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = formatToMySQLDateTime(new Date(Date.now() + 5 * 60 * 1000));
+
+    await db.execute("UPDATE Users SET otp_code = ?, otp_expires = ? WHERE email = ?", [otp, otpExpires, email]);
+
+    const emailHTML = generateEmailHTML(
+      "Admin",
+      otp,
+      "Administrator Login Verification",
+      "Login activity detected from a system admin account. Enter this OTP code immediately to gain access and open the Dashboard:"
+    );
+
+    await transporter.sendMail({
+      from: `"JobSpot Admin" <${emailUser}>`, to: email,
+      subject: "🚨 High-Level Admin Verification Code - JobSpot", html: emailHTML
     });
+
+    return res.status(200).json({ success: true, message: "Please check your email for the OTP code!" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// --- 10. VERIFY ADMIN OTP ---
+exports.verifyLoginOTP = async (req, res) => {
+  const { email, otp } = req.body;
+  try {
+    const currentTime = formatToMySQLDateTime(new Date());
+    const [users] = await db.execute(
+      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name FROM Users u LEFT JOIN Profiles p ON u.id = p.user_id WHERE u.email = ? AND u.otp_code = ? AND u.otp_expires > ?`,
+      [email, otp, currentTime]
+    );
+    if (users.length === 0) return res.status(400).json({ success: false, message: "Invalid or expired OTP code!" });
+
+    const user = users[0];
+    await db.execute("UPDATE Users SET otp_code = NULL, otp_expires = NULL WHERE email = ?", [email]);
+
+    const token = jwt.sign(
+      { id: user.id, role: user.role, company_id: user.company_id },
+      process.env.JWT_SECRET, { expiresIn: "1d" }
+    );
+
+    return res.status(200).json({
+      success: true, token,
+      user: { id: user.id, username: user.username, full_name: user.full_name || user.username, role: user.role, company_id: user.company_id, avatar_url: user.profile_avatar || null }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 };

@@ -16,7 +16,7 @@ const renderActiveShape = (props: any) => {
         cx={cx}
         cy={cy}
         innerRadius={innerRadius}
-        outerRadius={outerRadius + 6} // Nở rộng ra 6px khi hover
+        outerRadius={outerRadius + 6}
         startAngle={startAngle}
         endAngle={endAngle}
         fill={fill}
@@ -36,7 +36,7 @@ export function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [trendsData, setTrendsData] = useState<any[]>([]);
-  
+
   // 1. Khởi tạo State để tự động theo dõi trạng thái Dark Mode của hệ thống
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -62,7 +62,7 @@ export function Dashboard() {
 
     // Danh sách các mã màu tối/đen dễ bị chìm khi đổi giao diện tối
     const darkColors = ['#000000', '#0b132b', '#111827', '#0f172a', '#1e1b4b', '#1e293b', '#111', '#222'];
-    
+
     if (color && darkColors.includes(color.toLowerCase())) {
       return '#38BDF8'; // Chuyển mã màu đen/tối thành màu xanh Sky-400 cực kỳ sang và nổi bật trên nền tối
     }
@@ -77,7 +77,7 @@ export function Dashboard() {
 
         if (result.success) {
           setStats(result.data.stats);
-          
+
           if (result.data.trendsData) {
             setTrendsData(result.data.trendsData);
           }
@@ -263,9 +263,9 @@ export function Dashboard() {
                         key={category.name}
                         className={`flex items-center text-xs transition-opacity duration-200 ${activeIndex !== -1 && activeIndex !== index ? 'opacity-40' : 'opacity-100'}`}
                       >
-                        <div 
-                          className="w-2.5 h-2.5 rounded-full mr-2 shrink-0 transition-colors duration-300" 
-                          style={{ backgroundColor: responsiveBulletColor }} 
+                        <div
+                          className="w-2.5 h-2.5 rounded-full mr-2 shrink-0 transition-colors duration-300"
+                          style={{ backgroundColor: responsiveBulletColor }}
                         />
                         <span className="truncate text-slate-600 dark:text-slate-300 font-medium transition-colors duration-200">
                           {category.name}

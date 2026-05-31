@@ -10,6 +10,7 @@ import { Badge } from "../../components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "../../components/ui/Tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/Dialog"
+import { UserItem, UserStats, Pagination } from '../../../types'
 
 const API_URL = 'http://localhost:5000/api/admin';
 
@@ -18,41 +19,12 @@ function getHeaders() {
   return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 }
 
-interface UserItem {
-  id: number;
-  username: string;
-  display_name: string | null;
-  email: string;
-  role: 'candidate' | 'employer';
-  is_active: number;
-  is_verified: number;
-  created_at: string;
-  company_id: number | null;
-  company_name: string | null;
-  company_verified: number | null;
-}
-
-interface Stats {
-  total: number;
-  total_candidates: number;
-  total_employers: number;
-  total_banned: number;
-  total_pending: number;
-}
-
-interface Pagination {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
 export function Users() {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [users, setUsers] = useState<UserItem[]>([]);
-  const [stats, setStats] = useState<Stats>({ total: 0, total_candidates: 0, total_employers: 0, total_banned: 0, total_pending: 0 });
+  const [stats, setStats] = useState<UserStats>({ total: 0, total_candidates: 0, total_employers: 0, total_banned: 0, total_pending: 0 });
   const [pagination, setPagination] = useState<Pagination>({ total: 0, page: 1, limit: 10, totalPages: 1 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -93,10 +65,10 @@ export function Users() {
         setStats(data.stats);
         setPagination(data.pagination);
       } else {
-        setError(data.message || 'Lỗi khi tải dữ liệu');
+        setError(data.message || 'Error loading data');
       }
     } catch {
-      setError('Không thể kết nối đến máy chủ');
+      setError('Unable to connect to the server');
     } finally {
       setLoading(false);
     }
@@ -132,7 +104,7 @@ export function Users() {
         alert(data.message);
       }
     } catch {
-      alert('Lỗi kết nối');
+      alert('Connection error');
     } finally {
       setBanLoading(false);
     }
@@ -156,7 +128,7 @@ export function Users() {
         alert(data.message);
       }
     } catch {
-      alert('Lỗi kết nối');
+      alert('Connection error');
     } finally {
       setVerifyLoading(false);
     }
@@ -171,7 +143,7 @@ export function Users() {
       const data = await res.json();
       if (data.success) setDetailData(data.data);
     } catch {
-      alert('Lỗi kết nối');
+      alert('Connection error');
     } finally {
       setDetailLoading(false);
     }
@@ -252,7 +224,7 @@ export function Users() {
 
         {loading ? (
           <div className="flex items-center justify-center py-16 gap-2 text-slate-400 dark:text-slate-500 transition-colors duration-200">
-            <Loader2 className="w-5 h-5 animate-spin" /><span>Đang tải...</span>
+            <Loader2 className="w-5 h-5 animate-spin" /><span>Loading...</span>
           </div>
         ) : error ? (
           <div className="text-center py-16 text-red-500 dark:text-red-400 text-sm transition-colors duration-200">{error}</div>
@@ -272,7 +244,7 @@ export function Users() {
                 {users.filter(Boolean).length === 0 ? (
                   <TableRow className="dark:border-slate-800">
                     <TableCell colSpan={5} className="text-center py-12 text-slate-400 dark:text-slate-500 transition-colors duration-200">
-                      Không có dữ liệu
+                      No data available
                     </TableCell>
                   </TableRow>
                 ) : users.filter(Boolean).map(user => (
@@ -427,10 +399,24 @@ export function Users() {
           ) : detailData ? (
             <div className="space-y-3 text-sm text-slate-900 dark:text-slate-100 transition-colors duration-200">
               <div className="grid grid-cols-2 gap-3">
-                <div><p className="text-slate-500 dark:text-slate-400 transition-colors duration-200">Username</p><p className="font-medium text-slate-900 dark:text-slate-200 transition-colors duration-200">{detailData.username}</p></div>
-                <div><p className="text-slate-500 dark:text-slate-400 transition-colors duration-200">Email</p><p className="font-medium text-slate-900 dark:text-slate-200 transition-colors duration-200">{detailData.email}</p></div>
-                <div><p className="text-slate-500 dark:text-slate-400 transition-colors duration-200">Role</p><p className="font-medium text-slate-900 dark:text-slate-200 transition-colors duration-200 capitalize">{detailData.role}</p></div>
-                <div><p className="text-slate-500 dark:text-slate-400 transition-colors duration-200">Status</p><p className="font-medium text-slate-900 dark:text-slate-200 transition-colors duration-200">{detailData.is_active ? 'Active' : 'Banned'}</p></div>
+                <div><p className="text-slate-500">Username</p><p className="font-medium">{detailData.username}</p></div>
+                <div><p className="text-slate-500">Email</p><p className="font-medium">{detailData.email}</p></div>
+                <div><p className="text-slate-500">Role</p><p className="font-medium capitalize">{detailData.role}</p></div>
+                <div>
+                  <p className="text-slate-500">Status</p>
+                  <p className="font-medium">{detailData.is_active ? 'Active' : 'Banned'}</p>
+                </div>
+                {!detailData.is_active && (
+                  <div className="col-span-2">
+                    <p className="text-slate-500">Ban Reason</p>
+                    <div className="mt-1 flex items-start gap-2 bg-red-50 border border-red-100 rounded-md px-3 py-2">
+                      <span className="text-red-500 mt-0.5">⚠️</span>
+                      <p className="text-red-700 font-medium text-sm">
+                        {detailData.ban_reason || 'No specific reason provided.'}
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {detailData.role === 'candidate' && (
                   <>
                     <div><p className="text-slate-500 dark:text-slate-400 transition-colors duration-200">Full Name</p><p className="font-medium text-slate-900 dark:text-slate-200 transition-colors duration-200">{detailData.full_name || '—'}</p></div>

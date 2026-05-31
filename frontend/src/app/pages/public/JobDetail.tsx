@@ -20,13 +20,15 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 // 1. Import Component và Service
 import { RecommendedJobsAside } from "../../components/candidate/profile/RecommendedJobsAside";
 import { getRecommendations } from "../../../services/recommendationService";
+import { useSharedProfile } from "../../../hooks/useSharedProfile";
 
 export default function JobDetail() {
   const { id } = useParams();
   const navigate = useNavigate(); 
   const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-
+  const { userData } = useSharedProfile();
+  
   // --- Recommended Jobs State ---
   const [aiRecommendations, setAiRecommendations] = useState<any[]>([]);
 
@@ -153,7 +155,7 @@ export default function JobDetail() {
         reason: finalReason
       };
 
-      await axios.post("http://127.0.0.1:5000/api/reports", payload, {
+      await axios.post("http://127.0.0.1:5000/api/admin/reports", payload, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -401,11 +403,16 @@ export default function JobDetail() {
             {/* 3. THÊM RECOMMENDED JOBS VÀO ĐÂY */}
             <div className="sticky top-24">
               <RecommendedJobsAside 
-                recommendedJobs={aiRecommendations}
-                openModal={() => {
-                  window.location.href = "/candidate/profile";
-                }}
-              />
+                            recommendedJobs={aiRecommendations}
+                            userData={userData}
+                            
+                            openModal={(type) => {
+                              if (type === "personalInfo") {
+                                navigate('/profile');
+                              }
+                            }}
+                          />
+              
             </div>
             {/* PREMIUM RED REPORT BLOCK */}
             <div className="bg-rose-500/5 dark:bg-rose-500/5 border border-rose-200 dark:border-rose-500/20 rounded-3xl p-6 text-left space-y-4">

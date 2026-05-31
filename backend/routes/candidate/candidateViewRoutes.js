@@ -13,19 +13,20 @@ router.get('/viewed-by-employers', verifyToken, authorizeRole(['candidate']), as
 
     try {
         const [views] = await db.query(
-            `SELECT 
-                u.display_name AS employer_name,
-                u.avatar_url AS employer_avatar,
-                c.name AS company_name,
-                c.logo_url AS company_logo,
-                v.viewed_at
-             FROM Employer_Profile_Views v
-             JOIN Users u ON v.employer_id = u.id
-             LEFT JOIN Companies c ON u.company_id = c.id
-             WHERE v.candidate_id = ?
-             ORDER BY v.viewed_at DESC`,
-            [candidateId]
-        );
+    `SELECT 
+        u.display_name AS employer_name,
+        u.avatar_url AS employer_avatar,
+        c.id AS company_id,
+        c.name AS company_name,
+        c.logo_url AS company_logo,
+        v.viewed_at
+     FROM Employer_Profile_Views v
+     JOIN Users u ON v.employer_id = u.id
+     LEFT JOIN Companies c ON u.company_id = c.id
+     WHERE v.candidate_id = ?
+     ORDER BY v.viewed_at DESC`,
+    [candidateId]
+);
 
         res.json({
             success: true,

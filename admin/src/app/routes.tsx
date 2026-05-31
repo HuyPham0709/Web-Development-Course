@@ -7,6 +7,8 @@ import { Jobs } from "./pages/admin/Jobs"
 import { Metadata } from "./pages/admin/Metadata"
 import { Reports } from "./pages/admin/Reports"
 import { JobManagement } from "./pages/admin/JobManagement"
+import { JobDetails } from "./pages/admin/JobDetails"
+import { EditJob } from "./pages/admin/EditJob"
 
 export const router = createBrowserRouter([
   {
@@ -20,7 +22,9 @@ export const router = createBrowserRouter([
       { index: true, Component: Dashboard },
       { path: "users", Component: Users },
       { path: "jobs", Component: Jobs },
-      { path: "jobs/management", Component: JobManagement },
+      { path: "/jobs/management", Component: JobManagement },
+      { path: "/jobs/:id", Component: JobDetails },
+      { path: "/jobs/:id/edit", Component: EditJob },
       { path: "metadata", Component: Metadata },
       { path: "reports", Component: Reports },
     ],

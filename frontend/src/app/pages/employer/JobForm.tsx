@@ -172,7 +172,7 @@ export function JobForm() {
         .then((resData) => {
           if (resData.success && resData.data) {
             const job = resData.data;
-            
+
             // Backend đang trả về GROUP_CONCAT dạng chuỗi, VD: "React,NodeJS"
             const jobSkillsArray = job.skills ? job.skills.split(',').filter(Boolean) : [];
 
@@ -216,7 +216,7 @@ export function JobForm() {
     if (!form.description.trim()) e.description = "Required";
     if (!form.requirements.trim()) e.requirements = "Required";
     if (form.skills.length === 0) e.skills = "Please select at least one skill"; // <-- Validate mảng skills
-    
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -232,7 +232,7 @@ export function JobForm() {
       showToast("error", "Please fill in all required fields!");
       return;
     }
-    
+
     setSubmitting(true);
     try {
       const url = isEditMode ? `${BACKEND_URL}/jobs/${id}` : `${BACKEND_URL}/jobs/create`;
@@ -249,7 +249,7 @@ export function JobForm() {
           salary_max: Number(form.salary_max) || 0,
         }),
       });
-      
+
       const data = await res.json();
       if (data.success) {
         showToast("success", isEditMode ? "Job updated successfully!" : "Job posted successfully! Pending review.");
@@ -338,14 +338,15 @@ export function JobForm() {
                   <input type="number" value={form.salary_min} onChange={set("salary_min")} className={inputClass()} placeholder="Min" />
                   <span className="text-slate-500 dark:text-gray-400 flex-shrink-0">–</span>
                   <input type="number" value={form.salary_max} onChange={set("salary_max")} className={inputClass()} placeholder="Max" />
-                  <select value={form.currency} onChange={set("currency")} className="w-24 px-3 py-2.5 rounded-lg border border-slate-300 dark:border-white/10 bg-white dark:bg-[#151D30] text-slate-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none flex-shrink-0">
-                    <option value="VND">VND</option>
-                    <option value="USD">USD</option>
-                  </select>
+                  <span className="w-24 px-3 py-2.5 text-center rounded-lg border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-[#151D30] text-slate-500 dark:text-gray-400 text-sm flex-shrink-0">
+                    USD
+                  </span>
                 </div>
                 {form.salary_min.length > 0 && form.salary_max.length > 0 && (
                   <p className="text-xs text-slate-400 dark:text-gray-500 mt-1 font-medium">
-                    Actual display: <span className="text-blue-600 dark:text-blue-400 font-semibold">{formatSalary(form.salary_min, form.salary_max, form.currency)}</span>
+                    Preview: <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                      {formatSalary(form.salary_min, form.salary_max)}
+                    </span>
                   </p>
                 )}
               </Field>

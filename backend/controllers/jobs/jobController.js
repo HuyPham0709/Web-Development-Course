@@ -1,4 +1,5 @@
 const db = require('../../config/db');
+const { createAdminNotification } = require("../admin/adminNotificationController");
 
 // 1. API Đăng tin tuyển dụng
 exports.createJob = async (req, res) => {
@@ -53,10 +54,10 @@ exports.createJob = async (req, res) => {
         if (skills && Array.isArray(skills) && skills.length > 0) {
             // Tạo chuỗi dấu '?' tương ứng với số lượng skill
             const placeholders = skills.map(() => '?').join(',');
-            
+
             // Tìm ID của các skill có tên nằm trong mảng skills
             const [skillRows] = await db.execute(`SELECT id FROM Skills WHERE name IN (${placeholders})`, skills);
-            
+
             if (skillRows.length > 0) {
                 const insertValues = [];
                 const valuePlaceholders = skillRows.map(row => {
@@ -70,6 +71,15 @@ exports.createJob = async (req, res) => {
                 );
             }
         }
+
+        const [companyRows] = await db.execute('SELECT name FROM Companies WHERE id = ?', [company_id]);
+        const companyName = companyRows[0]?.name || 'Nhà tuyển dụng';
+
+        await createAdminNotification({
+            title: "📋 Job mới chờ duyệt",
+            message: `${companyName} vừa đăng tin: "${title}"`,
+            link_url: `/jobs/management`
+        });
 
         res.status(201).json({
             success: true,
@@ -85,24 +95,24 @@ exports.createJob = async (req, res) => {
 // 2. API Lấy tất cả tin (cho Trang chủ & Trang tìm kiếm - Fix lỗi phân trang)
 exports.getAllJobs = async (req, res) => {
     try {
-        const { 
-            title, location, category_id, type, experience_level, salary_min, salary, 
-            page, limit, company_id, sort 
+        const {
+            title, location, category_id, type, experience_level, salary_min, salary,
+            page, limit, company_id, sort
         } = req.query;
 
         const pageNum = parseInt(page, 10) || 1;
-        const limitNum = parseInt(limit, 10) || 12; 
+        const limitNum = parseInt(limit, 10) || 12;
         const offsetNum = (pageNum - 1) * limitNum;
 
         let whereClause = ` WHERE j.deleted_at IS NULL AND j.status = 'approved'`;
         const params = [];
-        
+
         if (company_id) {
             whereClause += ` AND j.company_id = ?`;
             params.push(company_id);
         }
         if (title) {
-            whereClause += ` AND j.title LIKE ?`; 
+            whereClause += ` AND j.title LIKE ?`;
             params.push(`%${title}%`);
         }
         if (location) {
@@ -121,9 +131,9 @@ exports.getAllJobs = async (req, res) => {
             whereClause += ` AND j.experience_level = ?`;
             params.push(experience_level);
         }
-        
+
         if (salary_min && Number(salary_min) > 0) {
-            whereClause += ` AND j.salary_max >= ?`; 
+            whereClause += ` AND j.salary_max >= ?`;
             params.push(Number(salary_min));
         }
 
@@ -143,7 +153,7 @@ exports.getAllJobs = async (req, res) => {
 
         // 🌟 TỐI ƯU LOGIC SẮP XẾP (ORDER BY) AN TOÀN
         let orderByClause = `ORDER BY j.created_at DESC`; // Mặc định là mới nhất
-        
+
         if (sort) {
             switch (sort) {
                 case 'salary_desc':
@@ -197,13 +207,13 @@ exports.getAllJobs = async (req, res) => {
         const [rows] = await db.execute(dataQuery, params);
         const hasMore = offsetNum + rows.length < totalItems;
 
-        res.status(200).json({ 
-            success: true, 
+        res.status(200).json({
+            success: true,
             data: rows,
             meta: {
                 page: pageNum,
                 limit: limitNum,
-                total: totalItems, 
+                total: totalItems,
                 hasMore: hasMore
             }
         });
@@ -295,7 +305,7 @@ exports.updateJob = async (req, res) => {
             if (skills.length > 0) {
                 const placeholders = skills.map(() => '?').join(',');
                 const [skillRows] = await db.execute(`SELECT id FROM Skills WHERE name IN (${placeholders})`, skills);
-                
+
                 if (skillRows.length > 0) {
                     const insertValues = [];
                     const valuePlaceholders = skillRows.map(row => {
@@ -310,6 +320,14 @@ exports.updateJob = async (req, res) => {
                 }
             }
         }
+
+        const [companyRows] = await db.execute('SELECT name FROM Companies WHERE id = ?', [company_id]);
+        const companyName = companyRows[0]?.name || 'Nhà tuyển dụng';
+        await createAdminNotification({
+            title: "✏️ Job được cập nhật",
+            message: `${companyName} vừa chỉnh sửa tin: "${title}", cần duyệt lại.`,
+            link_url: `/jobs/management`
+        });
 
         res.status(200).json({ success: true, message: 'Cập nhật tin thành công! Tin đang chờ kiểm duyệt lại.' });
     } catch (error) {
@@ -388,13 +406,13 @@ exports.getJobsByEmployer = async (req, res) => {
 exports.getSuggestions = async (req, res, next) => {
     try {
         const { q } = req.query;
-        
+
         if (!q || q.trim() === '') {
             return res.json({ success: true, data: [] });
         }
 
         const searchQuery = `%${q}%`;
-        
+
         const sql = `
             SELECT 
                 j.id AS id, 

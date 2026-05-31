@@ -350,26 +350,26 @@ export default function ProfileDashboard() {
 
       {/* Áp dụng Viewport Isolation (h-screen) để tách thanh cuộn Sidebar và Content */}
       <div className={`min-h-screen xl:h-screen xl:overflow-hidden bg-white dark:bg-[#0E1422] flex flex-col xl:flex-row max-w-[1920px] mx-auto transition-colors duration-300 ${showFullCVBuilder ? 'hidden' : ''}`}>
-        
+
         {/* Sidebar */}
-        <div className="w-full xl:w-1/5 flex-shrink-0 p-4 md:p-8 xl:pr-0 xl:h-full xl:overflow-y-auto no-scrollbar">
+        <div className="w-full xl:w-1/5 flex-shrink-0 p-4 md:p-8 xl:pr-0">
           <ProfileSidebar activeTab={activeTab} setActiveTab={setActiveTab} userName={personalInfo.full_name} />
         </div>
 
         {/* Main Content */}
         <main className={`w-full p-4 md:p-8 xl:h-full overflow-y-auto no-scrollbar transition-all duration-300 ${activeTab === 'cv-builder' ? 'xl:w-4/5' : 'xl:w-3/5'}`}>
           <div className={`w-full mx-auto animate-fade-in-up ${activeTab === 'cv-builder' ? 'max-w-7xl' : 'max-w-4xl'}`}>
-            
+
             {activeTab === 'cv-builder' && (
-              <CvLibraryTab 
-                templateFilter={templateFilter} 
-                setTemplateFilter={setTemplateFilter} 
-                setShowFullCVBuilder={setShowFullCVBuilder} 
+              <CvLibraryTab
+                templateFilter={templateFilter}
+                setTemplateFilter={setTemplateFilter}
+                setShowFullCVBuilder={setShowFullCVBuilder}
               />
             )}
 
             {activeTab === 'profile' && (
-              <ProfileTab 
+              <ProfileTab
                 loading={loading}
                 coverSrc={coverSrc}
                 avatarSrc={avatarSrc}
@@ -395,7 +395,7 @@ export default function ProfileDashboard() {
             {activeTab === 'saved' && <SavedJobs />}
             {activeTab === 'apply' && <InvitationsPage />}
             {activeTab === 'viewed-by-employer' && <ViewedByEmployers />}
-            
+
             {activeTab === 'account' && (
               <Settings topJob={recommendedJobs.length > 0
                 ? recommendedJobs.reduce((prev, current) => (prev.match_score > current.match_score ? prev : current))
@@ -416,14 +416,14 @@ export default function ProfileDashboard() {
         </main>
 
         {activeTab !== 'cv-builder' && (
-  <aside className="hidden 2xl:block w-[360px] flex-shrink-0 p-4 md:p-8 xl:pl-0 xl:h-full xl:overflow-y-auto no-scrollbar">
-    <RecommendedJobsAside
-      recommendedJobs={recommendedJobs}
-      userData={personalInfo}
-      openModal={openModal}
-    />
-  </aside>
-)}
+          <aside className="hidden 2xl:block w-[360px] flex-shrink-0 p-4 md:p-8 xl:pl-0 xl:h-full xl:overflow-y-auto no-scrollbar">
+            <RecommendedJobsAside
+              recommendedJobs={recommendedJobs}
+              userData={personalInfo}
+              openModal={openModal}
+            />
+          </aside>
+        )}
       </div>
 
       {/* MODALS */}
@@ -456,8 +456,8 @@ export default function ProfileDashboard() {
         <EditModal title="Edit Work Experience" onClose={() => setModal(null)} onSave={handleSave} saving={saving}>
           <div className="space-y-4">
             {editExp.map((exp, i) => (
-              <div 
-                key={i} 
+              <div
+                key={i}
                 style={{ animationDelay: `${i * 100}ms` }}
                 className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 hover:shadow-xl dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20 animate-fade-in-up opacity-0"
               >
@@ -482,8 +482,8 @@ export default function ProfileDashboard() {
         <EditModal title="Edit Education" onClose={() => setModal(null)} onSave={handleSave} saving={saving}>
           <div className="space-y-4">
             {editEdu.map((edu, i) => (
-              <div 
-                key={i} 
+              <div
+                key={i}
                 style={{ animationDelay: `${i * 100}ms` }}
                 className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 hover:shadow-xl dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20 animate-fade-in-up opacity-0"
               >
@@ -507,7 +507,7 @@ export default function ProfileDashboard() {
       {modal === 'skills' && (
         <EditModal title="Edit Skills" onClose={() => setModal(null)} onSave={handleSave} saving={saving}>
           <div className="space-y-6 animate-fade-in-up">
-            
+
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-100 text-purple-600 dark:bg-purple-950/50 dark:text-purple-400 flex-shrink-0">
                 <TrendingUp size={20} />
@@ -519,10 +519,10 @@ export default function ProfileDashboard() {
             </div>
 
             <div className="flex flex-wrap gap-3 min-h-[120px] p-6 bg-white dark:bg-[#0E1422] rounded-3xl border border-gray-200 dark:border-white/10 shadow-inner">
-              {editSkills.length === 0 && <span className="text-sm text-gray-400 dark:text-gray-500 m-auto flex flex-col items-center gap-2"><Sparkles className="w-6 h-6 opacity-50"/>Type a skill and press Enter</span>}
+              {editSkills.length === 0 && <span className="text-sm text-gray-400 dark:text-gray-500 m-auto flex flex-col items-center gap-2"><Sparkles className="w-6 h-6 opacity-50" />Type a skill and press Enter</span>}
               {editSkills.map((skill, i) => (
-                <span 
-                  key={skill} 
+                <span
+                  key={skill}
                   style={{ animationDelay: `${i * 50}ms` }}
                   className="group flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-5 py-2 text-sm font-medium text-gray-700 transition-all hover:border-purple-300 hover:bg-purple-50/50 hover:text-purple-700 hover:shadow-[0_0_15px_rgba(139,92,246,0.15)] dark:border-white/10 dark:bg-white/5 dark:text-gray-300 dark:hover:border-purple-500/50 dark:hover:text-purple-400 animate-fade-in-up opacity-0"
                 >
