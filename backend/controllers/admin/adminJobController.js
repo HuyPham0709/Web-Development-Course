@@ -87,7 +87,7 @@ exports.deleteJob = async (req, res) => {
     const { job_id } = req.params;
     try {
         const [result] = await db.execute(
-            "UPDATE Jobs SET deleted_at = NOW(), status = 'closed' WHERE id = ? AND deleted_at IS NULL",
+            "UPDATE Jobs SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL"
             [job_id]
         );
         if (result.affectedRows === 0) {
@@ -208,8 +208,8 @@ exports.bulkDeleteJobs = async (req, res) => {
 
     try {
         const [result] = await db.execute(
-            `UPDATE Jobs SET deleted_at = NOW(), status = 'closed' 
-             WHERE id IN (${ids.map(() => '?').join(',')}) AND deleted_at IS NULL`,
+            `UPDATE Jobs SET deleted_at = NOW()
+ WHERE id IN (${ids.map(() => '?').join(',')}) AND deleted_at IS NULL`,
             ids
         );
         res.status(200).json({

@@ -302,3 +302,46 @@ CREATE TABLE IF NOT EXISTS Employer_Profile_Views (
     INDEX idx_candidate (candidate_id),
     UNIQUE KEY uk_view_per_day (employer_id, candidate_id, view_date)
 );
+DROP TABLE messages;
+DROP TABLE notifications;
+use job_finder_db ;
+-- 1. Thêm cột bật/tắt cho phép NTD tìm bạn (trong bảng Profiles)
+ALTER TABLE Profiles 
+ADD COLUMN allow_employer_search BOOLEAN DEFAULT FALSE,
+ADD INDEX idx_allow_employer_search (allow_employer_search);
+
+use job_finder_db ;
+-- 2. Bảng lưu lịch sử NTD xem profile ứng viên
+CREATE TABLE IF NOT EXISTS Employer_Profile_Views (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    employer_id INT NOT NULL,
+    candidate_id INT NOT NULL,
+    viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_notified TINYINT DEFAULT 0,
+    view_date DATE GENERATED ALWAYS AS (DATE(viewed_at)) STORED,
+    FOREIGN KEY (employer_id) REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (candidate_id) REFERENCES Users(id) ON DELETE CASCADE,
+    INDEX idx_candidate (candidate_id),
+    UNIQUE KEY uk_view_per_day (employer_id, candidate_id, view_date)
+);
+
+CREATE TABLE Job_Invitations (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    employer_id INT NOT NULL,       -- Người gửi (Nhà tuyển dụng)
+    candidate_id INT NOT NULL,      -- Người nhận (Ứng viên)
+    job_id INT NOT NULL,            -- Công việc được mời
+    message TEXT NOT NULL,          -- Lời nhắn đính kèm
+    status ENUM('pending', 'accepted', 'declined') DEFAULT 'pending', -- Trạng thái lời mời
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Ràng buộc khóa ngoại
+    FOREIGN KEY (employer_id) REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (candidate_id) REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (job_id) REFERENCES Jobs(id) ON DELETE CASCADE,
+    
+    -- Tối ưu hóa truy vấn
+    INDEX idx_invitation_candidate (candidate_id),
+    INDEX idx_invitation_employer (employer_id),
+    INDEX idx_invitation_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -8,11 +8,12 @@ import { jobService } from "../../../services/jobService"
 import { formatSalary, formatDate } from "../../../utils"
 import { AdminJob } from '../../../types'
 
+// 🌟 Đồng bộ màu Badge trạng thái để tương thích tốt trên cả nền sáng và nền tối
 const STATUS_COLOR: Record<string, string> = {
-    approved: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    pending: "bg-amber-50 text-amber-700 border-amber-200",
-    rejected: "bg-rose-50 text-rose-700 border-rose-200",
-    closed: "bg-slate-100 text-slate-600 border-slate-200",
+    approved: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/50",
+    pending: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/50",
+    rejected: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/50",
+    closed: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700",
 }
 
 export function JobDetails() {
@@ -24,7 +25,6 @@ export function JobDetails() {
 
     useEffect(() => {
         const fetchJobDetail = async () => {
-            // Nếu id là "management" hoặc không hợp lệ, không thực hiện gọi API để tránh lỗi crash
             if (!id || id === "management" || isNaN(Number(id))) {
                 setLoading(false)
                 return
@@ -72,7 +72,6 @@ export function JobDetails() {
 
             if (res.success) {
                 toast.success(res.message || `Job ${action === 'approve' ? 'approved' : 'rejected'} successfully`)
-                // Tự load lại dữ liệu mới nhất
                 const data = await jobService.getJobById(job.id)
                 if (data.success) setJob(data.data)
             } else {
@@ -85,50 +84,50 @@ export function JobDetails() {
         }
     }
 
-    // Khối bảo vệ 1: Hiển thị màn hình Loading trong lúc chờ API phản hồi
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[400px] gap-2 text-slate-400">
-                <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+                <Loader2 className="w-8 h-8 animate-spin text-indigo-600 dark:text-indigo-400" />
                 <p className="text-sm">Loading job details...</p>
             </div>
         )
     }
 
-    // Khối bảo vệ 2: Nếu không có dữ liệu job (hoặc lỗi ID), không render giao diện chính để tránh lỗi sập 'status'
     if (!job) {
         return (
-            <div className="p-8 text-center text-slate-500 text-sm">
-                No job details available. <button onClick={() => navigate("/jobs/management")} className="text-indigo-600 underline">Go Back</button>
+            <div className="p-8 text-center text-slate-500 dark:text-slate-400 text-sm">
+                No job details available. <button onClick={() => navigate("/jobs/management")} className="text-indigo-600 dark:text-indigo-400 underline">Go Back</button>
             </div>
         )
     }
 
     return (
-        <div className="min-h-full bg-[#F8FAFC] p-8 animate-in fade-in duration-300">
+        // 🌟 Nền trang chính thích ứng với Dark Mode: bg-[#F8FAFC] -> dark:bg-slate-950
+        <div className="min-h-full bg-[#F8FAFC] dark:bg-slate-950 p-8 animate-in fade-in duration-300">
             <div className="max-w-4xl mx-auto space-y-6">
 
                 {/* Back button */}
                 <button
                     onClick={() => navigate("/jobs/management")}
-                    className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors"
+                    className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 transition-colors"
                 >
                     <ArrowLeft className="w-4 h-4" /> Back to List
                 </button>
 
-                {/* Main Content Card */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                {/* Main Content Card: bg-white -> dark:bg-slate-900, border-slate-200 -> dark:border-slate-800 */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+
                     {/* Top banner */}
-                    <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                             <div className="flex items-center gap-3 flex-wrap">
-                                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{job.title}</h1>
-                                <Badge variant="outline" className={`capitalize font-semibold ${STATUS_COLOR[job.status] || "bg-slate-100"}`}>
+                                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50 tracking-tight">{job.title}</h1>
+                                <Badge variant="outline" className={`capitalize font-semibold ${STATUS_COLOR[job.status] || "bg-slate-100 dark:bg-slate-800"}`}>
                                     {job.status}
                                 </Badge>
                             </div>
-                            <p className="text-slate-500 mt-1 font-medium text-sm">
-                                {job.company_name} <span className="text-slate-300 mx-1.5">•</span> Job ID: #{job.id}
+                            <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium text-sm">
+                                {job.company_name} <span className="text-slate-300 dark:text-slate-700 mx-1.5">•</span> Job ID: #{job.id}
                             </p>
                         </div>
 
@@ -138,7 +137,7 @@ export function JobDetails() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => navigate(`/jobs/${job.id}/edit`)}
-                                className="border-slate-200 text-slate-700 bg-white"
+                                className="border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 dark:hover:bg-slate-700"
                             >
                                 <Edit className="w-4 h-4 mr-1.5" /> Edit Job
                             </Button>
@@ -149,7 +148,7 @@ export function JobDetails() {
                                         size="sm"
                                         disabled={submitting !== null}
                                         onClick={() => handleStatusUpdate('reject')}
-                                        className="border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100"
+                                        className="border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-950/50"
                                     >
                                         {submitting === 'reject' ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <XCircle className="w-4 h-4 mr-1.5" />}
                                         Reject
@@ -158,7 +157,7 @@ export function JobDetails() {
                                         size="sm"
                                         disabled={submitting !== null}
                                         onClick={() => handleStatusUpdate('approve')}
-                                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                        className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600 text-white"
                                     >
                                         {submitting === 'approve' ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <CheckCircle2 className="w-4 h-4 mr-1.5" />}
                                         Approve
@@ -169,49 +168,49 @@ export function JobDetails() {
                     </div>
 
                     {/* Grid Overview Info */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 border-b border-slate-100 bg-white">
-                        <div className="p-4 border-r border-slate-100 flex flex-col gap-1">
-                            <span className="text-xs text-slate-400 font-medium flex items-center gap-1"><DollarSign className="w-3.5 h-3.5" /> Salary Range</span>
-                            <span className="text-sm font-semibold text-slate-800">{formatSalary(job.salary_min, job.salary_max, (job as any).currency)}</span>
+                    <div className="grid grid-cols-2 md:grid-cols-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+                        <div className="p-4 border-r border-slate-100 dark:border-slate-800 flex flex-col gap-1">
+                            <span className="text-xs text-slate-400 dark:text-slate-500 font-medium flex items-center gap-1"><DollarSign className="w-3.5 h-3.5" /> Salary Range</span>
+                            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{formatSalary(job.salary_min, job.salary_max, (job as any).currency)}</span>
                         </div>
-                        <div className="p-4 border-r border-slate-100 flex flex-col gap-1">
-                            <span className="text-xs text-slate-400 font-medium flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> Location</span>
-                            <span className="text-sm font-semibold text-slate-800">{job.location_name}</span>
+                        <div className="p-4 border-r border-slate-100 dark:border-slate-800 flex flex-col gap-1">
+                            <span className="text-xs text-slate-400 dark:text-slate-500 font-medium flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> Location</span>
+                            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{job.location_name}</span>
                         </div>
-                        <div className="p-4 border-r border-slate-100 flex flex-col gap-1">
-                            <span className="text-xs text-slate-400 font-medium flex items-center gap-1"><Briefcase className="w-3.5 h-3.5" /> Job Type</span>
-                            <span className="text-sm font-semibold text-slate-800 capitalize">{job.job_type}</span>
+                        <div className="p-4 border-r border-slate-100 dark:border-slate-800 flex flex-col gap-1">
+                            <span className="text-xs text-slate-400 dark:text-slate-500 font-medium flex items-center gap-1"><Briefcase className="w-3.5 h-3.5" /> Job Type</span>
+                            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 capitalize">{job.job_type}</span>
                         </div>
                         <div className="p-4 flex flex-col gap-1">
-                            <span className="text-xs text-slate-400 font-medium flex items-center gap-1"><Award className="w-3.5 h-3.5" /> Experience</span>
-                            <span className="text-sm font-semibold text-slate-800 capitalize">{job.experience_level || 'Not required'}</span>
+                            <span className="text-xs text-slate-400 dark:text-slate-500 font-medium flex items-center gap-1"><Award className="w-3.5 h-3.5" /> Experience</span>
+                            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 capitalize">{job.experience_level || 'Not required'}</span>
                         </div>
                     </div>
 
                     {/* Full Descriptions */}
                     <div className="p-6 space-y-6">
                         <div>
-                            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-2">Job Description</h3>
-                            <div className="text-slate-600 text-sm leading-relaxed whitespace-pre-line bg-slate-50/50 p-4 rounded-lg border border-slate-100">
+                            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider mb-2">Job Description</h3>
+                            <div className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-line bg-slate-50/50 dark:bg-slate-950/40 p-4 rounded-lg border border-slate-100 dark:border-slate-800/60">
                                 {job.description}
                             </div>
                         </div>
 
                         <div>
-                            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-2">Requirements</h3>
-                            <div className="text-slate-600 text-sm leading-relaxed whitespace-pre-line bg-slate-50/50 p-4 rounded-lg border border-slate-100">
+                            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider mb-2">Requirements</h3>
+                            <div className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-line bg-slate-50/50 dark:bg-slate-950/40 p-4 rounded-lg border border-slate-100 dark:border-slate-800/60">
                                 {job.requirements || "No specific requirements provided."}
                             </div>
                         </div>
 
                         <div>
-                            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-2">Benefits & Perks</h3>
-                            <div className="text-slate-600 text-sm leading-relaxed whitespace-pre-line bg-slate-50/50 p-4 rounded-lg border border-slate-100">
+                            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider mb-2">Benefits & Perks</h3>
+                            <div className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-line bg-slate-50/50 dark:bg-slate-950/40 p-4 rounded-lg border border-slate-100 dark:border-slate-800/60">
                                 {job.benefit || "Standard company benefits applied."}
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5 text-xs text-slate-400 pt-4 border-t border-slate-100">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 pt-4 border-t border-slate-100 dark:border-slate-800">
                             <Calendar className="w-3.5 h-3.5" /> Posted Date: {formatDate(job.created_at)}
                         </div>
                     </div>

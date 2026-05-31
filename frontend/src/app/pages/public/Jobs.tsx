@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useSearchParams } from "react-router-dom"; // Đã thêm import này để lấy query params từ URL
+import { useNavigate, useSearchParams } from "react-router-dom"; 
 import { 
   Search, 
   MapPin, 
@@ -13,14 +13,21 @@ import {
   Grid,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
   ChevronDown
 } from "lucide-react";
 
 import { IJob, IJobFilters } from "../../../types/job";
-import { getJobs, getLocations, getCategories } from "../../../services/jobService";
+// 1. Đã thêm getJobSuggestions vào đây
+import { getJobs, getLocations, getCategories, getJobSuggestions } from "../../../services/jobService";
 import { getRecommendations } from "../../../services/recommendationService";
 import { JobCard } from "../../components/public/home/JobCard";
 import { RecommendedJobsAside } from "../../components/candidate/profile/RecommendedJobsAside";
+import { Link } from "react-router-dom";
+import { api } from "../../../services/api";
+// 2. Import SearchAutocomplete theo đúng cấu trúc thư mục của Jobs.tsx
+import { SearchAutocomplete } from "../../components/shared/SearchAutocomplete";
+import { useSharedProfile } from '../../../hooks/useSharedProfile';
 
 interface IExtendedFilters extends IJobFilters {
   experience_level?: string;
@@ -28,8 +35,9 @@ interface IExtendedFilters extends IJobFilters {
 }
 
 export const Jobs: React.FC = () => {
-  // Khởi tạo hook quản lý URL query parameters
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const { userData } = useSharedProfile();
 
   // Main Filter State
   const [filters, setFilters] = useState<IExtendedFilters>(
@@ -44,11 +52,11 @@ export const Jobs: React.FC = () => {
       limit: 12
     }
   );
-
-  // Local Immediate UI States for fast-changing controls
+  const navigate = useNavigate();
+  // Local Immediate UI States
   const [salarySlider, setSalarySlider] = useState<number>(0);
   const [searchInput, setSearchInput] = useState("");
-
+  
   // Data States
   const [jobs, setJobs] = useState<IJob[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -61,11 +69,8 @@ export const Jobs: React.FC = () => {
   const [savedJobs, setSavedJobs] = useState<number[]>([]);
   const [totalJobs, setTotalJobs] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-
-  // State quản lý Dropdown Custom nào đang được mở mở rộng tự đóng khi mở cái khác
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
-  // Ref to track the latest API Request ID to prevent Race Conditions
   const apiRequestCountRef = useRef<number>(0);
 
   // ĐỒNG BỘ HOÁ DỮ LIỆU TỪ URL PARAMETERS VÀO FILTER STATE
@@ -78,7 +83,6 @@ export const Jobs: React.FC = () => {
       const nextCategoryId = categoryIdParam ? Number(categoryIdParam) : "";
       const nextTitle = titleParam || "";
 
-      // Chỉ cập nhật state nếu giá trị thực sự thay đổi để tránh lặp render vô hạn
       if (prev.category_id !== nextCategoryId || prev.title !== nextTitle) {
         return {
           ...prev,
@@ -95,21 +99,21 @@ export const Jobs: React.FC = () => {
     }
   }, [searchParams]);
 
-  // Sync Slider UI if filters are modified externally (like Reset All)
+  // Sync Slider UI
   useEffect(() => {
     if (filters.salary_min !== undefined) {
       setSalarySlider(filters.salary_min);
     }
   }, [filters.salary_min]);
 
-  // Debounce logic for Salary Slider (Wait 250ms after user stops dragging)
+  // Debounce logic for Salary Slider
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       if (salarySlider !== filters.salary_min) {
         setFilters(prev => ({ 
           ...prev, 
           salary_min: salarySlider, 
-          page: 1 // Reset back to page 1 on filter alteration
+          page: 1 
         }));
       }
     }, 250);
@@ -132,7 +136,6 @@ export const Jobs: React.FC = () => {
 
       if (response && response.data) {
         setJobs(response.data);
-        
         const total = response.meta?.total || response.data.length;
         setTotalJobs(total);
         setTotalPages(Math.ceil(total / (currentFilters.limit || 12)) || 1);
@@ -146,7 +149,7 @@ export const Jobs: React.FC = () => {
     }
   }, []);
 
-  // Init Data (Categories, Locations, AI Side panel)
+  // Init Data
   useEffect(() => {
     const initData = async () => {
       try {
@@ -156,11 +159,21 @@ export const Jobs: React.FC = () => {
 
         const token = localStorage.getItem("token");
         if (token) {
-          const aiRes = await getRecommendations();
-          if (aiRes?.data?.success) {
-            setAiRecommendations(aiRes.data.data);
-          } else if (aiRes?.data) {
-            setAiRecommendations(Array.isArray(aiRes.data) ? aiRes.data : []);
+          try {
+            const aiRes = await getRecommendations();
+            const data = aiRes?.data?.jobs;
+            setAiRecommendations(Array.isArray(data) ? data : []);
+          } catch (err) {
+            setAiRecommendations([]);
+          }
+
+          // GIẢI PHÁP SỬA LỖI: Gọi API lấy danh sách các Job đã được user save từ trước để hiển thị tim đỏ
+          try {
+            const res = await api.get("/api/favorites"); 
+            const savedIds = res.data.data.map((job: any) => job.id);
+            setSavedJobs(savedIds);
+          } catch (err) {
+            console.error("Fetch saved jobs error in Jobs.tsx:", err);
           }
         }
       } catch (error) {
@@ -204,14 +217,35 @@ export const Jobs: React.FC = () => {
       page: 1,
       limit: 12
     });
-    setSearchParams({}); // Xóa bỏ toàn bộ query parameters trên thanh URL
+    setSearchParams({}); 
   };
 
-  const handleToggleSaveJob = (jobId: number) => {
-    setSavedJobs(prev => 
-      prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]
-    );
-  };
+  const handleToggleSaveJob = useCallback(async (jobId: number) => {
+    try {
+      setSavedJobs(prev => {
+        const isSaved = prev.includes(jobId);
+        if (isSaved) {
+          api.delete(`/api/favorites/${jobId}`).catch(err => console.error(err));
+          return prev.filter(id => id !== jobId);
+        } else {
+          api.post(`/api/favorites/${jobId}`, {}).catch(err => console.error(err));
+          return [...prev, jobId];
+        }
+      });
+    } catch (err) {
+      console.error("Save job error:", err);
+    }
+  }, []);
+
+  const [activeModal, setActiveModal] = useState<
+  'personalInfo' | 'experience' | 'education' | 'skills' | null
+>(null);
+
+const handleOpenModal = (
+  type: 'personalInfo' | 'experience' | 'education' | 'skills' | null
+) => {
+  setActiveModal(type);
+};
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
@@ -219,7 +253,7 @@ export const Jobs: React.FC = () => {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
-
+  
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-gray-900 transition-colors duration-300 dark:bg-[#070A13] dark:text-gray-100">
       <style>
@@ -255,15 +289,25 @@ export const Jobs: React.FC = () => {
           </p>
 
           <div className="mt-8 grid grid-cols-1 gap-3 rounded-3xl border border-gray-200 bg-white p-3 shadow-xl shadow-gray-100/50 transition-all dark:border-white/5 dark:bg-[#0B0F19]/80 dark:shadow-none md:grid-cols-12 md:gap-2">
-            <div className="relative flex items-center md:col-span-5 px-3">
-              <Search className="absolute left-4 text-blue-500" size={20} />
-              <input
-                type="text"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleTriggerSearch()}
+            
+            {/* Ô TÌM KIẾM CHÍNH ĐÃ TÍCH HỢP AUTOCOMPLETE */}
+            <div className="relative flex items-center md:col-span-5 px-3 w-full">
+              <SearchAutocomplete
                 placeholder="Job title, keywords, or company name..."
-                className="w-full bg-transparent py-3 pl-9 pr-4 text-sm text-gray-800 outline-none placeholder-gray-400 dark:text-gray-100"
+                initialValue={searchInput}
+                onSelect={(item) => {
+                  setSearchInput(item.label);
+                  setFilters(prev => ({
+                    ...prev,
+                    title: item.label,
+                    page: 1
+                  }));
+                }}
+                onInputChange={(value) => setSearchInput(value)}
+                onFetchSuggestions={async (query, signal) => {
+                  if (!query.trim()) return [];
+                  return await getJobSuggestions(query, signal);
+                }}
               />
             </div>
             
@@ -504,13 +548,17 @@ export const Jobs: React.FC = () => {
               </div>
             </div>
 
-            {/* RECOMMENDED JOBS ASIDE */}
             <RecommendedJobsAside 
               recommendedJobs={aiRecommendations}
+              userData={userData}
+              
               openModal={(type) => {
-                console.log("Trigger open modal type from profile card:", type);
+                if (type === "personalInfo") {
+                  navigate('/profile');
+                }
               }}
             />
+
           </aside>
 
           {/* MAIN JOBS LIST AREA */}

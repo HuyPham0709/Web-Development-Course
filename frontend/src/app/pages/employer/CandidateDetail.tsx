@@ -1,9 +1,9 @@
 // ==========================================
-// CandidateDetail.tsx (Dark Mode & Staggered Animation) - FIXED LOGIC ONLY
+// CandidateDetail.tsx (Dark Mode & Staggered Animation) - REMOVED INVITE BUTTON
 // ==========================================
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Mail, Phone, Linkedin, Github, Globe, Download, Printer, ChevronRight, Briefcase, FileText, Send, Loader2 } from 'lucide-react';
+import { Mail, Phone, Linkedin, Github, Globe, Download, Printer, ChevronRight, Briefcase, FileText, Send, Loader2, X, Calendar } from 'lucide-react';
 import { applicationService } from '../../../services/applicationService';
 import { ApplicationDetail, ApplicationNote } from '../../../types/application';
 
@@ -17,10 +17,18 @@ export default function CandidateDetail() {
 
   // State to control smooth entrance animation
   const [animate, setAnimate] = useState(false);
+  
+  // ================= STATE MODAL PHỎNG VẤN =================
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [sendingInvite, setSendingInvite] = useState(false);
+  const [interviewForm, setInterviewForm] = useState({
+    location: '',
+    time: '',
+    message: 'Trân trọng mời bạn tham gia buổi phỏng vấn trực tiếp tại văn phòng của công ty chúng tôi.'
+  });
 
   const steps = ['Pending', 'Reviewed', 'Interview', 'Hired'];
 
-  // FIX 1: MOVE BACKEND URL VARIABLE TO TOP TO AVOID USE-BEFORE-DECLARATION ERROR (UNDEFINED)
   const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
@@ -28,7 +36,6 @@ export default function CandidateDetail() {
 
     const fetchData = async () => {
       try {
-        // FIX 2: KEEP ID STRING AS IS (MONGODB _ID), DO NOT CAST TO NUMBER TO AVOID NaN URL ERROR
         const [detailRes, notesRes] = await Promise.all([
           applicationService.getApplicationById(id),
           applicationService.getNotes(id as any)
@@ -45,7 +52,6 @@ export default function CandidateDetail() {
     fetchData();
   }, [id]);
 
-  // Trigger animation immediately after loading finishes
   useEffect(() => {
     if (!loading) {
       const timer = setTimeout(() => setAnimate(true), 60);
@@ -56,7 +62,6 @@ export default function CandidateDetail() {
   const handleAddNote = async () => {
     if (!newNote.trim() || !id) return;
     try {
-      // FIX 3: REMOVE Number(id) TO AVOID SENDING /NaN/ URL TO BACKEND
       const res = await applicationService.addNote(id as any, newNote);
       setNotes([...notes, res.data.data]);
       setNewNote('');
@@ -75,18 +80,56 @@ export default function CandidateDetail() {
 
     if (candidate.status?.toLowerCase() === backendStatus) return;
 
+    // Đánh chặn khi click vào bước "Interview" để hiện Modal form gửi mail mời phỏng vấn
+    if (backendStatus === 'interviewing') {
+      setIsModalOpen(true);
+      return; 
+    }
+
     const oldStatus = candidate.status;
     setCandidate({ ...candidate, status: backendStatus });
 
     try {
       if (applicationService.updateStatus) {
-        // FIX 4: REMOVE Number(id) FOR COMPATIBILITY WITH MONGODB STRING ID
         await applicationService.updateStatus(id as any, backendStatus);
       }
     } catch (error) {
       console.error("Error updating status:", error);
       setCandidate({ ...candidate, status: oldStatus });
       alert("Error 400: Cannot update status due to incorrect Backend format.");
+    }
+  };
+
+  // ================= XỬ LÝ SUBMIT GỬI LỜI MỜI PHỎNG VẤN =================
+  const handleInviteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id) return;
+
+    setSendingInvite(true);
+    try {
+      if (applicationService.inviteInterview) {
+        // Bước 1: Gọi API để gửi mail đi từ server backend
+        await applicationService.inviteInterview({ 
+          application_id: id,
+          ...interviewForm
+        });
+        
+        // Bước 2: Sau khi gửi mail thành công, cập nhật trạng thái ứng viên lên 'interviewing' (Interview) để đợi phản hồi
+        if (applicationService.updateStatus) {
+          await applicationService.updateStatus(id as any, 'interviewing');
+        }
+
+        alert("Đã gửi thư mời phỏng vấn qua email !");
+        setCandidate(prev => prev ? { ...prev, status: 'interviewing' } : null);
+        setIsModalOpen(false);
+      } else {
+        alert("Chưa cấu hình hàm inviteInterview trong applicationService.");
+      }
+    } catch (error: any) {
+      console.error(error);
+      alert(error.response?.data?.message || "Không thể gửi lời mời phỏng vấn.");
+    } finally {
+      setSendingInvite(false);
     }
   };
 
@@ -115,10 +158,10 @@ export default function CandidateDetail() {
     case 'interview': activeStep = 2; break;
     case 'accepted':
     case 'hired': activeStep = 3; break;
+    case 'rejected': activeStep = -1; break;
     default: activeStep = 0;
   }
 
-  // Add color schemes to support Dark Mode for Status Badges
   const getStatusColor = (status?: string) => {
     switch (status?.toLowerCase()) {
       case 'pending': return 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/30';
@@ -127,6 +170,7 @@ export default function CandidateDetail() {
       case 'interview': return 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400 border border-purple-200/30';
       case 'accepted':
       case 'hired': return 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400 border border-green-200/30';
+      case 'rejected': return 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-200/30';
       default: return 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-400 border border-transparent';
     }
   };
@@ -136,12 +180,8 @@ export default function CandidateDetail() {
   const cvLink = cvFile.startsWith('http')
     ? cvFile
     : `${backendUrl}/uploads/${cvFile.replace(/^(?:\/?uploads\/)+/, '')}`;
-
   const cleanCvFile = cvFile;
-
-  // AVATAR HANDLING LOGIC FULLY SYNCED FROM CVSearch.tsx
   const rawAvatar = candidate.avatar_url || candidate.avatar;
-
   const avatarSrc = rawAvatar
     ? (rawAvatar.startsWith('http') || rawAvatar.startsWith('data:')
       ? rawAvatar
@@ -152,9 +192,8 @@ export default function CandidateDetail() {
     <div className="min-h-screen bg-gray-50/50 dark:bg-[#0E1422] py-4 transition-colors duration-300">
       <div className="flex flex-col gap-6 font-sans pb-12 h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* 1. Breadcrumb */}
-        <div className={`flex items-center text-sm text-gray-500 dark:text-gray-400 mb-2 mt-4 transform transition-all duration-500 ease-out ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-          }`}>
+        {/* Breadcrumb */}
+        <div className={`flex items-center text-sm text-gray-500 dark:text-gray-400 mb-2 mt-4 transform transition-all duration-500 ease-out ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
           <Link to="/employer/candidates" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Candidates</Link>
           <ChevronRight className="w-4 h-4 mx-1" />
           <span className="text-gray-900 dark:text-white font-medium">{displayName}</span>
@@ -162,37 +201,23 @@ export default function CandidateDetail() {
 
         <div className="flex flex-col lg:flex-row gap-6">
 
-          {/* ================= LEFT COLUMN (Profile Box) ================= */}
-          <div className={`w-full lg:w-[340px] flex-shrink-0 flex flex-col gap-6 transform transition-all duration-500 ease-out delay-75 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-            }`}>
+          {/* LEFT COLUMN */}
+          <div className={`w-full lg:w-[340px] flex-shrink-0 flex flex-col gap-6 transform transition-all duration-500 ease-out delay-75 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
             <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-sm transition-colors">
-
               <div className="flex flex-col items-center text-center mb-6">
                 <div className="relative mb-4">
                   <div className="w-24 h-24 rounded-full bg-gray-100 dark:bg-white/5 overflow-hidden shrink-0 border border-gray-200 dark:border-white/10 transition-colors">
-                    <img
-                      src={avatarSrc}
-                      alt="Avatar"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.onerror = null;
-                        target.src = "https://placehold.co/150x150/e2e8f0/64748b?text=No+Image";
-                      }}
-                    />
+                    <img src={avatarSrc} alt="Avatar" className="w-full h-full object-cover" onError={(e) => { const target = e.target as HTMLImageElement; target.onerror = null; target.src = "https://placehold.co/150x150/e2e8f0/64748b?text=No+Image"; }} />
                   </div>
-
                   {candidate.experience_level && (
                     <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-blue-600 dark:bg-blue-500 text-white text-[11px] font-bold px-3 py-0.5 rounded-full border-2 border-white dark:border-[#0E1422] whitespace-nowrap shadow-sm">
                       {candidate.experience_level}
                     </div>
                   )}
                 </div>
-
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white mt-2">{displayName}</h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1.5 mt-1">
-                  <Briefcase className="w-4 h-4 text-gray-400" />
-                  {candidate.job_title || 'Candidate'}
+                  <Briefcase className="w-4 h-4 text-gray-400" /> {candidate.job_title || 'Candidate'}
                 </p>
               </div>
 
@@ -201,25 +226,12 @@ export default function CandidateDetail() {
                   <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />
                   <span className="font-medium text-gray-700 dark:text-gray-300 truncate">{candidate.candidate_email}</span>
                 </div>
-
                 {candidate.phone && (
                   <div className="flex items-center gap-3 p-3.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-[#0E1422]/30 text-sm transition-colors">
                     <Phone className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />
                     <span className="font-medium text-gray-700 dark:text-gray-300">{candidate.phone}</span>
                   </div>
                 )}
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 mb-8">
-                {['LinkedIn', 'GitHub', 'Portfolio'].map((label, idx) => {
-                  const Icon = idx === 0 ? Linkedin : idx === 1 ? Github : Globe;
-                  return (
-                    <button key={label} className="flex flex-col items-center justify-center gap-2 py-3 border border-gray-200 dark:border-white/10 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-all text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400">
-                      <Icon className="w-5 h-5" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
-                    </button>
-                  );
-                })}
               </div>
 
               {candidate.skills && candidate.skills.length > 0 && (
@@ -241,24 +253,24 @@ export default function CandidateDetail() {
                   {candidate.bio || 'No bio provided.'}
                 </p>
               </div>
-
             </div>
           </div>
 
-          {/* ================= RIGHT COLUMN (Details Timeline & Notes) ================= */}
+          {/* RIGHT COLUMN */}
           <div className="w-full flex-1 flex flex-col gap-6">
 
             {/* 1. Application Status Card */}
-            <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-sm transform transition-all duration-500 ease-out delay-150 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-              }`}>
+            <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-sm transform transition-all duration-500 ease-out delay-150 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
               <div className="flex items-start justify-between mb-8">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white">Application Status</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Applied on {new Date(candidate.applied_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                 </div>
 
-                <div className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full shadow-sm transition-colors ${getStatusColor(candidate.status)}`}>
-                  {candidate.status || 'Action Required'}
+                <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
+                  <div className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full shadow-sm transition-colors ${getStatusColor(candidate.status)}`}>
+                    {candidate.status || 'Action Required'}
+                  </div>
                 </div>
               </div>
 
@@ -267,12 +279,12 @@ export default function CandidateDetail() {
                 <div className="absolute left-6 right-6 top-3 h-1 bg-gray-200 dark:bg-white/10 z-0 rounded-full">
                   <div
                     className="absolute left-0 top-0 h-full bg-blue-600 dark:bg-blue-500 z-0 rounded-full transition-all duration-500"
-                    style={{ width: `${(activeStep / (steps.length - 1)) * 100}%` }}
+                    style={{ width: `${activeStep >= 0 ? (activeStep / (steps.length - 1)) * 100 : 0}%` }}
                   ></div>
                 </div>
 
                 {steps.map((step, index) => {
-                  const isCompleted = index <= activeStep;
+                  const isCompleted = activeStep >= 0 && index <= activeStep;
                   return (
                     <div key={step} onClick={() => handleUpdateStatus(step)} className="relative z-10 flex flex-col items-center cursor-pointer group">
                       <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 group-hover:scale-110 group-hover:shadow-md ${isCompleted
@@ -281,8 +293,7 @@ export default function CandidateDetail() {
                         }`}>
                         {index + 1}
                       </div>
-                      <span className={`text-xs font-medium absolute top-9 whitespace-nowrap transition-colors ${isCompleted ? 'text-gray-900 dark:text-white font-bold' : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300'
-                        }`}>
+                      <span className={`text-xs font-medium absolute top-9 whitespace-nowrap transition-colors ${isCompleted ? 'text-gray-900 dark:text-white font-bold' : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300'}`}>
                         {step}
                       </span>
                     </div>
@@ -291,37 +302,17 @@ export default function CandidateDetail() {
               </div>
             </div>
 
-            {/* 2. Cover Letter Card */}
-            {candidate.cover_letter && (
-              <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-sm transform transition-all duration-500 ease-out delay-200 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-                }`}>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" /> Cover Letter
-                </h3>
-                <div className="bg-gray-50 dark:bg-[#0E1422]/30 rounded-xl p-5 border border-gray-100 dark:border-white/5 transition-colors">
-                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed pl-4 border-l-2 border-blue-600 dark:border-blue-500 whitespace-pre-wrap">
-                    {candidate.cover_letter}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* 3. Resume Document Card */}
-            <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-sm transform transition-all duration-500 ease-out delay-300 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-              }`}>
+            {/* 2. Resume Document Card */}
+            <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-sm transform transition-all duration-500 ease-out delay-300 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">Resume Document</h3>
                 <div className="flex items-center gap-4">
-                  <button className="text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
-                    <Printer className="w-5 h-5" />
-                  </button>
                   <a href={cvLink} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 dark:bg-blue-500 text-white text-sm font-medium rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors shadow-sm">
                     <Download className="w-4 h-4" />
                     Download PDF
                   </a>
                 </div>
               </div>
-
               <div className="w-full h-[600px] bg-slate-50 dark:bg-[#0E1422]/40 rounded-xl border border-gray-200 dark:border-white/10 relative overflow-hidden transition-colors">
                 {cleanCvFile ? (
                   <iframe src={cvLink} className="w-full h-full border-0 absolute inset-0 z-10 dark:opacity-90" title="CV Viewer" />
@@ -333,14 +324,12 @@ export default function CandidateDetail() {
               </div>
             </div>
 
-            {/* 4. HR Internal Notes Card */}
-            <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-sm relative overflow-hidden transform transition-all duration-500 ease-out delay-[400ms] ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-              }`}>
+            {/* 3. HR Internal Notes Card */}
+            <div className={`bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-sm relative overflow-hidden transform transition-all duration-500 ease-out delay-[400ms] ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
               <div className="absolute left-0 top-0 w-1.5 h-full bg-blue-600 dark:bg-blue-500"></div>
-
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 ml-2">HR Notes</h3>
               <p className="text-xs text-gray-400 dark:text-gray-500 mb-4 ml-2">Internal workspace. Candidate cannot see these notes.</p>
-
+              
               {notes.length > 0 && (
                 <div className="mb-4 space-y-3 ml-2">
                   {notes.map(note => (
@@ -367,10 +356,48 @@ export default function CandidateDetail() {
                 </button>
               </div>
             </div>
-
           </div>
         </div>
       </div>
+
+      {/* ================= POPUP MODAL: INTERVIEW INVITATION ================= */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#121A2E] w-full max-w-md rounded-2xl border border-gray-200 dark:border-white/10 shadow-2xl overflow-hidden p-6 relative">
+            <button type="button" onClick={() => setIsModalOpen(false)} className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-blue-500" /> Interview Invitation
+            </h2>
+            <form onSubmit={handleInviteSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Địa chỉ phỏng vấn</label>
+                <input required type="text" value={interviewForm.location} onChange={e => setInterviewForm({...interviewForm, location: e.target.value})}
+                  placeholder="Ví dụ: Tầng 5, Tòa nhà Bitexco, Q.1, TP.HCM"
+                  className="w-full px-4 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Thời gian phỏng vấn</label>
+                <input required type="datetime-local" value={interviewForm.time} onChange={e => setInterviewForm({...interviewForm, time: e.target.value})}
+                  className="w-full px-4 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Nội dung lời mời</label>
+                <textarea rows={4} value={interviewForm.message} onChange={e => setInterviewForm({...interviewForm, message: e.target.value})}
+                  className="w-full px-4 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+              </div>
+              <div className="flex gap-3 justify-end pt-2">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded-xl text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">Hủy</button>
+                <button type="submit" disabled={sendingInvite} className="px-5 py-2 rounded-xl text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all">
+                  {sendingInvite ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Gửi lời mời'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -8,6 +8,8 @@ import {
 import axios from 'axios';
 import jsPDF from "jspdf";
 import { domToCanvas } from 'modern-screenshot';
+import CVPreview from './CVPreview';
+
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -34,29 +36,29 @@ type SectionKey = 'personal' | 'experience' | 'education' | 'skills' | 'language
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 export const TEMPLATES = [
-  { id: 'modern',  label: 'Modern',  color: '#3B82F6' },
+  { id: 'modern', label: 'Modern', color: '#3B82F6' },
   { id: 'classic', label: 'Classic', color: '#10B981' },
-  { id: 'bold',    label: 'Bold',    color: '#8B5CF6' },
+  { id: 'bold', label: 'Bold', color: '#8B5CF6' },
   { id: 'minimal', label: 'Minimal', color: '#F59E0B' },
 ];
 
 export const ACCENT_COLORS = [
-  '#3B82F6','#8B5CF6','#10B981','#F59E0B',
-  '#EC4899','#EF4444','#14B8A6','#6366F1',
-  '#1D4ED8','#65A30D','#B45309','#DB2777',
-  '#475569','#1E293B','#0EA5E9','#F472B6',
+  '#3B82F6', '#8B5CF6', '#10B981', '#F59E0B',
+  '#EC4899', '#EF4444', '#14B8A6', '#6366F1',
+  '#1D4ED8', '#65A30D', '#B45309', '#DB2777',
+  '#475569', '#1E293B', '#0EA5E9', '#F472B6',
 ];
 
 const LANG_LEVELS = ['Beginner', 'Intermediate', 'Advanced', 'Fluent', 'Native'];
-const IT_LEVELS   = ['Basic', 'Intermediate', 'Advanced', 'Expert'];
+const IT_LEVELS = ['Basic', 'Intermediate', 'Advanced', 'Expert'];
 
-const mkId      = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
-const mkExp     = (): ExpItem      => ({ id: mkId(), company: '', role: '', startDate: '', endDate: '', current: false, desc: '' });
-const mkEdu     = (): EduItem      => ({ id: mkId(), school: '', major: '', startDate: '', endDate: '', gpa: '' });
-const mkLang    = (): LangItem     => ({ id: mkId(), language: '', level: 'Beginner' });
-const mkIt      = (): ItItem       => ({ id: mkId(), name: '', level: 'Basic' });
-const mkContact = (): ContactItem  => ({ id: mkId(), name: '', phone: '', relation: '' });
-const mkActivity= (): ActivityItem => ({ id: mkId(), name: '', role: '', period: '', desc: '' });
+const mkId = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
+const mkExp = (): ExpItem => ({ id: mkId(), company: '', role: '', startDate: '', endDate: '', current: false, desc: '' });
+const mkEdu = (): EduItem => ({ id: mkId(), school: '', major: '', startDate: '', endDate: '', gpa: '' });
+const mkLang = (): LangItem => ({ id: mkId(), language: '', level: 'Beginner' });
+const mkIt = (): ItItem => ({ id: mkId(), name: '', level: 'Basic' });
+const mkContact = (): ContactItem => ({ id: mkId(), name: '', phone: '', relation: '' });
+const mkActivity = (): ActivityItem => ({ id: mkId(), name: '', role: '', period: '', desc: '' });
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -65,9 +67,8 @@ const SectionHeader = ({
 }: { icon: any; title: string; isOpen: boolean; onToggle: () => void; score?: number }) => (
   <button
     onClick={onToggle}
-    className={`w-full flex items-center justify-between px-4 py-3.5 text-left transition-all rounded-xl mb-1 ${
-      isOpen ? 'bg-blue-500/10 border border-blue-500/20' : 'hover:bg-gray-800/50 border border-transparent'
-    }`}
+    className={`w-full flex items-center justify-between px-4 py-3.5 text-left transition-all rounded-xl mb-1 ${isOpen ? 'bg-blue-500/10 border border-blue-500/20' : 'hover:bg-gray-800/50 border border-transparent'
+      }`}
   >
     <div className="flex items-center gap-3">
       <div className={`p-2 rounded-lg ${isOpen ? 'bg-blue-500 text-white' : 'bg-gray-800 text-gray-400'}`}>
@@ -172,237 +173,7 @@ const ItemCard = ({ children, title, onRemove }: { children: React.ReactNode; ti
   </div>
 );
 
-// ─── CV Preview ───────────────────────────────────────────────────────────────
 
-export const CVPreview = ({
-  personal, experience, education, skills, languages, it,
-  activities, certs, hobbies, template, lang, accentColor,
-}: {
-  personal: PersonalInfo; experience: ExpItem[]; education: EduItem[];
-  skills: string; languages: LangItem[]; it: ItItem[];
-  activities: ActivityItem[]; certs: string; hobbies: string;
-  template: string; lang: 'vi' | 'en'; accentColor?: string;
-}) => {
-  const accent = accentColor ?? '#3B82F6';
-
-  const T = {
-    vi: {
-      contact: 'LIÊN HỆ', summary: 'MỤC TIÊU NGHỀ NGHIỆP',
-      exp: 'KINH NGHIỆM LÀM VIỆC', edu: 'HỌC VẤN', skills: 'KỸ NĂNG',
-      lang: 'NGOẠI NGỮ', it: 'TIN HỌC', act: 'HOẠT ĐỘNG',
-      certs: 'CHỨNG CHỈ', hobbies: 'SỞ THÍCH',
-      present: 'Hiện tại', position: 'VỊ TRÍ'
-    },
-    en: {
-      contact: 'CONTACT', summary: 'CAREER OBJECTIVE',
-      exp: 'WORK EXPERIENCE', edu: 'EDUCATION', skills: 'SKILLS',
-      lang: 'LANGUAGES', it: 'IT SKILLS', act: 'ACTIVITIES',
-      certs: 'CERTIFICATIONS', hobbies: 'HOBBIES',
-      present: 'Present', position: 'POSITION'
-    },
-  }[lang];
-
-  const SecTitle = ({ children }: { children: React.ReactNode }) => (
-    <h2 style={{ color: accent }} className="text-[9px] font-bold tracking-widest uppercase mb-2 pb-1 border-b">
-      {children}
-    </h2>
-  );
-
-  return (
-    <div className="bg-white text-gray-900 text-[10px] leading-[1.45] flex h-full min-h-[297mm]" style={{ fontFamily: 'Georgia, serif' }}>
-      {/* Sidebar */}
-      <div className="w-[38%] min-h-full p-5 flex flex-col gap-4" style={{ backgroundColor: accent + '18' }}>
-        {/* Avatar */}
-        <div className="flex justify-center mb-1">
-          <div className="w-20 h-20 rounded-full overflow-hidden border-2 flex items-center justify-center" style={{ borderColor: accent }}>
-            {personal.avatar_url
-              ? <img src={personal.avatar_url} alt="avatar" className="w-full h-full object-cover" />
-              : <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: accent + '30' }}>
-                  <User size={32} style={{ color: accent }} />
-                </div>
-            }
-          </div>
-        </div>
-
-        {/* Name (classic / bold) */}
-        {(template === 'classic' || template === 'bold') && (
-          <div className="text-center">
-            <div className="font-bold text-sm uppercase tracking-wide" style={{ color: accent }}>
-              {personal.full_name || (lang === 'vi' ? 'HỌ VÀ TÊN' : 'FULL NAME')}
-            </div>
-            <div className="text-gray-500 text-[9px] mt-0.5">{personal.headline || T.position}</div>
-          </div>
-        )}
-
-        {/* Contact */}
-        <div>
-          <SecTitle>{T.contact}</SecTitle>
-          <div className="space-y-1.5 text-gray-600">
-            {personal.phone   && <div>📞 {personal.phone}</div>}
-            {personal.email   && <div>✉ {personal.email}</div>}
-            {personal.dob     && <div>🎂 {personal.dob}</div>}
-            {personal.address && <div>📍 {personal.address}</div>}
-            {personal.website && <div>🌐 {personal.website}</div>}
-          </div>
-        </div>
-
-        {/* Skills */}
-        {skills && (
-          <div>
-            <SecTitle>{T.skills}</SecTitle>
-            <p className="text-gray-700 leading-relaxed">{skills}</p>
-          </div>
-        )}
-
-        {/* Languages */}
-        {languages.filter(l => l.language).length > 0 && (
-          <div>
-            <SecTitle>{T.lang}</SecTitle>
-            <div className="space-y-1.5">
-              {languages.filter(l => l.language).map(l => (
-                <div key={l.id}>
-                  <div className="flex justify-between text-gray-700">
-                    <span>{l.language}</span>
-                    <span className="text-gray-500">{l.level}</span>
-                  </div>
-                  <div className="h-1 bg-gray-200 rounded-full mt-0.5">
-                    <div className="h-1 rounded-full" style={{
-                      backgroundColor: accent,
-                      width: `${(LANG_LEVELS.indexOf(l.level) + 1) / LANG_LEVELS.length * 100}%`
-                    }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* IT Skills */}
-        {it.filter(i => i.name).length > 0 && (
-          <div>
-            <SecTitle>{T.it}</SecTitle>
-            <div className="space-y-1.5">
-              {it.filter(i => i.name).map(i => (
-                <div key={i.id}>
-                  <div className="flex justify-between text-gray-700">
-                    <span>{i.name}</span>
-                    <span className="text-gray-500">{i.level}</span>
-                  </div>
-                  <div className="h-1 bg-gray-200 rounded-full mt-0.5">
-                    <div className="h-1 rounded-full" style={{
-                      backgroundColor: accent,
-                      width: `${(IT_LEVELS.indexOf(i.level) + 1) / IT_LEVELS.length * 100}%`
-                    }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Hobbies */}
-        {hobbies && (
-          <div>
-            <SecTitle>{T.hobbies}</SecTitle>
-            <p className="text-gray-700">{hobbies}</p>
-          </div>
-        )}
-      </div>
-
-      {/* Main */}
-      <div className="flex-1 p-5 flex flex-col gap-4">
-        {/* Name (modern / minimal) */}
-        {(template === 'modern' || template === 'minimal') && (
-          <div className="pb-3 mb-1" style={{ borderBottom: `2px solid ${accent}` }}>
-            <div className="text-xl font-bold uppercase tracking-widest" style={{ color: accent }}>
-              {personal.full_name || (lang === 'vi' ? 'HỌ VÀ TÊN' : 'FULL NAME')}
-            </div>
-            <div className="text-gray-500 text-[10px] mt-0.5 uppercase tracking-widest">
-              {personal.headline || T.position}
-            </div>
-          </div>
-        )}
-
-        {/* Summary */}
-        {personal.summary && (
-          <div>
-            <SecTitle>{T.summary}</SecTitle>
-            <p className="text-gray-700 leading-relaxed">{personal.summary}</p>
-          </div>
-        )}
-
-        {/* Experience */}
-        {experience.filter(e => e.company || e.role).length > 0 && (
-          <div>
-            <SecTitle>{T.exp}</SecTitle>
-            <div className="space-y-3">
-              {experience.filter(e => e.company || e.role).map(exp => (
-                <div key={exp.id}>
-                  <div className="flex justify-between items-baseline">
-                    <span className="font-bold text-[10.5px] text-gray-900">{exp.role}</span>
-                    <span className="text-gray-500 text-[9px]">
-                      {exp.startDate}{exp.startDate && ' – '}{exp.current ? T.present : exp.endDate}
-                    </span>
-                  </div>
-                  <div className="font-medium" style={{ color: accent }}>{exp.company}</div>
-                  {exp.desc && <p className="text-gray-600 mt-0.5 leading-relaxed">{exp.desc}</p>}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Education */}
-        {education.filter(e => e.school).length > 0 && (
-          <div>
-            <SecTitle>{T.edu}</SecTitle>
-            <div className="space-y-3">
-              {education.filter(e => e.school).map(edu => (
-                <div key={edu.id}>
-                  <div className="flex justify-between items-baseline">
-                    <span className="font-bold text-gray-900">{edu.school}</span>
-                    <span className="text-gray-500 text-[9px]">
-                      {edu.startDate}{edu.startDate && ' – '}{edu.endDate}
-                    </span>
-                  </div>
-                  <div className="text-gray-700">{edu.major}</div>
-                  {edu.gpa && <div className="text-gray-500">GPA: {edu.gpa}</div>}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Activities */}
-        {activities.filter(a => a.name).length > 0 && (
-          <div>
-            <SecTitle>{T.act}</SecTitle>
-            <div className="space-y-2">
-              {activities.filter(a => a.name).map(act => (
-                <div key={act.id}>
-                  <div className="flex justify-between items-baseline">
-                    <span className="font-bold text-gray-900">{act.name}</span>
-                    <span className="text-gray-500 text-[9px]">{act.period}</span>
-                  </div>
-                  {act.role && <div style={{ color: accent }}>{act.role}</div>}
-                  {act.desc && <p className="text-gray-600 mt-0.5">{act.desc}</p>}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Certifications */}
-        {certs && (
-          <div>
-            <SecTitle>{T.certs}</SecTitle>
-            <p className="text-gray-700 leading-relaxed">{certs}</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
 
 // ─── Template Picker Panel ─────────────────────────────────────────────────────
 
@@ -427,11 +198,10 @@ const TemplatePicker = ({
         <button
           key={t.id}
           onClick={() => setTemplate(t.id)}
-          className={`py-2.5 rounded-xl text-[10px] font-bold border transition-all ${
-            template === t.id
-              ? 'bg-blue-500/10 text-blue-400'
-              : 'border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-200'
-          }`}
+          className={`py-2.5 rounded-xl text-[10px] font-bold border transition-all ${template === t.id
+            ? 'bg-blue-500/10 text-blue-400'
+            : 'border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-200'
+            }`}
           style={template === t.id ? { borderColor: accentColor, color: accentColor } : {}}
         >
           {t.label}
@@ -469,11 +239,11 @@ const TemplatePicker = ({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export const CVBuilder = ({ 
-  onClose, 
-  initialTemplate, 
-  initialAccentColor 
-}: { 
+export const CVBuilder = ({
+  onClose,
+  initialTemplate,
+  initialAccentColor
+}: {
   onClose?: () => void;
   initialTemplate?: string;
   initialAccentColor?: string;
@@ -585,11 +355,10 @@ export const CVBuilder = ({
           {/* Template picker button */}
           <button
             onClick={() => setShowTemplates(v => !v)}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl border transition-all ${
-              showTemplates
-                ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
-                : 'bg-gray-800 hover:bg-gray-700 text-gray-200 border-gray-700'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl border transition-all ${showTemplates
+              ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+              : 'bg-gray-800 hover:bg-gray-700 text-gray-200 border-gray-700'
+              }`}
           >
             <LayoutGrid size={16} />
             CV Template
@@ -666,7 +435,22 @@ export const CVBuilder = ({
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <Input label="Email" icon={Mail} value={personal.email} onChange={e => setPersonal(p => ({ ...p, email: e.target.value }))} placeholder="abc@gmail.com" />
-                  <Input label="Phone" icon={Phone} value={personal.phone} onChange={e => setPersonal(p => ({ ...p, phone: e.target.value }))} placeholder="0901 xxx xxx" />
+                  <Input
+                    label="Phone"
+                    icon={Phone}
+                    value={personal.phone}
+                    onChange={(e) => {
+                      const onlyNumbers = e.target.value
+                        .replace(/\D/g, '')
+                        .slice(0, 10);
+
+                      setPersonal((p) => ({
+                        ...p,
+                        phone: onlyNumbers,
+                      }));
+                    }}
+                    placeholder="0901847437"
+                  />
                   <Input label="Date of Birth" icon={Calendar} value={personal.dob} onChange={e => setPersonal(p => ({ ...p, dob: e.target.value }))} placeholder="DD/MM/YYYY" />
                   <Input label="Website / LinkedIn" icon={LinkIcon} value={personal.website} onChange={e => setPersonal(p => ({ ...p, website: e.target.value }))} placeholder="linkedin.com/in/..." />
                 </div>
@@ -848,7 +632,8 @@ export const CVBuilder = ({
         </div>
       </div>
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 10px; }

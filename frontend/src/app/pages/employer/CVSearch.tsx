@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, MapPin, Briefcase, Plus, Loader2, ChevronDown } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { searchCandidates, Candidate } from '../../../services/profileService';
+import { CandidateProfileModal } from '../../../app/components/candidate/profile/CandidateProfileModal';
+import { InviteModal } from '../../pages/employer/InviteModal';
 
 export function CVSearch() {
-  const navigate = useNavigate();
-
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -17,6 +16,11 @@ export function CVSearch() {
   const popularSkills = ['React', 'Node.js', 'Java', 'Python', 'UI/UX', 'English'];
 
   const [animate, setAnimate] = useState(false);
+
+  // State để mở modal
+  const [selectedCandidate, setSelectedCandidate] = useState<{ id: number; name: string } | null>(null);
+  const [inviteTarget, setInviteTarget] = useState<any | null>(null);
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
 
   const toggleSkillFilter = (skill: string) => {
     setSelectedSkills(prev =>
@@ -187,8 +191,8 @@ export function CVSearch() {
                       type="button"
                       onClick={() => toggleSkillFilter(skill)}
                       className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors border ${isSelected
-                          ? 'bg-blue-600 dark:bg-blue-500 text-white border-blue-600 dark:border-blue-500 shadow-sm'
-                          : 'bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-white/10 hover:bg-gray-100 dark:hover:bg-white/10'
+                        ? 'bg-blue-600 dark:bg-blue-500 text-white border-blue-600 dark:border-blue-500 shadow-sm'
+                        : 'bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-white/10 hover:bg-gray-100 dark:hover:bg-white/10'
                         }`}
                     >
                       {skill}
@@ -221,13 +225,15 @@ export function CVSearch() {
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 {candidates.map((candidate, index) => {
                   const delayClass = delays[index % delays.length] || 'delay-300';
+                  // Sử dụng candidate.full_name hoặc candidate.name tùy API
+                  const candidateName = candidate.full_name || candidate.name || 'Ứng viên';
                   const rawAvatar = candidate.avatar_url || candidate.avatar;
                   const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
                   const avatarSrc = rawAvatar
                     ? (rawAvatar.startsWith('http') || rawAvatar.startsWith('data:')
                       ? rawAvatar
                       : `${backendUrl}/${rawAvatar.replace(/^\//, '')}`)
-                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(candidate.name || 'User')}&background=random`;
+                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(candidateName)}&background=random`;
 
                   return (
                     <div
@@ -245,17 +251,17 @@ export function CVSearch() {
                         </div>
                         <div className="flex-1">
                           <h3 className="font-bold text-gray-900 dark:text-white text-sm line-clamp-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                            {candidate.title}
+                            {candidate.title || candidate.desired_position || 'Chưa có chức danh'}
                           </h3>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 italic mt-0.5">{candidate.name}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 italic mt-0.5">{candidateName}</p>
                           <div className="flex items-center gap-4 mt-2 text-xs font-medium text-gray-600 dark:text-gray-400">
                             <div className="flex items-center gap-1">
                               <Briefcase className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-                              {candidate.exp}
+                              {candidate.exp || candidate.experience || '—'}
                             </div>
                             <div className="flex items-center gap-1">
                               <MapPin className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-                              {candidate.location}
+                              {candidate.location || '—'}
                             </div>
                           </div>
                         </div>
@@ -271,15 +277,36 @@ export function CVSearch() {
 
                       <div className="mt-auto pt-4 border-t border-gray-100 dark:border-white/10 flex items-center gap-3">
                         <button
-                          onClick={() => navigate(`/employer/candidate/${candidate.id}`)}
+                          onClick={() => {
+                            // 1. Log dữ liệu ra để "bắt bệnh"
+                            console.log("Dữ liệu candidate đầy đủ:", candidate);
+                            console.log("ID sẽ truyền vào Modal:", candidate.user_id || candidate.id);
+
+                            // 2. Thực hiện gán dữ liệu
+                            setSelectedCandidate({
+                              id: candidate.user_id || candidate.id,
+                              name: candidateName
+                            });
+                          }}
                           className="flex-1 py-2 text-gray-600 dark:text-gray-400 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl font-bold hover:bg-gray-50 dark:hover:bg-white/10 shadow-sm transition-colors text-xs"
                         >
                           Xem chi tiết hồ sơ
                         </button>
-                        <button className="flex-1 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-700 dark:hover:bg-blue-600 shadow-sm transition-colors text-xs flex items-center justify-center gap-1.5">
-                          <Plus className="w-4 h-4" />
-                          Mới ứng tuyển
-                        </button>
+                        <button 
+  onClick={() => {
+    setInviteTarget({
+      id: candidate.user_id || candidate.id,
+      name: candidateName,
+      title: candidate.title || candidate.desired_position || 'Ứng viên',
+      avatar: avatarSrc
+    });
+    setIsInviteOpen(true);
+  }}
+  className="flex-1 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-700 dark:hover:bg-blue-600 shadow-sm transition-colors text-xs flex items-center justify-center gap-1.5"
+>
+  <Plus className="w-4 h-4" />
+  Mời ứng tuyển 
+</button>
                       </div>
                     </div>
                   );
@@ -289,6 +316,21 @@ export function CVSearch() {
           </div>
         </div>
       </div>
+
+      {/* Modal xem chi tiết hồ sơ (đặt ngoài cùng để luôn hoạt động) */}
+      {selectedCandidate && (
+        <CandidateProfileModal
+          candidateId={selectedCandidate.id}
+          candidateName={selectedCandidate.name}
+          onClose={() => setSelectedCandidate(null)}
+        />
+      )}
+      {/* Modal Mời ứng tuyển */}
+<InviteModal 
+  isOpen={isInviteOpen}
+  onClose={() => setIsInviteOpen(false)}
+  candidate={inviteTarget}
+/>
     </div>
   );
 }
