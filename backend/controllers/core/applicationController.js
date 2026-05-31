@@ -8,18 +8,16 @@ const { sendMail } = require('../../config/mailer');
 // ======================================================
 exports.applyJob = async (req, res) => {
   const { job_id, cover_letter } = req.body;
-  const candidate_id = req.user.id; // Get logged-in candidate's ID
+  const candidate_id = req.user.id;
 
   try {
     console.log("🚀 [Backend] Received application request for Job ID:", job_id);
 
-    // 1. Query MySQL to get Job details (including title and publisher's ID)
     const [jobs] = await db.execute(
       "SELECT id, title, posted_by FROM Jobs WHERE id = ? AND deleted_at IS NULL",
       [job_id],
     );
 
-    // Check if the job exists in the database
     if (jobs.length === 0) {
       console.log(`❌ Failure: Job ID ${job_id} not found in MySQL`);
       return res
@@ -30,9 +28,8 @@ exports.applyJob = async (req, res) => {
         });
     }
 
-    const job = jobs[0]; // Define a valid job variable from the query results
+    const job = jobs[0];
 
-    // 2. Check if the candidate has already applied for this job (Avoid duplicates)
     const [existingApp] = await db.execute(
       "SELECT id FROM Applications WHERE job_id = ? AND candidate_id = ?",
       [job_id, candidate_id],
@@ -48,14 +45,12 @@ exports.applyJob = async (req, res) => {
         });
     }
 
-    // 3. EXECUTE: Save application record into the Applications table (MySQL)
     await db.execute(
       "INSERT INTO Applications (job_id, candidate_id, cover_letter, status, applied_at) VALUES (?, ?, ?, 'pending', NOW())",
       [job_id, candidate_id, cover_letter || null],
     );
     console.log("⚙️ [MySQL] Successfully saved new job application record!");
 
-    // 4. PROCEED WITH NOTIFICATION DISPATCH TO MONGODB & SOCKET REAL-TIME
     try {
       console.log(
         "⏳ [MongoDB] Preparing to send notification to native Employer ID:",
@@ -63,11 +58,8 @@ exports.applyJob = async (req, res) => {
       );
 
       const targetEmployerId = String(job.posted_by);
-
-      // Extract the candidate's full name from the authenticated user context
       const candidateName = req.user.full_name || req.user.name || req.user.username || "Anonymous Candidate";
 
-      // Persist the notification structure to MongoDB
       const newNotify = await Notification.create({
         user_id: targetEmployerId,
         title: "New Job Application 📄",
@@ -79,8 +71,6 @@ exports.applyJob = async (req, res) => {
       });
 
       console.log("🍃 [MongoDB] Successfully saved new notification!");
-
-      // 🔥 REAL-TIME: Dispatch immediately via Socket to the Employer
       socketUtils.sendNotification(targetEmployerId, newNotify);
 
     } catch (mongoError) {
@@ -88,7 +78,6 @@ exports.applyJob = async (req, res) => {
       console.error(mongoError.message);
     }
 
-    // Always respond with success since the core MySQL profile registration completed
     return res
       .status(201)
       .json({
@@ -243,7 +232,6 @@ exports.updateApplicationStatus = async (req, res) => {
       application_id,
     ]);
 
-    // Format candidateId as String for MongoDB query compliance
     const candidateId = String(applications[0].candidate_id);
     const jobTitle = applications[0].job_title;
 
@@ -265,7 +253,6 @@ exports.updateApplicationStatus = async (req, res) => {
     }
 
     if (notifyTitle && notifyMessage) {
-      // 1. Persist candidate event notification to MongoDB
       const newCandidateNotify = await Notification.create({
         user_id: candidateId, 
         title: notifyTitle,
@@ -276,8 +263,6 @@ exports.updateApplicationStatus = async (req, res) => {
         created_at: new Date(), 
       });
       console.log("🍃 [MongoDB] Successfully generated a target review evaluation notification.");
-
-      // 🔥 2. REAL-TIME: Dispatch immediate telemetry via active connection socket to Candidate
       socketUtils.sendNotification(candidateId, newCandidateNotify);
     }
 
@@ -312,7 +297,6 @@ exports.getEmployerJobs = async (req, res) => {
     `, [employer_id]);
 
     const total_jobs = jobs.length;
-    // Calculate applications metrics solely from approved listings
     const total_applications = jobs.reduce((sum, job) => {
       return job.status === 'approved'
         ? sum + (parseInt(job.application_count) || 0)
@@ -526,7 +510,6 @@ exports.inviteInterview = async (req, res, next) => {
   try {
     const { application_id, location, time, message } = req.body;
 
-    // 1. Get application profile details from MySQL DB system
     const [rows] = await db.execute(`
       SELECT 
         a.candidate_id AS candidate_user_id,
@@ -548,33 +531,131 @@ exports.inviteInterview = async (req, res, next) => {
 
     const application = rows[0];
 
-    // 2. Execute UPDATE application status to 'reviewed' (Under Review) in MySQL
     await db.execute("UPDATE Applications SET status = 'reviewed' WHERE id = ?", [application_id]);
 
-    // 3. Send interview invitation mail via SMTP
     const baseUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+    
+    // NÂNG CẤP GIAO DIỆN EMAIL THEO THIẾT KẾ PREMIUM GRADIENT
+    const htmlEmailContent = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Interview Invitation</title>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; -webkit-font-smoothing: antialiased; width: 100% !important;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #F8FAFC; padding: 40px 10px;">
+        <tr>
+          <td align="center">
+            <table role="presentation" width="100%" max-width="600" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); border: 1px solid #E2E8F0;">
+              
+              <tr>
+                <td height="6" style="background: linear-gradient(to right, #0052FF, #8B5CF6); line-height: 6px; font-size: 6px;">&nbsp;</td>
+              </tr>
+
+              <tr>
+                <td style="padding: 36px 40px 24px 40px;">
+                  <span style="font-size: 22px; font-weight: 800; color: #0F172A; letter-spacing: -0.5px;">
+                    JobSpot<span style="color: #0052FF;">Network</span>
+                  </span>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="padding: 0 40px 40px 40px;">
+                  <h1 style="margin: 0 0 18px 0; font-size: 24px; font-weight: 700; color: #0F172A; line-height: 1.3;">
+                    Interview Invitation
+                  </h1>
+                  
+                  <p style="margin: 0 0 24px 0; font-size: 16px; color: #475569; line-height: 1.5;">
+                    Dear <strong style="color: #0F172A;">${application.candidate_name}</strong>,
+                  </p>
+                  
+                  <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #475569;">
+                    We are pleased to invite you for an interview with <strong style="color: #0F172A;">${application.company_name}</strong>. Your application profile completely aligns with our recruitment demands.
+                  </p>
+
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #F1F5F9; border-radius: 16px; margin-bottom: 28px; border-left: 4px solid #0052FF;">
+                    <tr>
+                      <td style="padding: 24px;">
+                        <table role="presentation" width="100%" cellspacing="0" cellpadding="8" border="0">
+                          <tr>
+                            <td width="30%" valign="top" style="font-size: 12px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; padding-left: 0;">Job Position</td>
+                            <td width="70%" valign="top" style="font-size: 15px; font-weight: 700; color: #0F172A; padding-right: 0;">${application.job_title}</td>
+                          </tr>
+                          <tr>
+                            <td valign="top" style="font-size: 12px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; padding-left: 0;">Time</td>
+                            <td valign="top" style="font-size: 15px; font-weight: 600; color: #0052FF; padding-right: 0;">${new Date(time).toLocaleString('en-US')}</td>
+                          </tr>
+                          <tr>
+                            <td valign="top" style="font-size: 12px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; padding-left: 0;">Location</td>
+                            <td valign="top" style="font-size: 15px; color: #334155; line-height: 1.4; padding-right: 0;">${location}</td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+
+                  ${message ? `
+                  <div style="background-color: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 14px; padding: 18px; margin-bottom: 36px;">
+                    <p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px;">Message from Employer:</p>
+                    <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #334155; font-style: italic;">
+                      "${message}"
+                    </p>
+                  </div>
+                  ` : ''}
+
+                  <p style="margin: 0 0 24px 0; font-size: 14px; font-weight: 600; color: #475569; text-align: center;">
+                    Please confirm your availability by choosing an option below:
+                  </p>
+
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                    <tr>
+                      <td align="center">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                          <tr>
+                            <td style="border-radius: 12px; background-color: #0052FF;" bgcolor="#0052FF">
+                              <a href="${baseUrl}/api/applications/interview/accept/${application_id}" target="_blank" style="border: 1px solid #0052FF; border-radius: 12px; color: #ffffff; display: inline-block; font-size: 14px; font-weight: 700; padding: 14px 28px; text-decoration: none;">
+                                Accept Invitation
+                              </a>
+                            </td>
+                            <td width="16">&nbsp;</td>
+                            <td style="border-radius: 12px; background-color: #F1F5F9; border: 1px solid #E2E8F0;" bgcolor="#F1F5F9">
+                              <a href="${baseUrl}/api/applications/interview/decline-form/${application_id}" target="_blank" style="color: #64748B; display: inline-block; font-size: 14px; font-weight: 600; padding: 14px 28px; text-decoration: none;">
+                                Decline
+                              </a>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+
+                </td>
+              </tr>
+              
+              <tr>
+                <td style="padding: 24px 40px; background-color: #F8FAFC; border-top: 1px solid #E2E8F0; text-align: center;">
+                  <p style="margin: 0; font-size: 12px; color: #94A3B8; line-height: 1.5;">
+                    This is an automated notification from JobSpot Network.<br>© 2026 JobSpot Network. All rights reserved.
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+    `;
+
     await sendMail({
       to: application.candidate_email,
       subject: `[${application.company_name}] Interview Invitation for ${application.job_title} position`,
-      html: `
-        <h3>Dear ${application.candidate_name},</h3>
-        <p>We are pleased to invite you for an interview with <strong>${application.company_name}</strong>:</p>
-        <ul>
-          <li><strong>Job Position:</strong> ${application.job_title}</li>
-          <li><strong>Time:</strong> ${new Date(time).toLocaleString('en-US')}</li>
-          <li><strong>Location:</strong> ${location}</li>
-        </ul>
-        ${message ? `<p><strong>Message from Employer:</strong> ${message}</p>` : ''}
-        <br/>
-        <p>Please confirm your availability by choosing an option below:</p>
-        <div style="margin-top: 20px;">
-          <a href="${baseUrl}/api/applications/interview/accept/${application_id}" style="background:#10b981;color:white;padding:12px 24px;text-decoration:none;border-radius:6px;font-weight:bold;margin-right:15px;display:inline-block;">Accept Invitation</a>
-          <a href="${baseUrl}/api/applications/interview/decline-form/${application_id}" style="background:#ef4444;color:white;padding:12px 24px;text-decoration:none;border-radius:6px;font-weight:bold;display:inline-block;">Decline Invitation</a>
-        </div>
-      `
+      html: htmlEmailContent
     });
 
-    // 4. Save notification to MongoDB to store notification bell history
     const targetCandidateId = String(application.candidate_user_id);
     const newNotify = await Notification.create({
       user_id: targetCandidateId,
@@ -586,13 +667,11 @@ exports.inviteInterview = async (req, res, next) => {
       created_at: new Date()
     });
 
-    // 5. ⚡ Realtime: Instantly synchronize status to 'reviewed' on Candidate's screen if they are online
     socketUtils.emitToUser(targetCandidateId, 'applicationStatusChanged', {
       application_id: Number(application_id),
       newStatus: 'reviewed'
     });
 
-    // 6. 🔔 Realtime: Dispatch notification to Candidate's system notification bell
     socketUtils.sendNotification(targetCandidateId, newNotify);
 
     return res.status(200).json({ success: true, message: 'Invitation sent and status updated successfully!' });
@@ -606,9 +685,8 @@ exports.inviteInterview = async (req, res, next) => {
 // ======================================================
 exports.acceptInterview = async (req, res, next) => {
   try {
-    const { id } = req.params; // id is the application_id from the Email Link sent out
+    const { id } = req.params;
 
-    // 1. Query application details to find which Employer is in charge of the post
     const [rows] = await db.execute(`
       SELECT 
         j.posted_by AS employer_user_id,
@@ -622,15 +700,19 @@ exports.acceptInterview = async (req, res, next) => {
     `, [id]);
 
     if (rows.length === 0) {
-      return res.send('<h3 style="color:red;text-align:center;margin-top:50px;">Error: Invalid link or application profile does not exist!</h3>');
+      return res.send(`
+        <div style="max-width: 500px; margin: 80px auto; font-family: -apple-system, sans-serif; padding: 40px; text-align: center; border: 1px solid #fee2e2; background-color: #fef2f2; border-radius: 20px; box-shadow: 0 4px 12px rgba(239,68,68,0.05);">
+          <div style="font-size: 48px; margin-bottom: 16px;">❌</div>
+          <h3 style="color:#dc2626; margin: 0 0 10px 0; font-size: 20px; font-weight: 700;">Link Expired or Invalid!</h3>
+          <p style="color:#7f1d1d; font-size:14px; line-height: 1.5; margin: 0;">Matching application profile information does not exist in our network.</p>
+        </div>
+      `);
     }
 
     const application = rows[0];
 
-    // 2. Execute UPDATE application status to 'interviewing' in MySQL DB
     await db.execute("UPDATE Applications SET status = 'interviewing' WHERE id = ?", [id]);
 
-    // 3. Save notification to MongoDB for Employer to review later
     const targetEmployerId = String(application.employer_user_id);
     const newNotify = await Notification.create({
       user_id: targetEmployerId,
@@ -642,19 +724,27 @@ exports.acceptInterview = async (req, res, next) => {
       created_at: new Date()
     });
 
-    // 4. ⚡ Realtime: Automatically move the candidate card to the "Interviewing" column on Employer's Kanban board without reloading
     socketUtils.emitToUser(targetEmployerId, 'applicationStatusChanged', {
       application_id: Number(id),
       newStatus: 'interviewing'
     });
 
-    // 5. 🔔 Realtime: Dispatch notification bell directly to Employer
     socketUtils.sendNotification(targetEmployerId, newNotify);
 
+    // MÀN HÌNH XÁC NHẬN THÀNH CÔNG ĐỒNG BỘ TONE MÀU GRADIENT VÀ THIẾT KẾ BO GÓC CAO CẤP
     return res.send(`
-      <div style="text-align:center; margin-top:50px; font-family: Arial, sans-serif; padding: 20px;">
-        <h2 style="color:#10b981;">Attendance Confirmed Successfully!</h2>
-        <p style="color:#4b5563; font-size:16px;">The system has automatically sent your feedback notification to the Employer.</p>
+      <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #F8FAFC; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <div style="max-width: 480px; width: 100%; margin: 20px; background-color: #ffffff; border-radius: 24px; padding: 40px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02); border: 1px solid #E2E8F0; position: relative; overflow: hidden;">
+          <div style="position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(to right, #0052FF, #8B5CF6);"></div>
+          <div style="width: 72px; height: 72px; background: #ECFDF5; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 24px;">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <h2 style="color: #0F172A; margin: 0 0 12px 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">Attendance Confirmed!</h2>
+          <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 24px 0;">The system has automatically updated your status to <span style="color: #0052FF; font-weight: 600;">Interviewing</span> and dispatched immediate feedback to the Employer.</p>
+          <div style="border-top: 1px solid #F1F5F9; padding-top: 20px;">
+            <span style="font-size: 13px; font-weight: 700; color: #0F172A; letter-spacing: -0.3px;">JobSpot<span style="color: #0052FF;">Network</span></span>
+          </div>
+        </div>
       </div>
     `);
   } catch (error) {
@@ -670,7 +760,6 @@ exports.declineInterview = async (req, res, next) => {
     const { id } = req.params;
     const { reason } = req.body;
 
-    // 1. Get application details from MySQL DB
     const [rows] = await db.execute(`
       SELECT 
         j.posted_by AS employer_user_id,
@@ -684,15 +773,19 @@ exports.declineInterview = async (req, res, next) => {
     `, [id]);
 
     if (rows.length === 0) {
-      return res.send('<h3 style="color:red;text-align:center;margin-top:50px;">Error: Matching application profile not found!</h3>');
+      return res.send(`
+        <div style="max-width: 500px; margin: 80px auto; font-family: -apple-system, sans-serif; padding: 40px; text-align: center; border: 1px solid #fee2e2; background-color: #fef2f2; border-radius: 20px; box-shadow: 0 4px 12px rgba(239,68,68,0.05);">
+          <div style="font-size: 48px; margin-bottom: 16px;">❌</div>
+          <h3 style="color:#dc2626; margin: 0 0 10px 0; font-size: 20px; font-weight: 700;">Profile Not Found!</h3>
+          <p style="color:#7f1d1d; font-size:14px; margin: 0;">Matching application profile metadata cannot be extracted from our core DB.</p>
+        </div>
+      `);
     }
 
     const application = rows[0];
 
-    // 2. Execute UPDATE application status to 'rejected' in the DB
     await db.execute("UPDATE Applications SET status = 'rejected' WHERE id = ?", [id]);
 
-    // 3. Save notification to MongoDB for Employer with specific decline reason
     const targetEmployerId = String(application.employer_user_id);
     const textReason = reason ? reason.trim() : "No specific reason provided";
 
@@ -706,19 +799,27 @@ exports.declineInterview = async (req, res, next) => {
       created_at: new Date()
     });
 
-    // 4. ⚡ Realtime: Instantly push candidate card to the Rejected column on Employer's Kanban screen
     socketUtils.emitToUser(targetEmployerId, 'applicationStatusChanged', {
       application_id: Number(id),
       newStatus: 'rejected'
     });
 
-    // 5. 🔔 Realtime: Direct system notification bell with reason to Employer
     socketUtils.sendNotification(targetEmployerId, newNotify);
 
+    // MÀN HÌNH THÔNG BÁO HỦY LỊCH THÀNH CÔNG UI SẠCH SẼ, CAO CẤP
     return res.send(`
-      <div style="text-align:center; margin-top:50px; font-family: Arial, sans-serif; padding: 20px;">
-        <h2 style="color:#ef4444;">Interview cancellation confirmed!</h2>
-        <p style="color:#4b5563; font-size:16px;">We have recorded your response and forwarded your decline reason to the Employer.</p>
+      <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #F8FAFC; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <div style="max-width: 480px; width: 100%; margin: 20px; background-color: #ffffff; border-radius: 24px; padding: 40px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02); border: 1px solid #E2E8F0; position: relative; overflow: hidden;">
+          <div style="position: absolute; top: 0; left: 0; right: 0; height: 5px; background: #EF4444;"></div>
+          <div style="width: 72px; height: 72px; background: #FEF2F2; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 24px;">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </div>
+          <h2 style="color: #0F172A; margin: 0 0 12px 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">Decline Confirmed</h2>
+          <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 24px 0;">We have successfully recorded your cancellation response and forwarded the rationale reasons directly to the Employer.</p>
+          <div style="border-top: 1px solid #F1F5F9; padding-top: 20px;">
+            <span style="font-size: 13px; font-weight: 700; color: #0F172A; letter-spacing: -0.3px;">JobSpot<span style="color: #0052FF;">Network</span></span>
+          </div>
+        </div>
       </div>
     `);
   } catch (error) {
@@ -730,33 +831,42 @@ exports.declineInterview = async (req, res, next) => {
 // GET DECLINE FORM 
 // ======================================================
 exports.getDeclineForm = (req, res) => {
-  const { id } = req.params; // id is application_id from email link
+  const { id } = req.params;
   
-  // Return a clean HTML interface for candidate to fill in the reason directly from browser
+  // NÂNG CẤP GIAO DIỆN FORM ĐIỀN LÝ DO TỪ CHỐI CHUẨN PREMIUM ĐỒNG BỘ AUTH.TSX
   res.send(`
-    <div style="max-width: 500px; margin: 50px auto; font-family: Arial, sans-serif; padding: 30px; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-      <h2 style="color: #ef4444; margin-top: 0; margin-bottom: 10px;">Decline Interview Invitation</h2>
-      <p style="color: #4b5563; font-size: 14px; margin-bottom: 20px; line-height: 1.5;">
-        You are declining this interview invitation. Please provide a brief reason so we can forward it to the Employer.
-      </p>
-      
-      <form action="/api/applications/interview/decline/${id}" method="POST">
-        <label style="display: block; font-weight: bold; margin-bottom: 8px; font-size: 14px; color: #374151;">
-          Reason for declining <span style="color:red;">*</span>
-        </label>
-        <textarea 
-          name="reason" 
-          rows="4" 
-          required 
-          style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; resize: none; margin-bottom: 20px; font-size: 14px;" 
-          placeholder="Example: I have accepted another offer / Schedule conflict / Cannot arrange time..."></textarea>
-          
-        <button 
-          type="submit" 
-          style="background: #ef4444; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; font-size: 15px; transition: background 0.2s;">
-          Confirm Decline
-        </button>
-      </form>
+    <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #F8FAFC; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      <div style="max-width: 500px; width: 100%; margin: 20px; background-color: #ffffff; border-radius: 24px; padding: 40px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02); border: 1px solid #E2E8F0; position: relative; overflow: hidden;">
+        
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(to right, #0052FF, #8B5CF6);"></div>
+        
+        <h2 style="color: #0F172A; margin: 0 0 10px 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">Decline Interview Invitation</h2>
+        <p style="color: #64748B; font-size: 14px; margin-bottom: 28px; line-height: 1.6;">
+          You are about to decline this interview opportunity. Please provide a brief reason below so we can accurately update the employer.
+        </p>
+        
+        <form action="/api/applications/interview/decline/${id}" method="POST">
+          <label style="display: block; font-weight: 700; margin-bottom: 8px; font-size: 13px; color: #334155; text-transform: uppercase; letter-spacing: 0.5px;">
+            Reason for declining <span style="color: #EF4444;">*</span>
+          </label>
+          <textarea 
+            name="reason" 
+            rows="4" 
+            required 
+            style="width: 100%; padding: 14px; border: 1px solid #CBD5E1; border-radius: 16px; box-sizing: border-box; resize: none; margin-bottom: 24px; font-size: 14px; font-family: inherit; color: #0F172A; background-color: #F8FAFC; transition: border-color 0.2s;" 
+            placeholder="e.g., I have accepted another offer / Schedule conflict / Family emergency..."></textarea>
+            
+          <button 
+            type="submit" 
+            style="background: #EF4444; color: white; border: none; padding: 14px 20px; border-radius: 16px; font-weight: 700; cursor: pointer; width: 100%; font-size: 15px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15); transition: background 0.2s;">
+            Confirm Decline
+          </button>
+        </form>
+
+        <div style="border-top: 1px solid #F1F5F9; padding-top: 20px; margin-top: 24px; text-align: center;">
+          <span style="font-size: 12px; font-weight: 700; color: #0F172A; letter-spacing: -0.3px;">JobSpot<span style="color: #0052FF;">Network</span></span>
+        </div>
+      </div>
     </div>
   `);
 };
