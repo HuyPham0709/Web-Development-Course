@@ -1,9 +1,12 @@
 // ==========================================
-// CandidateDetail.tsx (Dark Mode & Staggered Animation) - REMOVED INVITE BUTTON
+// CandidateDetail.tsx (Dark Mode, JobSpot Premium UI Modals)
 // ==========================================
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Mail, Phone, Linkedin, Github, Globe, Download, Printer, ChevronRight, Briefcase, FileText, Send, Loader2, X, Calendar } from 'lucide-react';
+import { 
+  Mail, Phone, Linkedin, Github, Globe, Download, Printer, ChevronRight, 
+  Briefcase, FileText, Send, Loader2, X, Calendar, MapPin, Clock, MessageSquare 
+} from 'lucide-react';
 import { applicationService } from '../../../services/applicationService';
 import { ApplicationDetail, ApplicationNote } from '../../../types/application';
 
@@ -18,13 +21,13 @@ export default function CandidateDetail() {
   // State to control smooth entrance animation
   const [animate, setAnimate] = useState(false);
   
-  // ================= STATE MODAL PHỎNG VẤN =================
+  // ================= INTERVIEW MODAL STATE =================
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [sendingInvite, setSendingInvite] = useState(false);
   const [interviewForm, setInterviewForm] = useState({
     location: '',
     time: '',
-    message: 'Trân trọng mời bạn tham gia buổi phỏng vấn trực tiếp tại văn phòng của công ty chúng tôi.'
+    message: 'We would like to cordially invite you to join an in-person interview at our company office.'
   });
 
   const steps = ['Pending', 'Reviewed', 'Interview', 'Hired'];
@@ -80,7 +83,7 @@ export default function CandidateDetail() {
 
     if (candidate.status?.toLowerCase() === backendStatus) return;
 
-    // Đánh chặn khi click vào bước "Interview" để hiện Modal form gửi mail mời phỏng vấn
+    // Intercept when clicking on "Interview" step to show the interview email invitation modal
     if (backendStatus === 'interviewing') {
       setIsModalOpen(true);
       return; 
@@ -100,7 +103,7 @@ export default function CandidateDetail() {
     }
   };
 
-  // ================= XỬ LÝ SUBMIT GỬI LỜI MỜI PHỎNG VẤN =================
+  // ================= HANDLE SUBMIT INTERVIEW INVITATION =================
   const handleInviteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
@@ -108,26 +111,26 @@ export default function CandidateDetail() {
     setSendingInvite(true);
     try {
       if (applicationService.inviteInterview) {
-        // Bước 1: Gọi API để gửi mail đi từ server backend
+        // Step 1: Call API to send email from the backend server
         await applicationService.inviteInterview({ 
           application_id: id,
           ...interviewForm
         });
         
-        // Bước 2: Sau khi gửi mail thành công, cập nhật trạng thái ứng viên lên 'interviewing' (Interview) để đợi phản hồi
+        // Step 2: After successfully sending the email, update the application status to 'interviewing'
         if (applicationService.updateStatus) {
           await applicationService.updateStatus(id as any, 'interviewing');
         }
 
-        alert("Đã gửi thư mời phỏng vấn qua email !");
+        alert("Interview invitation has been sent via email!");
         setCandidate(prev => prev ? { ...prev, status: 'interviewing' } : null);
         setIsModalOpen(false);
       } else {
-        alert("Chưa cấu hình hàm inviteInterview trong applicationService.");
+        alert("The function inviteInterview has not been configured in applicationService.");
       }
     } catch (error: any) {
       console.error(error);
-      alert(error.response?.data?.message || "Không thể gửi lời mời phỏng vấn.");
+      alert(error.response?.data?.message || "Failed to send interview invitation.");
     } finally {
       setSendingInvite(false);
     }
@@ -189,7 +192,7 @@ export default function CandidateDetail() {
     : `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random`;
 
   return (
-    <div className="min-h-screen bg-gray-50/50 dark:bg-[#0E1422] py-4 transition-colors duration-300">
+    <div className="min-h-screen bg-gray-50/50 dark:bg-[#0E1422]/60 py-4 transition-colors duration-300">
       <div className="flex flex-col gap-6 font-sans pb-12 h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Breadcrumb */}
@@ -360,40 +363,125 @@ export default function CandidateDetail() {
         </div>
       </div>
 
-      {/* ================= POPUP MODAL: INTERVIEW INVITATION ================= */}
+      {/* ================= 🔥 INTERVIEW INVITATION POPUP MODAL PREMIUM UI ================= */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#121A2E] w-full max-w-md rounded-2xl border border-gray-200 dark:border-white/10 shadow-2xl overflow-hidden p-6 relative">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-md transition-all">
+          <div className="bg-white dark:bg-[#111827] w-full max-w-lg rounded-3xl border border-gray-100 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden relative transform transition-all duration-300 scale-100">
+            
+            {/* Accent Gradient Top Bar */}
+            <div className="h-1.5 w-full bg-gradient-to-r from-[#0052FF] to-[#8B5CF6]" />
+
+            {/* Close Button */}
+            <button 
+              type="button" 
+              onClick={() => setIsModalOpen(false)} 
+              className="absolute right-5 top-5 p-1.5 rounded-full text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 transition-all"
+            >
               <X className="w-5 h-5" />
             </button>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-blue-500" /> Interview Invitation
-            </h2>
-            <form onSubmit={handleInviteSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Địa chỉ phỏng vấn</label>
-                <input required type="text" value={interviewForm.location} onChange={e => setInterviewForm({...interviewForm, location: e.target.value})}
-                  placeholder="Ví dụ: Tầng 5, Tòa nhà Bitexco, Q.1, TP.HCM"
-                  className="w-full px-4 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+
+            <div className="p-7">
+              {/* Modal Header */}
+              <div className="mb-6">
+                <h2 className="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2.5">
+                  <span className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-[#0052FF] dark:text-blue-400">
+                    <Calendar className="w-5 h-5" />
+                  </span>
+                  Invite Candidate to Interview
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+                  Set up the schedule and invitation content. The system will automatically wrap this in a standardized premium email format and send it to <span className="font-semibold text-slate-700 dark:text-slate-200">{displayName}</span>.
+                </p>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Thời gian phỏng vấn</label>
-                <input required type="datetime-local" value={interviewForm.time} onChange={e => setInterviewForm({...interviewForm, time: e.target.value})}
-                  className="w-full px-4 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Nội dung lời mời</label>
-                <textarea rows={4} value={interviewForm.message} onChange={e => setInterviewForm({...interviewForm, message: e.target.value})}
-                  className="w-full px-4 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
-              </div>
-              <div className="flex gap-3 justify-end pt-2">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded-xl text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">Hủy</button>
-                <button type="submit" disabled={sendingInvite} className="px-5 py-2 rounded-xl text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all">
-                  {sendingInvite ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Gửi lời mời'}
-                </button>
-              </div>
-            </form>
+
+              {/* Form Content */}
+              <form onSubmit={handleInviteSubmit} className="space-y-5">
+                
+                {/* 1. Location */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
+                    Interview Location
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#0052FF] transition-colors">
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                    <input 
+                      required 
+                      type="text" 
+                      value={interviewForm.location} 
+                      onChange={e => setInterviewForm({...interviewForm, location: e.target.value})}
+                      placeholder="e.g., 5th Floor, Bitexco Tower, Dist. 1, HCMC or Google Meet"
+                      className="w-full pl-10 pr-4 py-3 text-sm bg-slate-50 dark:bg-[#1F2937]/40 border border-slate-200 dark:border-white/5 text-slate-900 dark:text-white rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#0052FF]/20 focus:border-[#0052FF] dark:focus:border-[#8B5CF6] transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600" 
+                    />
+                  </div>
+                </div>
+
+                {/* 2. Time */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
+                    Interview Schedule
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#0052FF] transition-colors">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                    <input 
+                      required 
+                      type="datetime-local" 
+                      value={interviewForm.time} 
+                      onChange={e => setInterviewForm({...interviewForm, time: e.target.value})}
+                      className="w-full pl-10 pr-4 py-3 text-sm bg-slate-50 dark:bg-[#1F2937]/40 border border-slate-200 dark:border-white/5 text-slate-900 dark:text-white rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#0052FF]/20 focus:border-[#0052FF] dark:focus:border-[#8B5CF6] transition-all cursor-pointer text-slate-700 dark:text-slate-200" 
+                    />
+                  </div>
+                </div>
+
+                {/* 3. Message */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
+                    Message / Additional Notes
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute top-3 left-3.5 pointer-events-none text-slate-400 group-focus-within:text-[#0052FF] transition-colors">
+                      <MessageSquare className="w-4 h-4" />
+                    </div>
+                    <textarea 
+                      rows={4} 
+                      value={interviewForm.message} 
+                      onChange={e => setInterviewForm({...interviewForm, message: e.target.value})}
+                      placeholder="Enter warm greetings or notes regarding required interview documents..."
+                      className="w-full pl-10 pr-4 py-3 text-sm bg-slate-50 dark:bg-[#1F2937]/40 border border-slate-200 dark:border-white/5 text-slate-900 dark:text-white rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#0052FF]/20 focus:border-[#0052FF] dark:focus:border-[#8B5CF6] transition-all resize-none placeholder:text-slate-400 dark:placeholder:text-slate-600 leading-relaxed" 
+                    />
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 justify-end pt-3 border-t border-slate-100 dark:border-white/5 mt-6">
+                  <button 
+                    type="button" 
+                    onClick={() => setIsModalOpen(false)} 
+                    className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 hover:text-slate-700 dark:hover:text-white transition-all duration-200"
+                  >
+                    Cancel
+                  </button>
+                  
+                  <button 
+                    type="submit" 
+                    disabled={sendingInvite} 
+                    className="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-[#0052FF] to-[#8B5CF6] hover:shadow-lg hover:shadow-blue-500/20 active:scale-[0.98] disabled:opacity-50 flex items-center gap-2 transition-all duration-200 cursor-pointer shadow-md"
+                  >
+                    {sendingInvite ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      'Send Invitation'
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { LayoutGrid, List, MoreVertical, Calendar, Briefcase, ChevronDown, Loader2, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { applicationService } from '../../../services/applicationService';
@@ -6,7 +6,7 @@ import { Candidate } from '../../../types/application';
 import { STATUSES, STATUS_LABEL, STATUS_COLORS } from '../../../constants/status';
 import { getInitials, formatDateVN } from '../../../utils/format';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
-import { io } from 'socket.io-client'; // Thêm thư viện socket.io-client
+import { io } from 'socket.io-client';
 
 const BASE_URL = 'http://localhost:5000';
 
@@ -22,28 +22,32 @@ export default function CandidateManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
-  const [filterJob, setFilterJob] = useState('All');
+  const [filterJob, setFilterJob] = useState('Tất cả');
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [animate, setAnimate] = useState(false);
 
-  // --- STATE MỚI CHO MODAL PHỎNG VẤN ---
+  // --- STATE CHO MODAL PHỎNG VẤN ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAppId, setSelectedAppId] = useState<number | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<string>('UnderReview'); // FIX LOGIC: Lưu đúng định dạng Casing (chữ hoa/thường) của trạng thái phỏng vấn ban đầu chọn
+  const [selectedStatus, setSelectedStatus] = useState<string>('UnderReview'); 
   const [submitLoading, setSubmitLoading] = useState(false);
-  const [interviewForm, setInterviewForm] = useState({
+  
+  const initialFormState = {
     location: '',
     time: '',
     message: 'Trân trọng mời bạn tham gia buổi phỏng vấn trực tiếp tại văn phòng công ty chúng tôi.'
-  });
+  };
+  const [interviewForm, setInterviewForm] = useState(initialFormState);
 
+  // Tải danh sách ứng viên ban đầu
   useEffect(() => {
     applicationService.getEmployerApplications()
       .then(res => setCandidates(res.data.data))
-      .catch(err => setError(err.response?.data?.message || 'Error loading candidate list'))
+      .catch(err => setError(err.response?.data?.message || 'Đã xảy ra lỗi khi tải danh sách ứng viên'))
       .finally(() => setLoading(false));
   }, []);
 
+  // Kích hoạt hiệu ứng animation sau khi load xong
   useEffect(() => {
     if (!loading) {
       const timer = setTimeout(() => setAnimate(true), 60);
@@ -55,10 +59,8 @@ export default function CandidateManagement() {
   useEffect(() => {
     const socket = io(BASE_URL);
 
-    // Lắng nghe sự kiện khi candidate Chấp nhận / Từ chối phỏng vấn
     socket.on('candidateStatusUpdated', (data: { application_id: number; newStatus: string }) => {
       setCandidates(prev => prev.map(c =>
-        // FIX LOGIC: Ép kiểu Number đề phòng backend gửi ID dạng chuỗi gây lỗi toán tử ===
         Number(c.application_id) === Number(data.application_id) ? { ...c, status: data.newStatus } : c
       ));
     });
@@ -68,12 +70,20 @@ export default function CandidateManagement() {
     };
   }, []);
 
+  // Tối ưu hóa hiệu năng bằng useMemo
+  const jobOptions = useMemo(() => {
+    return ['Tất cả', ...Array.from(new Set(candidates.map(c => c.job_title)))];
+  }, [candidates]);
+
+  const filtered = useMemo(() => {
+    return candidates.filter(c => filterJob === 'Tất cả' || c.job_title === filterJob);
+  }, [candidates, filterJob]);
+
   // Thay đổi trạng thái CV chung
   const handleStatusChange = async (application_id: number, newStatus: string) => {
-    // Đánh chặn nếu chuyển sang trạng thái UnderReview (Lưu ý: Chỉnh lại text tương ứng với file constants/status của bạn)
     if (newStatus === 'UnderReview' || newStatus === 'UNDER_REVIEW') {
       setSelectedAppId(application_id);
-      setSelectedStatus(newStatus); // FIX LOGIC: Lưu lại chuẩn text hệ thống (UnderReview hoặc UNDER_REVIEW) để UI không bị mất dòng filter
+      setSelectedStatus(newStatus); 
       setIsModalOpen(true);
       return;
     }
@@ -85,7 +95,7 @@ export default function CandidateManagement() {
         c.application_id === application_id ? { ...c, status: newStatus } : c
       ));
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Error updating status');
+      alert(err.response?.data?.message || 'Lỗi khi cập nhật trạng thái');
     } finally {
       setUpdatingId(null);
     }
@@ -98,15 +108,14 @@ export default function CandidateManagement() {
 
     setSubmitLoading(true);
     try {
-      // FIX LOGIC: Lấy token từ localStorage (hoặc nơi bạn lưu trữ) để đính kèm vào fetch thuần, tránh lỗi 401 Unauthorized
       const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
 
-      // Gọi API gửi lời mời phỏng vấn lên Backend
-      await fetch(`${BASE_URL}/api/interviews/invite`, {
+      // Gọi API gửi lời mời phỏng vấn
+      const response = await fetch(`${BASE_URL}/api/interviews/invite`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}) // Gửi kèm token xác thực nhà tuyển dụng
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}) 
         },
         body: JSON.stringify({
           application_id: selectedAppId,
@@ -114,27 +123,31 @@ export default function CandidateManagement() {
         })
       });
 
+      // Kiểm tra status code của fetch để chặn lỗi HTTP 4xx/5xx
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Không thể gửi lời mời phỏng vấn. Vui lòng thử lại!');
+      }
+
       // Cập nhật trạng thái ngay lập tức trên UI sang định dạng chuẩn đã chọn ban đầu
       setCandidates(prev => prev.map(c =>
         Number(c.application_id) === Number(selectedAppId) ? { ...c, status: selectedStatus } : c
       ));
 
       setIsModalOpen(false);
-      setInterviewForm({ location: '', time: '', message: 'Trân trọng mời bạn tham gia buổi phỏng vấn...' });
+      setInterviewForm(initialFormState); // Trả form về trạng thái gốc chính xác
       alert('Gửi lời mời phỏng vấn thành công!');
-    } catch (err) {
-      alert('Không thể gửi lời mời phỏng vấn. Vui lòng thử lại!');
+    } catch (err: any) {
+      alert(err.message || 'Không thể gửi lời mời phỏng vấn. Vui lòng thử lại!');
     } finally {
       setSubmitLoading(false);
     }
   };
 
-  const jobOptions = ['All', ...Array.from(new Set(candidates.map(c => c.job_title)))];
-  const filtered = candidates.filter(c => filterJob === 'All' || c.job_title === filterJob);
-
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center gap-2 text-gray-400 dark:bg-[#0E1422] transition-colors duration-300">
-      <Loader2 className="w-5 h-5 animate-spin text-blue-600 dark:text-blue-400" /><span className="dark:text-gray-400">Loading...</span>
+      <Loader2 className="w-5 h-5 animate-spin text-blue-600 dark:text-blue-400" />
+      <span className="dark:text-gray-400">Đang tải dữ liệu...</span>
     </div>
   );
 
@@ -152,10 +165,10 @@ export default function CandidateManagement() {
         
         {/* Header */}
         <div className={`mb-6 transform transition-all duration-500 ease-out ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Employer Dashboard</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Quản lý Ứng viên</h1>
           <div className="flex space-x-8 border-b border-gray-200 dark:border-white/10 mt-6">
-            <Link to="/employer/dashboard" className="border-b-2 border-transparent pb-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium text-sm transition-colors">Overview & Jobs</Link>
-            <Link to="/employer/candidates" className="border-b-2 border-blue-600 dark:border-blue-500 pb-4 text-blue-600 dark:text-blue-400 font-medium text-sm transition-colors">Candidates</Link>
+            <Link to="/employer/dashboard" className="border-b-2 border-transparent pb-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium text-sm transition-colors">Tổng quan & Tin tuyển dụng</Link>
+            <Link to="/employer/candidates" className="border-b-2 border-blue-600 dark:border-blue-500 pb-4 text-blue-600 dark:text-blue-400 font-medium text-sm transition-colors">Danh sách ứng viên</Link>
           </div>
         </div>
 
@@ -172,7 +185,7 @@ export default function CandidateManagement() {
             {(['kanban', 'table'] as const).map(mode => (
               <button key={mode} onClick={() => setViewMode(mode)}
                 className={`p-2 rounded-md flex items-center gap-2 text-sm font-medium transition-colors ${viewMode === mode ? 'bg-white dark:bg-[#0E1422] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}>
-                {mode === 'kanban' ? <><LayoutGrid className="w-4 h-4" /> Board</> : <><List className="w-4 h-4" /> Table</>}
+                {mode === 'kanban' ? <><LayoutGrid className="w-4 h-4" /> Dạng bảng</> : <><List className="w-4 h-4" /> Danh sách</>}
               </button>
             ))}
           </div>
@@ -212,7 +225,7 @@ export default function CandidateManagement() {
                                 <h4 className="font-bold text-gray-900 dark:text-white text-sm hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                                   {candidate.full_name || candidate.candidate_name}
                                 </h4>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{candidate.experience_level || 'N/A'}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{candidate.experience_level || 'Chưa cập nhật kinh nghiệm'}</p>
                               </div>
                             </Link>
                             <div className="relative">
@@ -232,7 +245,7 @@ export default function CandidateManagement() {
                             </div>
                             <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
                               <Calendar className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-                              <span>Applied {formatDateVN(candidate.applied_at)}</span>
+                              <span>Đã nộp ngày {formatDateVN(candidate.applied_at)}</span>
                             </div>
                           </div>
                           <div className="pt-3 border-t border-gray-100 dark:border-white/10 flex items-center justify-between transition-colors">
@@ -248,7 +261,7 @@ export default function CandidateManagement() {
                     </div>
                     {filtered.filter(c => c.status === status).length === 0 && (
                       <div className={`text-center text-sm py-8 border-2 border-dashed rounded-xl w-full transition-colors ${isRejected ? 'border-red-200/60 dark:border-red-500/20 text-red-400 bg-white/50 dark:bg-transparent' : 'border-gray-200 dark:border-white/10 text-gray-400 dark:text-gray-500'}`}>
-                        No candidates found
+                        Không tìm thấy ứng viên nào
                       </div>
                     )}
                   </div>
@@ -263,10 +276,10 @@ export default function CandidateManagement() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-gray-50/50 dark:bg-white/5 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider transition-colors">
-                    <th className="px-6 py-4 font-semibold">Candidate</th>
-                    <th className="px-6 py-4 font-semibold">Position</th>
-                    <th className="px-6 py-4 font-semibold">Applied Date</th>
-                    <th className="px-6 py-4 font-semibold">Status</th>
+                    <th className="px-6 py-4 font-semibold">Ứng viên</th>
+                    <th className="px-6 py-4 font-semibold">Vị trí</th>
+                    <th className="px-6 py-4 font-semibold">Ngày nộp</th>
+                    <th className="px-6 py-4 font-semibold">Trạng thái</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-white/10 text-sm">
@@ -304,7 +317,11 @@ export default function CandidateManagement() {
                     </tr>
                   ))}
                   {filtered.length === 0 && (
-                    <tr><td colSpan={4} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">No candidates found.</td></tr>
+                    <tr>
+                      <td colSpan={4} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                        Không tìm thấy ứng viên nào.
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </table>
@@ -321,11 +338,11 @@ export default function CandidateManagement() {
               <X className="w-5 h-5" />
             </button>
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-blue-500" /> Interview Invitation
+              <Calendar className="w-5 h-5 text-blue-500" /> Gửi Lời mời Phỏng vấn
             </h2>
             <form onSubmit={handleSendInvitation} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Địa chỉ phỏng vấn</label>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Địa điểm phỏng vấn</label>
                 <input required type="text" value={interviewForm.location} onChange={e => setInterviewForm({...interviewForm, location: e.target.value})}
                   placeholder="Ví dụ: Tầng 5, Tòa nhà Bitexco, Q.1, TP.HCM"
                   className="w-full px-4 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />

@@ -12,7 +12,7 @@ const transporter = nodemailer.createTransport({
 // Hàm mẫu gửi email đa dụng
 const sendMail = async ({ to, subject, html }) => {
   const mailOptions = {
-    from: `"Phòng Nhân Sự" <${process.env.GMAIL_USER}>`,
+    from: `"Human Resources Department" <${process.env.GMAIL_USER}>`,
     to,
     subject,
     html
