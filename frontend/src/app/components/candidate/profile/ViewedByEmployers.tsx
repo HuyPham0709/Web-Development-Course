@@ -35,8 +35,9 @@ const ViewedByEmployers: React.FC = () => {
 
         const res = await axios.get(`${apiUrl}/api/candidate/viewed-by-employers`, {
           headers: { Authorization: `Bearer ${token}` }
+          
         });
-
+        console.log('Viewers data:', res.data.data);
         if (res.data.success) {
           setViewers(res.data.data);
         }
