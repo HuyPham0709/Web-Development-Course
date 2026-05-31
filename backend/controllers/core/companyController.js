@@ -1,7 +1,9 @@
-const db = require('../../config/db'); // Hoặc promisePool tùy thuộc vào biến bạn đặt
+const db = require('../../config/db');
+const { cloudinary, uploadToCloudinary } = require('../../config/cloudinary');
 const path = require('path');
 const fs = require('fs');
-const { uploadToCloudinary } = require('../../config/cloudinary');
+
+
 
 // ─── 1. GET /api/companies/:id HOẶC /api/companies/:slug ─────────────────────
 // Lấy thông tin chi tiết của một công ty dựa trên ID hoặc Slug
