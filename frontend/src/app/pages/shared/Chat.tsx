@@ -138,7 +138,7 @@ const Chat = () => {
         );
       }
     } catch (err) {
-      console.error("Lỗi đồng bộ danh sách:", err);
+      console.error("List synchronization error:", err);
     }
   };
 
@@ -148,7 +148,7 @@ const Chat = () => {
       try {
         setUser(JSON.parse(userStr));
       } catch (e) {
-        console.error("Lỗi parse user:", e);
+        console.error("List synchronization error:", e);
       }
     }
     if ("Notification" in window && Notification.permission === "default") {
@@ -203,8 +203,8 @@ const Chat = () => {
           const existingConv = currentConvs.find(
             (c) => c._id === msg.conversationId,
           );
-          const senderName = existingConv?.targetUser?.name || "Người dùng mới";
-          const notification = new Notification(`Tin nhắn từ ${senderName}`, {
+          const senderName = existingConv?.targetUser?.name || "New users";
+          const notification = new Notification(`Message from ${senderName}`, {
             body: msg.text,
             icon: existingConv?.targetUser?.avatar_url || "/default-avatar.png",
             tag: msg.conversationId,
@@ -267,7 +267,7 @@ const Chat = () => {
         
         fetchLatestConversations();
       })
-      .catch((err) => console.error("Lỗi tải tin nhắn:", err));
+      .catch((err) => console.error("Message loading error:", err));
 
     return () => {
       if (socket && user?.id) {
@@ -337,7 +337,7 @@ const Chat = () => {
       fetchLatestConversations(currentConvId);
 
     } catch (error) {
-      console.error("Lỗi gửi tin nhắn:", error);
+      console.error("Message sending error:", error);
       setNewMessage(textToSend);
     }
   };
@@ -347,7 +347,7 @@ const Chat = () => {
     conversationId: string,
   ) => {
     e.stopPropagation();
-    if (!window.confirm("Bạn có chắc chắn muốn xóa đoạn chat này không?"))
+    if (!window.confirm("Are you sure you want to delete this chat?"))
       return;
 
     try {
@@ -363,7 +363,7 @@ const Chat = () => {
 
       fetchLatestConversations();
     } catch (error) {
-      console.error("Lỗi xóa chat:", error);
+      console.error("Chat deletion error:", error);
     }
   };
 
@@ -388,12 +388,12 @@ const Chat = () => {
       {/* SIDEBAR LIST */}
       <div className="w-1/3 shrink-0 border-r border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0E1422]/40 flex flex-col h-full min-h-0">
         <div className="p-4 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-[#0E1422] font-semibold text-lg text-slate-800 dark:text-white">
-          Tin nhắn
+          Message
         </div>
         <ScrollArea className="flex-1">
           {conversations.length === 0 ? (
             <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
-              Chưa có cuộc trò chuyện nào
+              No conversations yet
             </div>
           ) : (
             conversations.map((conv, index) => {
@@ -440,12 +440,12 @@ const Chat = () => {
                     <h4
                       className={`text-sm truncate ${isUnread ? "font-bold text-slate-950 dark:text-gray-50" : "font-semibold text-slate-800 dark:text-white"}`}
                     >
-                      {targetUser?.name || "Người dùng ẩn danh"}
+                      {targetUser?.name || "Anonymous user"}
                     </h4>
                     <p
                       className={`text-xs truncate mt-0.5 ${isUnread ? "font-bold text-slate-900 dark:text-gray-100" : "text-gray-500 dark:text-gray-400"}`}
                     >
-                      {conv.lastMessage?.text || "Bắt đầu trò chuyện..."}
+                      {conv.lastMessage?.text || "Start a conversation..."}
                     </p>
                   </div>
 
@@ -490,11 +490,11 @@ const Chat = () => {
               </div>
               <div className="flex flex-col">
                 <h3 className="font-semibold text-slate-800 dark:text-white leading-tight">
-                  {activeConversation.targetUser?.name || "Đang trò chuyện..."}
+                  {activeConversation.targetUser?.name || "Starting a conversation..."}
                 </h3>
                 {isTargetActiveOnline && (
                   <span className="text-xs text-green-500 font-medium mt-0.5">
-                    Đang hoạt động
+                    Online
                   </span>
                 )}
               </div>
@@ -536,7 +536,7 @@ const Chat = () => {
               <Input
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Nhập tin nhắn của bạn..."
+                placeholder="Enter your message..."
                 className="flex-1 rounded-full bg-gray-100 dark:bg-white/5 border-transparent text-slate-800 dark:text-white"
               />
               <Button
@@ -555,7 +555,7 @@ const Chat = () => {
               <Send className="w-8 h-8 text-blue-300 ml-1" />
             </div>
             <p className="font-medium text-gray-500">
-              Chọn một cuộc hội thoại để bắt đầu
+              Select a conversation to start
             </p>
           </div>
         )}
