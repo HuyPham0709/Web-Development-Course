@@ -124,16 +124,16 @@ exports.toggleBanUser = async (req, res) => {
         );
 
         if (users.length === 0)
-            return res.status(404).json({ success: false, message: "Không tìm thấy người dùng!" });
+            return res.status(404).json({ success: false, message: "No user found!" });
 
         const user = users[0];
 
         if (user.role === 'admin')
-            return res.status(403).json({ success: false, message: "Không thể ban tài khoản Admin!" });
+            return res.status(403).json({ success: false, message: "Cannot ban Admin account!" });
 
         const newStatus = user.is_active ? 0 : 1;
         if (newStatus === 0) {
-            const banReason = reason?.trim() || "Vi phạm điều khoản sử dụng dịch vụ.";
+            const banReason = reason?.trim() || "Violation of the terms of service.";
             await db.execute(
                 "UPDATE Users SET is_active = ?, ban_reason = ? WHERE id = ?",
                 [newStatus, banReason, user_id]
@@ -148,24 +148,24 @@ exports.toggleBanUser = async (req, res) => {
 
         // Gửi email thông báo khi BAN (không gửi khi unban)
         if (newStatus === 0) {
-            const banReason = reason?.trim() || "Vi phạm điều khoản sử dụng dịch vụ.";
+            const banReason = reason?.trim() || "Violation of the terms of service.";
             await transporter.sendMail({
                 from: `"JobSpot Admin" <${emailUser}>`,
                 to: user.email,
-                subject: "⚠️ Tài khoản của bạn đã bị tạm khóa",
+                subject: "⚠️ Your account has been temporarily locked",
                 html: `
                     <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
                         <div style="background: #dc2626; padding: 20px 24px;">
-                            <h2 style="color: white; margin: 0;">⚠️ Tài khoản bị tạm khóa</h2>
+                            <h2 style="color: white; margin: 0;">⚠️ Your account has been temporarily locked</h2>
                         </div>
                         <div style="padding: 24px;">
-                            <p>Xin chào <strong>${user.username}</strong>,</p>
-                            <p>Tài khoản của bạn trên <strong>JobSpot</strong> đã bị tạm khóa bởi quản trị viên.</p>
+                            <p>Hello <strong>${user.username}</strong>,</p>
+                            <p>Your account on <strong>JobSpot</strong> has been temporarily locked by an administrator.</p>
                             <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 12px 16px; border-radius: 4px; margin: 16px 0;">
-                                <p style="margin: 0;"><strong>Lý do:</strong> ${banReason}</p>
+                                <p style="margin: 0;"><strong>Reason:</strong> ${banReason}</p>
                             </div>
-                            <p>Nếu bạn cho rằng đây là nhầm lẫn, vui lòng liên hệ bộ phận hỗ trợ để được giải quyết.</p>
-                            <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Trân trọng,<br/>Đội ngũ JobSpot</p>
+                            <p>If you believe this is a mistake, please contact our support team for assistance.</p>
+                            <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Best regards,<br/>The JobSpot Team</p>
                         </div>
                     </div>
                 `
@@ -178,8 +178,8 @@ exports.toggleBanUser = async (req, res) => {
         res.status(200).json({
             success: true,
             message: newStatus === 0
-                ? `Đã ban tài khoản ${user.username} và gửi email thông báo.`
-                : `Đã mở ban tài khoản ${user.username}`,
+                ? `User ${user.username} has been banned and a notification email has been sent.`
+                : `User ${user.username} has been unbanned.`,
             new_status: newStatus === 1 ? 'active' : 'banned'
         });
     } catch (error) {
@@ -217,7 +217,7 @@ exports.verifyCompany = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: `Đã xác minh công ty "${user.company_name}" thành công!`
+            message: `Company "${user.company_name}" has been verified successfully!`
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

@@ -340,3 +340,10 @@ ALTER TABLE Employer_Profile_Views DROP INDEX uk_view_per_day;
 ALTER TABLE Employer_Profile_Views ADD UNIQUE KEY uk_employer_candidate (employer_id, candidate_id);
 -- -- (Tùy chọn) Bật lại chế độ an toàn sau khi xong việc
 SET SQL_SAFE_UPDATES = 1;
+
+ALTER TABLE Users 
+DROP COLUMN otp_code, 
+DROP COLUMN display_name, 
+DROP COLUMN avatar_url, 
+DROP COLUMN otp_expires;
+DROP COLUMN phone;

@@ -17,7 +17,7 @@ exports.getConversations = async (req, res, next) => {
         const userId = Number(req.user.id); 
         const userContext = await getUserContext(userId);
         
-        if (!userContext) return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+        if (!userContext) return res.status(404).json({ success: false, message: "No user found" });
 
         let query = {};
         let isCandidate = userContext.role === 'candidate';
@@ -48,7 +48,7 @@ exports.getConversations = async (req, res, next) => {
 
         const enrichedConversations = await Promise.all(
             conversations.map(async (conv) => {
-                let targetUser = { id: "", name: "Ẩn danh", avatar_url: "" };
+                let targetUser = { id: "", name: "Anonymous", avatar_url: "" };
                 
                 // Trích xuất an toàn các ID bất kể tình trạng Schema hiện tại của bạn
                 const currentCandidateId = conv.candidateId || (conv.participants && conv.participants[0]);
@@ -120,11 +120,11 @@ exports.sendMessage = async (req, res, next) => {
         const targetId = Number(req.body.receiverId); 
         
         if (!targetId || isNaN(targetId)) {
-            return res.status(400).json({ success: false, message: "ID người nhận không hợp lệ" });
+            return res.status(400).json({ success: false, message: "Invalid recipient ID" });
         }
 
         const userContext = await getUserContext(senderId);
-        if (!userContext) return res.status(404).json({ success: false, message: "User không tồn tại" });
+        if (!userContext) return res.status(404).json({ success: false, message: "User not found" });
 
         let candidateId, companyId;
 
@@ -136,7 +136,7 @@ exports.sendMessage = async (req, res, next) => {
             candidateId = targetId; 
         }
 
-        if (!companyId) return res.status(400).json({ success: false, message: "Nhà tuyển dụng chưa thuộc công ty nào" });
+        if (!companyId) return res.status(400).json({ success: false, message: "Employer is not associated with any company" });
 
         // Tìm kiếm bằng $or để check cả 2 kiểu viết của DB nhằm tránh duplicate phòng chat
         let conversation = await Conversation.findOne({
@@ -177,12 +177,12 @@ exports.sendMessage = async (req, res, next) => {
                 );
                 employers.forEach(emp => {
                     socketModule.sendNotification(emp.id, {
-                        type: "chat", title: "Có tin nhắn mới", message: "Công ty của bạn nhận được tin nhắn từ ứng viên", is_read: false, link_url: "/chat"
+                        type: "chat", title: "New message", message: "Your company has received a message from a candidate", is_read: false, link_url: "/chat"
                     });
                 });
             } else {
                 socketModule.sendNotification(candidateId, {
-                    type: "chat", title: "Có tin nhắn mới", message: "Bạn có tin nhắn từ Nhà tuyển dụng", is_read: false, link_url: "/chat"
+                    type: "chat", title: "New message", message: "You have a new message from an Employer", is_read: false, link_url: "/chat"
                 });
             }
         } catch (e) {
@@ -217,7 +217,7 @@ exports.deleteConversation = async (req, res, next) => {
         const userId = Number(req.user.id);
         const userContext = await getUserContext(userId);
 
-        if (!userContext) return res.status(404).json({ success: false, message: "User không tồn tại." });
+        if (!userContext) return res.status(404).json({ success: false, message: "User not found." });
 
         let query = { _id: conversationId };
         
@@ -232,7 +232,7 @@ exports.deleteConversation = async (req, res, next) => {
                 { participants: userContext.company_id }
             ];
         } else {
-            return res.status(403).json({ success: false, message: "Không có quyền xóa." });
+            return res.status(403).json({ success: false, message: "You do not have permission to delete this conversation." });
         }
 
         const conversation = await Conversation.findOne(query);
@@ -240,14 +240,14 @@ exports.deleteConversation = async (req, res, next) => {
         if (!conversation) {
             return res.status(404).json({ 
                 success: false, 
-                message: "Không tìm thấy cuộc trò chuyện hoặc bạn không có quyền xóa." 
+                message: "Conversation not found or you do not have permission to delete it." 
             });
         }
 
         await Message.deleteMany({ conversationId });
         await Conversation.findByIdAndDelete(conversationId);
 
-        res.status(200).json({ success: true, message: "Xóa đoạn chat thành công." });
+        res.status(200).json({ success: true, message: "Conversation deleted successfully." });
     } catch (error) {
         next(error);
     }
@@ -293,7 +293,7 @@ exports.getUnreadCount = async (req, res, next) => {
 
         res.status(200).json({ success: true, data: totalUnread });
     } catch (error) {
-        console.error("Lỗi khi đếm tin nhắn chưa đọc:", error);
+        console.error("Error counting unread messages:", error);
         next(error);
     }
 };
