@@ -77,10 +77,10 @@ exports.deleteAdminNotification = async (req, res) => {
         const deletedNotification = await Notification.findByIdAndDelete(id);
 
         if (!deletedNotification) {
-            return res.status(404).json({ success: false, message: "Không tìm thấy thông báo cần xóa" });
+            return res.status(404).json({ success: false, message: "Notification to be deleted not found." });
         }
 
-        return res.status(200).json({ success: true, message: "Xóa thông báo thành công" });
+        return res.status(200).json({ success: true, message: "Notification deleted successfully." });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
     }
@@ -91,7 +91,7 @@ exports.clearAllAdminNotifications = async (req, res) => {
     try {
         // Chỉ xóa các thông báo của hệ thống admin (có user_id: 0)
         await Notification.deleteMany({ user_id: 0 });
-        return res.status(200).json({ success: true, message: "Đã xóa toàn bộ thông báo hệ thống" });
+        return res.status(200).json({ success: true, message: "All system notifications have been cleared." });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
     }

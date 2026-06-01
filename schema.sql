@@ -329,3 +329,27 @@ CREATE TABLE Job_Invitations (
 ALTER TABLE Users ADD COLUMN ban_reason TEXT NULL;
 ALTER TABLE Jobs MODIFY COLUMN status ENUM('pending', 'approved', 'rejected', 'closed', 'banned') DEFAULT 'pending';
 
+
+-- -- 1. Tắt chế độ an toàn (Safe Update Mode) cho phiên làm việc này
+SET SQL_SAFE_UPDATES = 0;
+-- -- 2. Dọn sạch rác để không bị lỗi trùng lặp dữ liệu khi tạo Key mới
+DELETE FROM Employer_Profile_Views;
+-- -- 3. Xây "chống lưng" mới cho Foreign Key (Tạo index riêng cho employer_id)
+ALTER TABLE Employer_Profile_Views ADD INDEX idx_employer (employer_id);
+-- -- 4. Bây giờ thì đập cái Unique Key cũ thoải mái
+ALTER TABLE Employer_Profile_Views DROP INDEX uk_view_per_day;
+-- -- 5. Tạo Unique Key chuẩn (1 NTD - 1 Ứng viên - 1 Dòng duy nhất)
+ALTER TABLE Employer_Profile_Views ADD UNIQUE KEY uk_employer_candidate (employer_id, candidate_id);
+-- -- (Tùy chọn) Bật lại chế độ an toàn sau khi xong việc
+SET SQL_SAFE_UPDATES = 1;
+
+ALTER TABLE Users 
+DROP COLUMN otp_code, 
+DROP COLUMN display_name, 
+DROP COLUMN avatar_url, 
+DROP COLUMN otp_expires;
+DROP COLUMN phone;
+
+UPDATE Profiles 
+SET cv_url = REPLACE(cv_url, '/upload/fl_inline/', '/upload/')
+WHERE cv_url LIKE '%fl_inline%';

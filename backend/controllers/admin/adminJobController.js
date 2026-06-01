@@ -139,13 +139,13 @@ exports.approveJob = async (req, res) => {
             [job_id]
         );
         if (jobs.length === 0) {
-            return res.status(404).json({ success: false, message: "Không tìm thấy tin tuyển dụng!" });
+            return res.status(404).json({ success: false, message: "No job postings found.!" });
         }
         if (jobs[0].status !== 'pending') {
-            return res.status(400).json({ success: false, message: `Tin này đang ở trạng thái "${jobs[0].status}", không thể duyệt!` });
+            return res.status(400).json({ success: false, message: `This news is currently in this state. "${jobs[0].status}", unreadable!` });
         }
         await db.execute("UPDATE Jobs SET status = 'approved' WHERE id = ?", [job_id]);
-        res.status(200).json({ success: true, message: "Đã duyệt tin tuyển dụng thành công!" });
+        res.status(200).json({ success: true, message: "Job posting has been successfully approved.!" });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -163,11 +163,11 @@ exports.rejectJob = async (req, res) => {
         );
 
         if (jobs.length === 0) {
-            return res.status(404).json({ success: false, message: "Không tìm thấy tin tuyển dụng!" });
+            return res.status(404).json({ success: false, message: "No job postings found.!" });
         }
 
         if (jobs[0].status !== 'pending') {
-            return res.status(400).json({ success: false, message: `Tin này đang ở trạng thái "${jobs[0].status}", không thể từ chối!` });
+            return res.status(400).json({ success: false, message: `This news is currently in this state. "${jobs[0].status}", unreadable!` });
         }
 
         // ← Lưu rejection_reason vào cột mới
@@ -176,7 +176,7 @@ exports.rejectJob = async (req, res) => {
             [reason || null, job_id]
         );
 
-        res.status(200).json({ success: true, message: "Đã từ chối tin tuyển dụng!" });
+        res.status(200).json({ success: true, message: "Job posting has been successfully rejected.!" });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -204,7 +204,7 @@ exports.getJobStats = async (req, res) => {
 exports.bulkDeleteJobs = async (req, res) => {
     const { ids } = req.body; // Mảng chứa các ID cần xóa, ví dụ: [232, 233]
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
-        return res.status(400).json({ success: false, message: 'Danh sách ID không hợp lệ' });
+        return res.status(400).json({ success: false, message: 'Invalid ID list' });
     }
 
     try {
@@ -215,7 +215,7 @@ exports.bulkDeleteJobs = async (req, res) => {
         );
         res.status(200).json({
             success: true,
-            message: `Đã xóa thành công ${result.affectedRows} tin tuyển dụng`
+            message: `Successfully deleted ${result.affectedRows} job postings`
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -232,7 +232,7 @@ exports.duplicateJob = async (req, res) => {
             [job_id]
         );
         if (jobs.length === 0) {
-            return res.status(404).json({ success: false, message: 'Không tìm thấy tin tuyển dụng gốc' });
+            return res.status(404).json({ success: false, message: 'No job postings found.!' });
         }
 
         const original = jobs[0];
@@ -251,7 +251,7 @@ exports.duplicateJob = async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: 'Nhân bản thành công tin tuyển dụng dưới dạng Chờ duyệt!',
+            message: 'Successfully duplicated the job posting!',
             insertId: result.insertId
         });
     } catch (error) {
@@ -286,7 +286,7 @@ exports.exportJobsCSV = async (req, res) => {
         `, params);
 
         // Tạo nội dung file CSV thủ công kết hợp UTF-8 BOM chống lỗi font tiếng Việt trên Excel
-        let csvContent = "\uFEFFID,Tiêu đề,Công ty,Hình thức,Kinh nghiệm,Lương tối thiểu,Lương tối đa,Trạng thái,Ngày tạo\n";
+        let csvContent = "\uFEFFID,Title, Company, Job Type, Experience, Minimum Salary, Maximum Salary, Status, Creation Date\n";
         jobs.forEach(row => {
             csvContent += `${row.id},"${row.title.replace(/"/g, '""')}","${row.company_name.replace(/"/g, '""')}",${row.job_type},${row.experience_level},${row.salary_min},${row.salary_max},${row.status},${row.created_at}\n`;
         });
@@ -318,12 +318,12 @@ exports.getJobById = async (req, res) => {
         `, [job_id]);
 
         if (jobs.length === 0) {
-            return res.status(404).json({ success: false, message: 'Không tìm thấy tin tuyển dụng này trên hệ thống' });
+            return res.status(404).json({ success: false, message: 'No job posting found.!' });
         }
 
         res.status(200).json({ success: true, data: jobs[0] });
     } catch (error) {
-        res.status(500).json({ success: false, message: "Lỗi kết nối database: " + error.message });
+        res.status(500).json({ success: false, message: "Database connection error: " + error.message });
     }
 };
 
@@ -349,11 +349,11 @@ exports.updateJob = async (req, res) => {
         `, [title, description, requirements, benefit, salary_min, salary_max, status, job_id]);
 
         if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: 'Không thể cập nhật, tin tuyển dụng không tồn tại' });
+            return res.status(404).json({ success: false, message: 'Unable to update, job posting does not exist' });
         }
 
-        res.status(200).json({ success: true, message: 'Thông tin công việc đã được lưu cập nhật thành công!' });
+        res.status(200).json({ success: true, message: 'Job information has been successfully updated!' });
     } catch (error) {
-        res.status(500).json({ success: false, message: "Lỗi máy chủ khi cập nhật: " + error.message });
+        res.status(500).json({ success: false, message: "Server error while updating: " + error.message });
     }
 };

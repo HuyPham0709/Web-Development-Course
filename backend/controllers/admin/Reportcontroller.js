@@ -17,7 +17,7 @@ exports.createReport = async (req, res) => {
         const reporter_id = req.user.id; // Lấy ID của người dùng từ token đăng nhập
 
         if (!job_id || !reason) {
-            return res.status(400).json({ success: false, message: "Thiếu thông tin job hoặc lý do báo cáo." });
+            return res.status(400).json({ success: false, message: "Missing job information or reason for reporting." });
         }
 
         const [result] = await db.execute(
@@ -41,11 +41,11 @@ exports.createReport = async (req, res) => {
 
         return res.status(201).json({
             success: true,
-            message: "Gửi báo cáo vi phạm thành công! Ban quản trị sẽ sớm xem xét."
+            message: "Report submitted successfully! The administration will review it soon."
         });
     } catch (error) {
-        console.error("Lỗi createReport:", error);
-        return res.status(500).json({ success: false, message: "Lỗi hệ thống không thể gửi báo cáo." });
+        console.error("Error in createReport:", error);
+        return res.status(500).json({ success: false, message: "System error: Unable to submit report." });
     }
 };
 
@@ -122,7 +122,7 @@ exports.getReports = async (req, res) => {
         });
     } catch (error) {
         console.error('Error in getReports:', error);
-        return res.status(500).json({ success: false, message: 'Lỗi máy chủ khi lấy danh sách báo cáo vi phạm.' });
+        return res.status(500).json({ success: false, message: 'Server error when fetching violation reports.' });
     }
 };
 
@@ -136,10 +136,10 @@ exports.updateReportStatus = async (req, res) => {
 
         await db.execute('UPDATE Reports SET status = ? WHERE id = ?', [status, id]);
 
-        return res.status(200).json({ success: true, message: 'Cập nhật trạng thái thành công.' });
+        return res.status(200).json({ success: true, message: 'Status updated successfully.' });
     } catch (error) {
-        console.error("Lỗi updateReportStatus:", error);
-        return res.status(500).json({ success: false, message: "Lỗi hệ thống khi cập nhật trạng thái." });
+        console.error("Error in updateReportStatus:", error);
+        return res.status(500).json({ success: false, message: "System error while updating status." });
     }
 };
 
@@ -154,12 +154,15 @@ exports.deleteReportedJob = async (req, res) => {
             'SELECT job_id FROM Reports WHERE id = ?', [id]
         );
         if (reportRows.length === 0) {
-            return res.status(404).json({ success: false, message: 'Không tìm thấy bản ghi báo cáo này.' });
+            return res.status(404).json({
+                success: false,
+                message: 'Report not found.'
+            });
         }
 
         const jobId = reportRows[0].job_id;
 
-        // ✅ Lấy thông tin job + employer để gửi mail
+        // Lấy thông tin job + employer để gửi mail
         const [jobRows] = await db.execute(
             `SELECT j.title, u.email, u.username 
              FROM Jobs j JOIN Users u ON j.posted_by = u.id 
@@ -170,7 +173,7 @@ exports.deleteReportedJob = async (req, res) => {
         await db.execute("UPDATE Jobs SET status = 'banned' WHERE id = ?", [jobId]);
         await db.execute("UPDATE Reports SET status = 'resolved' WHERE job_id = ?", [jobId]);
 
-        // ✅ Gửi mail cho employer
+        // Gửi mail cho employer
         if (jobRows.length > 0) {
             const { title, email, username } = jobRows[0];
             await transporter.sendMail({
@@ -196,8 +199,15 @@ exports.deleteReportedJob = async (req, res) => {
             });
         }
 
-        return res.status(200).json({ success: true, message: 'Job banned and employer notified.' });
+        return res.status(200).json({
+            success: true,
+            message: 'Job banned and employer notified.'
+        });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        console.error('Error in deleteReportedJob:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Server error while processing job removal.'
+        });
     }
 };

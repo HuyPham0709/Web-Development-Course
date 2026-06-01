@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../../config/db'); 
+const db = require('../../config/db');
 const { verifyToken, authorizeRole } = require('../../middlewares/authMiddleware');
 
 /**
  * @route   GET /api/employer/candidate/:candidateId/profile
- * @desc    Lấy chi tiết hồ sơ ứng viên (Dành cho Employer)
  */
 router.get(
   '/candidate/:candidateId/profile',
@@ -16,43 +15,32 @@ router.get(
     console.log(">>> ĐANG TRUY VẤN HỒ SƠ CHO ID:", candidateId);
 
     try {
-      // 1. Kiểm tra User tồn tại với role 'candidate'
       const [candidateRows] = await db.query(
-        'SELECT id, username, email, avatar_url FROM users WHERE id = ? AND role = ?',
+        'SELECT id, username, email FROM Users WHERE id = ? AND role = ?',
         [candidateId, 'candidate']
       );
 
       if (candidateRows.length === 0) {
-        return res.status(404).json({ 
-          success: false, 
-          message: `Ứng viên ID ${candidateId} không tồn tại hoặc không phải là Candidate.` 
+        return res.status(404).json({
+          success: false,
+          message: `Ứng viên ID ${candidateId} không tồn tại hoặc không phải là Candidate.`
         });
       }
       const candidate = candidateRows[0];
 
-      // 2. Lấy thông tin từ bảng Profiles
       const [profileRows] = await db.query(
         'SELECT * FROM Profiles WHERE user_id = ?',
         [candidateId]
       );
 
       if (profileRows.length === 0) {
-        return res.status(404).json({ 
-          success: false, 
-          message: 'Ứng viên này chưa hoàn thiện hồ sơ chi tiết.' 
+        return res.status(404).json({
+          success: false,
+          message: 'Ứng viên này chưa hoàn thiện hồ sơ chi tiết.'
         });
       }
       const profile = profileRows[0];
 
-      // 3. Kiểm tra quyền riêng tư (allow_employer_search)
-      if (profile.allow_employer_search === 0) {
-        return res.status(403).json({ 
-          success: false, 
-          message: 'Ứng viên hiện đang để hồ sơ ở chế độ riêng tư.' 
-        });
-      }
-
-      // 4. Lấy Kinh nghiệm, Học vấn, Kỹ năng (Giữ nguyên logic cũ)
       const [experiences] = await db.query(
         'SELECT company_name, position, start_date, end_date, description FROM Work_Experience WHERE profile_id = ? ORDER BY start_date DESC',
         [profile.id]
@@ -68,7 +56,6 @@ router.get(
         [profile.id]
       );
 
-      // 5. Format dữ liệu trả về
       const data = {
         personalInfo: {
           username: candidate.username,
@@ -76,10 +63,10 @@ router.get(
           title: profile.title,
           bio: profile.bio,
           location: profile.location,
-          avatar_url: candidate.avatar_url || profile.avatar_url,
+          avatar_url: profile.avatar_url,   // Lấy từ Profiles
           cv_url: profile.cv_url,
           email: candidate.email,
-          phone: profile.phone,
+          phone: profile.phone,             // Lấy từ Profiles
           gender: profile.gender,
           dob: profile.dob,
         },
@@ -89,7 +76,6 @@ router.get(
       };
 
       return res.json({ success: true, data });
-
     } catch (error) {
       console.error('Lỗi lấy hồ sơ:', error);
       return res.status(500).json({ success: false, message: 'Lỗi server: ' + error.message });
@@ -99,7 +85,6 @@ router.get(
 
 /**
  * @route   POST /api/employer/candidate/:candidateId/view
- * @desc    Ghi nhận lượt xem (Dùng cấu hình bảng của bạn)
  */
 router.post(
   '/candidate/:candidateId/view',
@@ -108,17 +93,14 @@ router.post(
   async (req, res) => {
     const employerId = req.user.id;
     const { candidateId } = req.params;
-    const today = new Date().toISOString().slice(0, 10); // Lấy YYYY-MM-DD
 
     try {
-      // Sử dụng INSERT IGNORE kết hợp với view_date để mỗi ngày chỉ tính 1 lượt xem/1 employer
-      // (Giả sử bạn có UNIQUE KEY trên employer_id, candidate_id, view_date)
       await db.query(
-    `INSERT INTO employer_profile_views 
-     (employer_id, candidate_id, is_notified) 
-     VALUES (?, ?, 0)
-     ON DUPLICATE KEY UPDATE viewed_at = CURRENT_TIMESTAMP`,
-    [employerId, candidateId] // Bỏ đi biến today
+        `INSERT INTO employer_profile_views 
+         (employer_id, candidate_id, is_notified) 
+         VALUES (?, ?, 0)
+         ON DUPLICATE KEY UPDATE viewed_at = CURRENT_TIMESTAMP`,
+        [employerId, candidateId]
       );
 
       return res.json({ success: true });
@@ -131,7 +113,6 @@ router.post(
 
 /**
  * @route   GET /api/employer/candidate/:candidateId/views
- * @desc    Lấy danh sách nhà tuyển dụng đã xem (Sửa theo tên bảng mới)
  */
 router.get(
   '/candidate/:candidateId/views',
@@ -142,12 +123,13 @@ router.get(
     try {
       const [views] = await db.query(
         `SELECT 
-            u.username AS employer_name,
+            COALESCE(ep.full_name, u.username) AS employer_name,
             c.name AS company_name,
             c.logo_url AS company_logo,
             v.viewed_at
          FROM employer_profile_views v
-         JOIN users u ON v.employer_id = u.id
+         JOIN Users u ON v.employer_id = u.id
+         LEFT JOIN Profiles ep ON ep.user_id = u.id
          LEFT JOIN Companies c ON u.company_id = c.id
          WHERE v.candidate_id = ?
          ORDER BY v.viewed_at DESC
@@ -158,6 +140,71 @@ router.get(
       return res.json({ success: true, data: views });
     } catch (error) {
       return res.status(500).json({ success: false, message: 'Lỗi lấy lịch sử xem.' });
+    }
+  }
+);
+
+/**
+ * @route   GET /api/employer/candidates/search
+ */
+router.get(
+  '/candidates/search',
+  verifyToken,
+  authorizeRole(['employer']),
+  async (req, res) => {
+    const employerId = req.user.id;
+
+    try {
+      const query = `
+        SELECT 
+          u.id, 
+          p.full_name AS name, 
+          p.title, 
+          p.location, 
+          p.avatar_url
+        FROM Users u
+        JOIN Profiles p ON u.id = p.user_id
+        WHERE u.role = 'candidate'
+          AND u.id NOT IN (
+            SELECT candidate_id 
+            FROM Employer_Profile_Views 
+            WHERE employer_id = ? AND status = 'ignored'
+          )
+          AND p.allow_employer_search = 1
+      `;
+
+      const [candidates] = await db.query(query, [employerId]);
+      return res.json({ success: true, data: candidates });
+    } catch (error) {
+      console.error('Lỗi lấy danh sách ứng viên:', error);
+      return res.status(500).json({ success: false, message: 'Lỗi server.' });
+    }
+  }
+);
+
+/**
+ * @route   POST /api/employer/candidate/:candidateId/reject
+ */
+router.post(
+  '/candidate/:candidateId/reject',
+  verifyToken,
+  authorizeRole(['employer']),
+  async (req, res) => {
+    const employerId = req.user.id;
+    const { candidateId } = req.params;
+
+    try {
+      await db.query(
+        `INSERT INTO Employer_Profile_Views (employer_id, candidate_id, status) 
+         VALUES (?, ?, 'ignored')
+         ON DUPLICATE KEY UPDATE status = 'ignored'`,
+        [employerId, candidateId]
+      );
+
+      return res.json({ success: true, message: 'Đã bỏ qua ứng viên thành công.' });
+    } catch (error) {
+      console.error('Lỗi khi bỏ qua ứng viên:', error);
+      return res.status(500).json({ success: false, message: 'Lỗi server khi cập nhật trạng thái.' });
     }
   }
 );
