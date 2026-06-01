@@ -56,14 +56,14 @@ export const InviteModal = ({ isOpen, onClose, candidate }: InviteModalProps) =>
           const result = await response.json();
           
           if (!response.ok) {
-            throw new Error(result.message || "Không thể tải danh sách công việc");
+            throw new Error(result.message || "Unable to load to-do list");
           }
 
           if (result.success) {
             setJobs(result.data);
           }
         } catch (err: any) {
-          setError(err.message || "Lỗi kết nối máy chủ");
+          setError(err.message || "Unable to connect to the server");
         } finally {
           setIsLoadingJobs(false);
         }
@@ -76,8 +76,8 @@ export const InviteModal = ({ isOpen, onClose, candidate }: InviteModalProps) =>
   useEffect(() => {
     if (candidate) {
       const job = jobs.find(j => String(j.id) === selectedJobId);
-      const jobName = job ? job.title : "[Vị trí tuyển dụng]";
-      setMessage(`Chào ${candidate.name}, mình thấy hồ sơ của bạn rất ấn tượng và phù hợp với vị trí ${jobName}. Mời bạn tham khảo và ứng tuyển nhé!`);
+      const jobName = job ? job.title : "[Job opening]";
+      setMessage(`Hello ${candidate.name}, I found your profile very impressive and believe you would be a great fit for the ${jobName} position. Please take a look and consider applying!`);
     }
   }, [selectedJobId, candidate, jobs]);
 
@@ -103,10 +103,10 @@ export const InviteModal = ({ isOpen, onClose, candidate }: InviteModalProps) =>
       const result = await response.json();
 
       if (response.ok && result.success) {
-        alert("Gửi lời mời thành công!");
+        alert("Invite sent successfully!");
         onClose();
       } else {
-        alert("Lỗi: " + (result.message || "Không thể gửi lời mời"));
+        alert("Error: " + (result.message || "Unable to send invite"));
       }
     } catch (err) {
       alert("Lỗi kết nối hệ thống.");
@@ -121,9 +121,9 @@ export const InviteModal = ({ isOpen, onClose, candidate }: InviteModalProps) =>
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg border-slate-800 bg-[#111827] text-slate-50">
         <DialogHeader>
-          <DialogTitle>Mời ứng tuyển</DialogTitle>
+          <DialogTitle>We invite you to apply.</DialogTitle>
           <DialogDescription className="text-slate-400">
-            Gửi lời mời trực tiếp đến ứng viên <span className="text-blue-400">{candidate.name}</span>.
+            Send an invitation directly to the candidate <span className="text-blue-400">{candidate.name}</span>.
           </DialogDescription>
         </DialogHeader>
 
@@ -146,10 +146,10 @@ export const InviteModal = ({ isOpen, onClose, candidate }: InviteModalProps) =>
           </div>
 
           <div className="grid gap-2">
-            <Label>Chọn vị trí công việc</Label>
+            <Label>Select Job Position</Label>
             <Select onValueChange={setSelectedJobId} value={selectedJobId}>
               <SelectTrigger className="bg-slate-950 border-slate-800">
-                <SelectValue placeholder={isLoadingJobs ? "Đang tải..." : "Chọn một vị trí..."} />
+                <SelectValue placeholder={isLoadingJobs ? "Loading..." : "Select a position..."} />
               </SelectTrigger>
               <SelectContent className="bg-slate-900 border-slate-800">
                 {jobs.map(job => (
@@ -160,7 +160,7 @@ export const InviteModal = ({ isOpen, onClose, candidate }: InviteModalProps) =>
           </div>
 
           <div className="grid gap-2">
-            <Label>Lời nhắn</Label>
+            <Label>Message</Label>
             <Textarea 
               className="min-h-[120px] bg-slate-950 border-slate-800"
               value={message}
@@ -170,10 +170,10 @@ export const InviteModal = ({ isOpen, onClose, candidate }: InviteModalProps) =>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>Hủy</Button>
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
           <Button onClick={handleSendInvite} disabled={isSubmitting || !selectedJobId}>
             {isSubmitting ? <Loader2 className="animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-            Gửi lời mời
+            Send Invite
           </Button>
         </DialogFooter>
       </DialogContent>

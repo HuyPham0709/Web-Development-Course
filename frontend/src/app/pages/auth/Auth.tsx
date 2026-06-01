@@ -86,14 +86,14 @@ export default function AuthPage() {
 
     if (activeTab === "register") {
       if (!formData.fullName || !formData.email || !formData.phone || !formData.password) {
-        return setError("Vui lòng điền đầy đủ các thông tin bắt buộc.");
+        return setError("Please fill in all required information..");
       }
       if (formData.password !== formData.confirmPassword) {
-        return setError("Mật khẩu xác nhận không khớp.");
+        return setError("Confirm password does not match.");
       }
     } else {
       if (!formData.email || !formData.password) {
-        return setError("Vui lòng điền Email và Mật khẩu.");
+        return setError("Please fill in Email and Password.");
       }
     }
 
@@ -107,7 +107,7 @@ export default function AuthPage() {
         if (response.data.token) {
           localStorage.setItem("token", response.data.token);
           localStorage.setItem("user", JSON.stringify(response.data.user));
-          await Swal.fire({ title: "Thành công!", text: "Chào mừng quay trở lại!", icon: "success", timer: 1500, showConfirmButton: false });
+          await Swal.fire({ title: "Success!", text: "Welcome back!", icon: "success", timer: 1500, showConfirmButton: false });
           navigate("/");
           window.location.reload();
         }
@@ -117,7 +117,7 @@ export default function AuthPage() {
         });
 
         if (response.data.success) {
-          Swal.fire({ title: "Đăng ký thành công!", text: "Mã OTP đã được gửi vào Email của bạn!", icon: "success" });
+          Swal.fire({ title: "Registration successful!", text: "OTP code has been sent to your email!", icon: "success" });
           setShowOTP(true);
         }
       }
@@ -133,7 +133,7 @@ export default function AuthPage() {
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (otpCode.length < 6) return setError("Vui lòng nhập đầy đủ 6 ký tự số OTP!");
+    if (otpCode.length < 6) return setError("Please enter the complete 6-digit OTP!");
 
     setIsLoading(true);
     try {
@@ -147,19 +147,19 @@ export default function AuthPage() {
           localStorage.setItem("token", response.data.token);
           localStorage.setItem("user", JSON.stringify(response.data.user));
           
-          await Swal.fire({ title: "Thành công!", text: "Xác thực và đăng nhập thành công!", icon: "success", timer: 1500, showConfirmButton: false });
+          await Swal.fire({ title: "Success!", text: "Verification and login successful!", icon: "success", timer: 1500, showConfirmButton: false });
           navigate("/");
           window.location.reload();
         } else {
           // Fallback an toàn
-          await Swal.fire({ title: "Xác thực thành công!", text: "Hãy đăng nhập ngay nhé!", icon: "success" });
+          await Swal.fire({ title: "Verification successful!", text: "Please login now!", icon: "success" });
           setOtpCode("");
           setShowOTP(false);
           setActiveTab("login");
         }
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || "OTP không hợp lệ!");
+      setError(err.response?.data?.message || "OTP is invalid!");
     } finally {
       setIsLoading(false);
     }
@@ -175,12 +175,12 @@ export default function AuthPage() {
       const response = await axios.post("http://localhost:5000/api/auth/resend-otp", { email: formData.email });
 
       if (response.data.success) {
-        Swal.fire({ title: "Đã gửi lại!", text: "Mã OTP mới đã được gửi vào Email của bạn.", icon: "success", toast: true, position: "top-end", showConfirmButton: false, timer: 3000 });
+        Swal.fire({ title: "Resent!", text: "The new OTP code has been sent to your email.", icon: "success", toast: true, position: "top-end", showConfirmButton: false, timer: 3000 });
         setResendCooldown(300); // 300 giây = 5 phút
         setOtpCode("");
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || "Lỗi khi gửi lại mã OTP. Vui lòng thử lại!");
+      setError(err.response?.data?.message || "Error resending OTP. Please try again!");
     } finally {
       setIsLoading(false);
     }
@@ -199,7 +199,7 @@ export default function AuthPage() {
           setFormData({ ...formData, email: response.data.email }); // Lưu lại email để dùng cho API verify
           setShowOTP(true); // Bật giao diện nhập OTP
           Swal.fire({
-            title: "Xác thực bảo mật",
+            title: "Security Verification",
             text: response.data.message,
             icon: "info"
           });
@@ -208,34 +208,34 @@ export default function AuthPage() {
           localStorage.setItem("token", response.data.token);
           localStorage.setItem("user", JSON.stringify(response.data.user));
 
-          await Swal.fire({ title: "Thành công!", text: "Đăng nhập Google thành công!", icon: "success", timer: 1500, showConfirmButton: false });
+          await Swal.fire({ title: "Success!", text: "Google login successful!", icon: "success", timer: 1500, showConfirmButton: false });
           navigate("/");
           window.location.reload();
         }
       } catch (err: any) {
-        setError(err.response?.data?.message || "Lỗi khi đăng nhập bằng Google!");
+        setError(err.response?.data?.message || "Error logging in with Google!");
       } finally {
         setIsLoading(false);
       }
     },
-    onError: () => setError("Đăng nhập Google thất bại!"),
+    onError: () => setError("Google login failed!"),
   });
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!formData.email) return setError("Vui lòng nhập Email để nhận mã!");
+    if (!formData.email) return setError("Please enter your email to receive the code!");
 
     setIsLoading(true);
     try {
       const response = await axios.post("http://localhost:5000/api/auth/forgot-password", { email: formData.email });
       if (response.data.success) {
-        Swal.fire({ title: "Thành công!", text: response.data.message, icon: "success" });
+        Swal.fire({ title: "Success!", text: response.data.message, icon: "success" });
         setOtpCode("");
         setView("reset");
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || "Có lỗi xảy ra!");
+      setError(err.response?.data?.message || "An error occurred. Please try again!");
     } finally {
       setIsLoading(false);
     }
@@ -244,22 +244,21 @@ export default function AuthPage() {
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!otpCode || !formData.newPassword) return setError("Vui lòng nhập đầy đủ OTP và mật khẩu mới!");
-
+    if (!otpCode || !formData.newPassword) return setError("Please enter the OTP and new password!");
     setIsLoading(true);
     try {
       const response = await axios.post("http://localhost:5000/api/auth/reset-password", {
         email: formData.email, otp: otpCode, newPassword: formData.newPassword,
       });
       if (response.data.success) {
-        await Swal.fire({ title: "Thành công!", text: response.data.message, icon: "success" });
+        await Swal.fire({ title: "Success!", text: response.data.message, icon: "success" });
         setOtpCode("");
         setFormData({ ...formData, password: "", newPassword: "" });
         setView("auth");
         setActiveTab("login");
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || "Có lỗi xảy ra!");
+      setError(err.response?.data?.message || "An error occurred. Please try again!");
     } finally {
       setIsLoading(false);
     }

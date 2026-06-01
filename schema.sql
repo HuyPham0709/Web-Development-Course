@@ -327,3 +327,9 @@ CREATE TABLE Job_Invitations (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 ALTER TABLE Users ADD COLUMN ban_reason TEXT NULL;
+ALTER TABLE Users 
+DROP COLUMN otp_code, 
+DROP COLUMN display_name, 
+DROP COLUMN avatar_url, 
+DROP COLUMN otp_expires;
+DROP COLUMN phone;

@@ -17,14 +17,14 @@ exports.createJob = async (req, res) => {
     if (!company_id) {
         return res.status(403).json({
             success: false,
-            message: 'Tài khoản của bạn chưa được liên kết với công ty nào!'
+            message: 'Your account is not linked to any company!'
         });
     }
 
     if (!title || !category_id || !location_id || !description) {
         return res.status(400).json({
             success: false,
-            message: 'Vui lòng điền đầy đủ các trường bắt buộc!'
+            message: 'Please fill in all required fields!'
         });
     }
 
@@ -73,17 +73,17 @@ exports.createJob = async (req, res) => {
         }
 
         const [companyRows] = await db.execute('SELECT name FROM Companies WHERE id = ?', [company_id]);
-        const companyName = companyRows[0]?.name || 'Nhà tuyển dụng';
+        const companyName = companyRows[0]?.name || 'The employer';
 
         await createAdminNotification({
-            title: "📋 Job mới chờ duyệt",
-            message: `${companyName} vừa đăng tin: "${title}"`,
+            title: "📋 New job awaiting approval.",
+            message: `${companyName} just posted a job: "${title}"`,
             link_url: `/jobs/management`
         });
 
         res.status(201).json({
             success: true,
-            message: 'Tin tuyển dụng đã được gửi và đang chờ kiểm duyệt!',
+            message: 'Job posting submitted and is pending review!',
             jobId: newJobId
         });
     } catch (error) {
@@ -218,7 +218,7 @@ exports.getAllJobs = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Lỗi chi tiết tại getAllJobs:', error);
+        console.error('Detailed error information at getAllJobs:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -246,7 +246,7 @@ exports.getJobDetail = async (req, res) => {
         `, [jobId]);
 
         if (jobs.length === 0) {
-            return res.status(404).json({ success: false, message: 'Không tìm thấy công việc!' });
+            return res.status(404).json({ success: false, message: 'Job not found!' });
         }
 
         res.status(200).json({ success: true, data: jobs[0] });
@@ -273,7 +273,7 @@ exports.updateJob = async (req, res) => {
             [jobId, company_id]
         );
         if (jobs.length === 0) {
-            return res.status(404).json({ success: false, message: 'Không tìm thấy hoặc bạn không có quyền sửa tin này!' });
+            return res.status(404).json({ success: false, message: 'Job not found or you do not have permission to edit this job!' });
         }
 
         // 1. Cập nhật thông tin bảng Jobs
@@ -322,14 +322,14 @@ exports.updateJob = async (req, res) => {
         }
 
         const [companyRows] = await db.execute('SELECT name FROM Companies WHERE id = ?', [company_id]);
-        const companyName = companyRows[0]?.name || 'Nhà tuyển dụng';
+        const companyName = companyRows[0]?.name || 'The employer';
         await createAdminNotification({
-            title: "✏️ Job được cập nhật",
-            message: `${companyName} vừa chỉnh sửa tin: "${title}", cần duyệt lại.`,
+            title: "✏️ Job updated",
+            message: `${companyName} just edited the job: "${title}", needs review.`,
             link_url: `/jobs/management`
         });
 
-        res.status(200).json({ success: true, message: 'Cập nhật tin thành công! Tin đang chờ kiểm duyệt lại.' });
+        res.status(200).json({ success: true, message: 'Job updated successfully! The job is pending review.' });
     } catch (error) {
         console.error('Lỗi updateJob:', error);
         res.status(500).json({ success: false, message: error.message });
@@ -348,15 +348,15 @@ exports.deleteJob = async (req, res) => {
             [jobId]
         );
         if (jobs.length === 0) {
-            return res.status(404).json({ success: false, message: 'Không tìm thấy công việc!' });
+            return res.status(404).json({ success: false, message: 'Job not found!' });
         }
 
         if (role !== 'admin' && jobs[0].company_id !== company_id) {
-            return res.status(403).json({ success: false, message: 'Bạn không có quyền xóa tin này!' });
+            return res.status(403).json({ success: false, message: 'You do not have permission to delete this job!' });
         }
 
         await db.execute('UPDATE Jobs SET deleted_at = NOW() WHERE id = ?', [jobId]);
-        res.status(200).json({ success: true, message: 'Đã xóa tin tuyển dụng!' });
+        res.status(200).json({ success: true, message: 'Job deleted successfully!' });
     } catch (error) {
         console.error('Lỗi deleteJob:', error);
         res.status(500).json({ success: false, message: error.message });
@@ -431,7 +431,7 @@ exports.getSuggestions = async (req, res, next) => {
         // ĐỒNG BỘ CHUẨN: Trả về object chứa trường data tương tự các hàm khác
         return res.json({ success: true, data: rows });
     } catch (error) {
-        console.error("Lỗi lấy dữ liệu Autocomplete gợi ý việc làm:", error);
-        return res.status(500).json({ success: false, message: "Lỗi máy chủ nội bộ" });
+        console.error("Error retrieving Autocomplete data suggests the following task:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
     }
 };

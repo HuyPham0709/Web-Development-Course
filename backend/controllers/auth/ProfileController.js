@@ -212,7 +212,7 @@ exports.updateProfile = async (req, res) => {
         );
 
         const [profileRows] = await connection.query(`SELECT id FROM Profiles WHERE user_id = ?`, [userId]);
-        if (profileRows.length === 0) throw new Error("Không tìm thấy hồ sơ người dùng!");
+        if (profileRows.length === 0) throw new Error("User profile not found!");
         const profileId = profileRows[0].id;
 
         // Cập nhật Kinh nghiệm làm việc
@@ -248,7 +248,7 @@ exports.updateProfile = async (req, res) => {
         }
 
         await connection.commit();
-        res.status(200).json({ success: true, message: "Hồ sơ đã được lưu thành công!" });
+        res.status(200).json({ success: true, message: "Profile updated successfully!" });
     } catch (error) {
         if (connection) await connection.rollback();
         console.error("[updateProfile]", error.message);
@@ -262,18 +262,18 @@ exports.updateProfile = async (req, res) => {
 exports.uploadCV = async (req, res) => {
     try {
         const userId = req.user.id;
-        if (!req.file) return res.status(400).json({ success: false, message: 'Chưa nhận được file CV' });
+        if (!req.file) return res.status(400).json({ success: false, message: 'I haven\'t received the CV file yet.' });
 
         const result = await uploadToCloudinary(req.file.buffer, 'job_finder/cvs');
         const secureUrl = result.secure_url;
 
         const [dbResult] = await db.query('UPDATE Profiles SET cv_url = ? WHERE user_id = ?', [secureUrl, userId]);
-        if (dbResult.affectedRows === 0) return res.status(404).json({ success: false, message: 'Bạn cần tạo thông tin cá nhân trước!' });
+        if (dbResult.affectedRows === 0) return res.status(404).json({ success: false, message: 'You need to create your personal information first!' });
 
-        res.json({ success: true, cv_url: secureUrl, message: 'Upload CV thành công!' });
+        res.json({ success: true, cv_url: secureUrl, message: 'CV uploaded successfully!' });
     } catch (error) {
-        console.error('Lỗi upload CV:', error);
-        res.status(500).json({ success: false, message: 'Lỗi server khi upload CV', error: error.message });
+        console.error('Error uploading CV:', error);
+        res.status(500).json({ success: false, message: 'Error uploading CV', error: error.message });
     }
 };
 
@@ -282,7 +282,7 @@ exports.deleteCV = async (req, res) => {
     try {
         const userId = req.user.id;
         const [rows] = await db.query(`SELECT cv_url FROM Profiles WHERE user_id = ?`, [userId]);
-        if (rows.length === 0 || !rows[0].cv_url) return res.status(404).json({ success: false, message: "Không tìm thấy CV" });
+        if (rows.length === 0 || !rows[0].cv_url) return res.status(404).json({ success: false, message: "CV not found" });
 
         const cvUrl = rows[0].cv_url;
         if (cvUrl.includes('cloudinary.com')) {
@@ -295,7 +295,7 @@ exports.deleteCV = async (req, res) => {
         }
 
         await db.query(`UPDATE Profiles SET cv_url = NULL, updated_at = NOW() WHERE user_id = ?`, [userId]);
-        res.status(200).json({ success: true, message: "CV đã được xóa" });
+        res.status(200).json({ success: true, message: "CV has been deleted" });
     } catch (error) {
         console.error("[deleteCV]", error.message);
         res.status(500).json({ success: false, message: error.message });
@@ -306,7 +306,7 @@ exports.deleteCV = async (req, res) => {
 exports.uploadAvatar = async (req, res) => {
     try {
         const userId = req.user.id;
-        if (!req.file) return res.status(400).json({ success: false, message: 'Chưa chọn file ảnh đại diện!' });
+        if (!req.file) return res.status(400).json({ success: false, message: 'No avatar file received!' });
 
         const result = await uploadToCloudinary(req.file.buffer, 'job_finder/avatars');
         const secureUrl = result.secure_url;
@@ -314,10 +314,10 @@ exports.uploadAvatar = async (req, res) => {
         // ✅ ĐÃ SỬA: Chỉ cần UPDATE duy nhất trường avatar_url ở bảng Profiles là xong, bỏ hoàn toàn update bên Users
         await db.query(`UPDATE Profiles SET avatar_url = ? WHERE user_id = ?`, [secureUrl, userId]);
 
-        res.json({ success: true, avatar_url: secureUrl, message: 'Cập nhật ảnh đại diện thành công!' });
+        res.json({ success: true, avatar_url: secureUrl, message: 'Avatar updated successfully!' });
     } catch (error) {
-        console.error("Lỗi upload avatar:", error);
-        res.status(500).json({ success: false, message: 'Lỗi server khi upload ảnh đại diện' });
+        console.error("Error uploading avatar:", error);
+        res.status(500).json({ success: false, message: 'Error uploading avatar' });
     }
 };
 
@@ -325,17 +325,17 @@ exports.uploadAvatar = async (req, res) => {
 exports.uploadCover = async (req, res) => {
     try {
         const userId = req.user.id;
-        if (!req.file) return res.status(400).json({ success: false, message: 'Chưa chọn file ảnh bìa!' });
+        if (!req.file) return res.status(400).json({ success: false, message: 'No cover file received!' });
 
         const result = await uploadToCloudinary(req.file.buffer, 'job_finder/covers');
         const secureUrl = result.secure_url;
 
         await db.query(`UPDATE Profiles SET cover_url = ? WHERE user_id = ?`, [secureUrl, userId]);
 
-        res.json({ success: true, cover_url: secureUrl, message: 'Cập nhật ảnh bìa thành công!' });
+        res.json({ success: true, cover_url: secureUrl, message: 'Cover updated successfully!' });
     } catch (error) {
-        console.error("Lỗi upload cover:", error);
-        res.status(500).json({ success: false, message: 'Lỗi server khi upload ảnh bìa' });
+        console.error("Error uploading cover:", error);
+        res.status(500).json({ success: false, message: 'Error uploading cover' });
     }
 };
 
@@ -383,10 +383,10 @@ let query = `
         const candidates = rows.map(row => ({
           id: row.id,
           user_id: row.user_id,
-          name: row.name || 'Ứng viên',
-          title: row.title || 'Chưa cập nhật',
-          exp: row.years_of_exp ? `${row.years_of_exp} năm` : 'Chưa có KN',
-          location: row.location || 'Chưa cập nhật',
+          name: row.name || 'Candidate',
+          title: row.title || 'Not updated',
+          exp: row.years_of_exp ? `${row.years_of_exp} years` : 'No experience',
+          location: row.location || 'Not updated',
           skills: row.skills ? row.skills.split(',') : [],
           avatar: row.avatar || 'https://placehold.co/150'
         }));
@@ -394,6 +394,6 @@ let query = `
         res.status(200).json({ success: true, data: candidates });
     } catch (error) {
         console.error('Search CV Error:', error);
-        res.status(500).json({ success: false, message: 'Lỗi server khi tìm kiếm CV' });
+        res.status(500).json({ success: false, message: 'Error searching CVs' });
     }
 };

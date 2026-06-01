@@ -31,33 +31,29 @@ cloudinary.config({
 // Upload Helper
 // ─────────────────────────────────────────────────────────────
 
-const uploadToCloudinary = (
-  fileBuffer,
-  folder
-) => {
-  return new Promise(
-    (resolve, reject) => {
-      const uploadStream =
-        cloudinary.uploader.upload_stream(
-          {
-            folder,
-            resource_type: "auto",
-          },
+const uploadToCloudinary = (fileBuffer, folder, originalName = "") => {
+  return new Promise((resolve, reject) => {
+    
+    // Mặc định là auto, nhưng nếu là đuôi .pdf thì ép sang "raw"
+    const isPdf = originalName.toLowerCase().endsWith(".pdf");
+    const options = {
+      folder,
+      resource_type: isPdf ? "raw" : "auto",
+    };
 
-          (error, result) => {
-            if (error) {
-              reject(error);
-            } else {
-              resolve(result);
-            }
-          }
-        );
+    const uploadStream = cloudinary.uploader.upload_stream(
+      options,
+      (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result);
+        }
+      }
+    );
 
-      streamifier
-        .createReadStream(fileBuffer)
-        .pipe(uploadStream);
-    }
-  );
+    streamifier.createReadStream(fileBuffer).pipe(uploadStream);
+  });
 };
 
 // ─────────────────────────────────────────────────────────────

@@ -22,7 +22,7 @@ exports.sendInvitation = async (req, res) => {
         const employerId = req.user.id;
 
         if (!candidateId || !jobId || !message) {
-            return res.status(400).json({ success: false, message: "Thiếu thông tin." });
+            return res.status(400).json({ success: false, message: "Lack of information." });
         }
 
         const [existing] = await db.execute(
@@ -31,7 +31,7 @@ exports.sendInvitation = async (req, res) => {
         );
 
         if (existing.length > 0) {
-            return res.status(400).json({ success: false, message: "Đã gửi lời mời trước đó." });
+            return res.status(400).json({ success: false, message: "Invitation already sent." });
         }
 
         await db.execute(
@@ -39,10 +39,10 @@ exports.sendInvitation = async (req, res) => {
             [employerId, candidateId, jobId, message]
         );
 
-        res.status(201).json({ success: true, message: "Gửi lời mời thành công!" });
+        res.status(201).json({ success: true, message: "Invitation sent successfully!" });
     } catch (error) {
-        console.error("Lỗi gửi lời mời:", error);
-        res.status(500).json({ success: false, message: "Lỗi Server" });
+        console.error("Error sending invitation:", error);
+        res.status(500).json({ success: false, message: "Server Error" });
     }
 };
 
@@ -76,6 +76,6 @@ exports.getCandidateInvitations = async (req, res) => {
         });
     } catch (error) {
         console.error("Lỗi lấy lời mời ứng viên:", error.message);
-        res.status(500).json({ success: false, message: "Lỗi hệ thống khi lấy lời mời." });
+        res.status(500).json({ success: false, message: "System error when sending invitations." });
     }
 };
