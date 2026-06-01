@@ -36,7 +36,7 @@ const toFullUrl = (url: string | null | undefined): string => {
 };
 
 interface NotificationItem {
-  _id: string;
+  id: number | string; 
   title: string;
   message: string;
   created_at: string;
@@ -58,7 +58,7 @@ export const Navbar = () => {
     name: "",
     avatarUrl: "",
     role: "",
-    id: "", // Standardized to only use id
+    id: "", 
   });
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -66,8 +66,22 @@ export const Navbar = () => {
   const [chatUnreadCount, setChatUnreadCount] = useState<number>(0);
 
   // ======================================================================
-  // Dynamic navigation link logic by user role
+  // Handlers & Actions (Đưa handleLogout lên đầu scope để tránh lỗi định nghĩa)
   // ======================================================================
+  const handleLogout = () => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+    }
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setIsLoggedIn(false);
+    setUser({ name: "", avatarUrl: "", role: "", id: "" });
+    setNotifications([]);
+    setChatUnreadCount(0);
+    window.dispatchEvent(new Event("auth-change"));
+    navigate("/");
+  };
+
   const getNavLinks = () => {
     if (!isLoggedIn) {
       return [
@@ -113,14 +127,17 @@ export const Navbar = () => {
         const systemNotifs = response.data.data.filter(
           (n: any) => n.link_url !== "/chat"
         );
-        setNotifications(systemNotifs);
+        const mappedNotifs = systemNotifs.map((n: any) => ({
+          ...n,
+          id: n.id || n._id
+        }));
+        setNotifications(mappedNotifs);
       }
     } catch (error) {
       console.error("Error fetching notifications:", error);
     }
   }, []);
 
-  // 🔥 ACCURATE DATABASE SYNC LOGIC
   const checkUnreadChat = useCallback(async () => {
     if (!isLoggedIn || !user.id) return;
 
@@ -148,7 +165,6 @@ export const Navbar = () => {
     }
   }, [isLoggedIn, user.id]);
 
-  // Handler for incoming chat messages
   const handleChatTrigger = useCallback(() => {
     checkUnreadChat();
   }, [checkUnreadChat]);
@@ -182,9 +198,24 @@ export const Navbar = () => {
 
       socket.emit("add_user", user.id);
 
-      socket.on("receive_notification", (newNotify: NotificationItem) => {
+      socket.on("receive_notification", (newNotify: any) => {
         if (newNotify.link_url !== "/chat") {
-          setNotifications((prev) => [newNotify, ...prev]);
+          const formattedNotify: NotificationItem = {
+            ...newNotify,
+            id: newNotify.id || newNotify._id
+          };
+          setNotifications((prev) => [formattedNotify, ...prev]);
+        }
+      });
+
+      socket.on("new_notification", (newNotify: any) => {
+        console.log("🔔 [Socket] Receive new notifications from the Backend.:", newNotify);
+        if (newNotify.link_url !== "/chat") {
+          const formattedNotify: NotificationItem = {
+            ...newNotify,
+            id: newNotify.id || newNotify._id
+          };
+          setNotifications((prev) => [formattedNotify, ...prev]);
         }
       });
 
@@ -200,6 +231,7 @@ export const Navbar = () => {
 
       return () => {
         socket.off("receive_notification");
+        socket.off("new_notification"); 
         socket.off("update_unread_total");
         socket.off("receive_message");
         socket.disconnect();
@@ -218,19 +250,19 @@ export const Navbar = () => {
     checkUnreadChat();
   }, [location.pathname, isLoggedIn, checkUnreadChat]);
 
-  const handleMarkAsRead = async (id: string, linkUrl: string | null) => {
+  const handleMarkAsRead = async (id: number | string, linkUrl: string | null) => {
     if (isProcessing) return;
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    const currentNotif = notifications.find((item) => item._id === id);
+    const currentNotif = notifications.find((item) => item.id === id);
     setShowNotifications(false);
 
     if (currentNotif && !currentNotif.is_read) {
       setIsProcessing(true);
       setNotifications((prev) =>
         prev.map((item) =>
-          item._id === id ? { ...item, is_read: true } : item
+          item.id === id ? { ...item, is_read: true } : item
         )
       );
       try {
@@ -339,20 +371,6 @@ export const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-    }
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setIsLoggedIn(false);
-    setUser({ name: "", avatarUrl: "", role: "", id: "" });
-    setNotifications([]);
-    setChatUnreadCount(0);
-    window.dispatchEvent(new Event("auth-change"));
-    navigate("/");
-  };
-
   const isEmployer = user.role?.toLowerCase() === "employer";
   const hasUnread = notifications.some((n) => !n.is_read);
 
@@ -372,7 +390,6 @@ export const Navbar = () => {
             </span>
           </Link>
 
-          {/* Desktop Links Menu */}
           <div className="hidden items-center gap-1 md:flex">
             {navLinks.map((link) => {
               const isActive = location.pathname === link.path;
@@ -394,7 +411,6 @@ export const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Theme Toggle */}
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="relative flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors dark:text-gray-400 dark:hover:bg-white/10 overflow-hidden"
@@ -414,7 +430,6 @@ export const Navbar = () => {
             />
           </button>
 
-          {/* Messages Link */}
           {isLoggedIn && (
             <Link
               to="/chat"
@@ -426,7 +441,6 @@ export const Navbar = () => {
               title="Messages"
             >
               <MessageSquare size={20} />
-
               {chatUnreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white dark:ring-[#0B0F19]">
                   {chatUnreadCount > 99 ? "99+" : chatUnreadCount}
@@ -435,7 +449,6 @@ export const Navbar = () => {
             </Link>
           )}
 
-          {/* Notifications Dropdown */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowNotifications(!showNotifications)}
@@ -461,9 +474,9 @@ export const Navbar = () => {
                   ) : (
                     notifications.map((notif) => (
                       <div
-                        key={notif._id}
+                        key={notif.id}
                         onClick={() =>
-                          handleMarkAsRead(notif._id, notif.link_url)
+                          handleMarkAsRead(notif.id, notif.link_url)
                         }
                         className={`p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors flex gap-3 items-start ${
                           !notif.is_read
@@ -496,7 +509,6 @@ export const Navbar = () => {
             )}
           </div>
 
-          {/* User Profile Dropdown */}
           {isLoggedIn ? (
             <DropdownMenu>
               <DropdownMenuTrigger className="outline-none">
@@ -594,7 +606,6 @@ export const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Menu Links */}
       {mobileMenuOpen && (
         <div className="border-t border-gray-100 bg-white px-6 py-4 space-y-3 md:hidden shadow-inner dark:border-white/5 dark:bg-[#0B0F19]">
           {navLinks.map((link) => {
