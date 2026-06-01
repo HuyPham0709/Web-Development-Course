@@ -327,6 +327,8 @@ CREATE TABLE Job_Invitations (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 ALTER TABLE Users ADD COLUMN ban_reason TEXT NULL;
+ALTER TABLE Jobs MODIFY COLUMN status ENUM('pending', 'approved', 'rejected', 'closed', 'banned') DEFAULT 'pending';
+
 
 -- -- 1. Tắt chế độ an toàn (Safe Update Mode) cho phiên làm việc này
 SET SQL_SAFE_UPDATES = 0;

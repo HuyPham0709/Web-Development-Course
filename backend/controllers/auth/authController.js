@@ -139,7 +139,6 @@ exports.register = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = Date.now() + 10 * 60 * 1000;
 
-    // ĐÃ SỬA: Đổi tên biến thành otpStorage và thêm type: 'REGISTER'
     otpStorage.set(email, {
       type: 'REGISTER',
       username: finalName, full_name: finalName, email, phone,
@@ -170,7 +169,6 @@ exports.register = async (req, res) => {
 
     return res.status(201).json({ success: true, message: "Registration successful! Please check your email for the verification code." });
   } catch (error) {
-    // ĐÃ THÊM: In lỗi ra console để quản lý
     console.error("Register Error:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -180,19 +178,16 @@ exports.register = async (req, res) => {
 exports.verifyEmail = async (req, res) => {
   const { email, otp } = req.body;
   try {
-    // ĐÃ SỬA: Thay tempRegisterData thành otpStorage
     const tempData = otpStorage.get(email);
-    
+
     if (!tempData) return res.status(400).json({ success: false, message: "Registration session does not exist or has expired!" });
     if (tempData.otp !== otp) return res.status(400).json({ success: false, message: "Incorrect OTP code!" });
-    
+
     if (Date.now() > tempData.otpExpires) {
-      // ĐÃ SỬA: Thay tempRegisterData thành otpStorage
       otpStorage.delete(email);
       return res.status(400).json({ success: false, message: "OTP code has expired! Please try registering again." });
     }
 
-    // Insert user into DB (is_active = 1, is_verified = 1)
     const [userResult] = await db.execute(
       "INSERT INTO Users (username, email, password, role, is_verified, is_active) VALUES (?, ?, ?, ?, 1, 1)",
       [tempData.username, tempData.email, tempData.password, tempData.role]
@@ -212,7 +207,6 @@ exports.verifyEmail = async (req, res) => {
       [userId, tempData.full_name, tempData.phone, tempData.avatar_url]
     );
 
-    // ĐÃ SỬA: Thay tempRegisterData thành otpStorage
     otpStorage.delete(email);
 
     const token = jwt.sign(
@@ -225,7 +219,6 @@ exports.verifyEmail = async (req, res) => {
       user: { id: userId, username: tempData.username, full_name: tempData.full_name, role: tempData.role, company_id: companyId, avatar_url: tempData.avatar_url }
     });
   } catch (error) {
-    // ĐÃ THÊM: In lỗi ra console để debug nếu MySQL gặp trục trặc
     console.error("Verify Email Error:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -237,16 +230,14 @@ exports.resendOtp = async (req, res) => {
   if (!email) return res.status(400).json({ success: false, message: "Please provide an email address!" });
 
   try {
-    // ĐÃ SỬA: Dùng otpStorage thay cho tempRegisterData
     const tempData = otpStorage.get(email);
-    
+
     if (!tempData) return res.status(400).json({ success: false, message: "Session not found! Please restart the registration process." });
 
     const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
     tempData.otp = newOtp;
     tempData.otpExpires = Date.now() + 10 * 60 * 1000;
-    
-    // ĐÃ SỬA: Cập nhật lại vào otpStorage
+
     otpStorage.set(email, tempData);
 
     const emailHTML = generateEmailHTML(
@@ -265,7 +256,6 @@ exports.resendOtp = async (req, res) => {
 
     return res.status(200).json({ success: true, message: "New OTP code has been sent successfully!" });
   } catch (error) {
-    // ĐÃ THÊM: In lỗi ra console để dễ debug
     console.error("Resend OTP Error:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -297,7 +287,6 @@ exports.login = async (req, res) => {
       return res.status(403).json({ success: false, message: `Incorrect login portal! This account is registered as a ${roleName}.` });
     }
 
-    // Security block: Prevent standard login attempts on Google-created accounts using standard passwords
     if (user.password === "LOGIN_BY_GOOGLE") {
       return res.status(400).json({ success: false, message: "This account uses Google Login. Please sign in via Google." });
     }
@@ -342,9 +331,9 @@ exports.forgotPassword = async (req, res) => {
     if (users.length === 0) return res.status(404).json({ success: false, message: "Email address does not exist!" });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpires = Date.now() + 10 * 60 * 1000; // Lưu dạng Timestamp như đăng ký
+    const otpExpires = Date.now() + 10 * 60 * 1000;
 
-    // Lưu OTP vào RAM với type để phân biệt nghiệp vụ
+    // ĐÃ SỬA CONFLICT: Đồng bộ hóa lưu OTP RAM sạch sẽ
     otpStorage.set(email, { type: 'FORGOT_PASSWORD', otp, otpExpires });
 
     const emailHTML = generateEmailHTML(
@@ -368,20 +357,18 @@ exports.forgotPassword = async (req, res) => {
 exports.resetPassword = async (req, res) => {
   const { email, otp, newPassword } = req.body;
   try {
-    // 1. Lấy dữ liệu OTP từ RAM
+    // ĐÃ SỬA CONFLICT: Lấy dữ liệu OTP từ RAM
     const otpData = otpStorage.get(email);
-    
-    // 2. Kiểm tra tính hợp lệ
+
     if (!otpData || otpData.type !== 'FORGOT_PASSWORD') {
       return res.status(400).json({ success: false, message: "Session does not exist or has expired!" });
     }
     if (otpData.otp !== otp) return res.status(400).json({ success: false, message: "Incorrect OTP code!" });
     if (Date.now() > otpData.otpExpires) {
-      otpStorage.delete(email); // Xóa ngay nếu đã hết hạn
+      otpStorage.delete(email);
       return res.status(400).json({ success: false, message: "OTP code has expired!" });
     }
 
-    // 3. Tiến hành đổi mật khẩu
     const [users] = await db.execute("SELECT password FROM Users WHERE email = ?", [email]);
     if (users.length === 0) return res.status(404).json({ success: false, message: "User not found!" });
 
@@ -391,7 +378,6 @@ exports.resetPassword = async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await db.execute("UPDATE Users SET password = ? WHERE email = ?", [hashedPassword, email]);
 
-    // 4. Dọn dẹp RAM sau khi dùng xong
     otpStorage.delete(email);
 
     return res.status(200).json({ success: true, message: "Password has been reset successfully!" });
@@ -399,6 +385,7 @@ exports.resetPassword = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
 // --- 8. GOOGLE LOGIN ---
 exports.googleLogin = async (req, res) => {
   const { accessToken, role } = req.body;
@@ -422,9 +409,8 @@ exports.googleLogin = async (req, res) => {
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
       const otpExpires = Date.now() + 10 * 60 * 1000;
 
-      // ĐÃ SỬA: Dùng otpStorage thay vì tempRegisterData
       otpStorage.set(email, {
-        type: 'REGISTER', // Thêm type để dễ quản lý chung
+        type: 'REGISTER',
         username: autoUsername, full_name: name, email, phone: "Not provided",
         password: "LOGIN_BY_GOOGLE", role: role || "candidate", avatar_url: picture, otp, otpExpires
       });
@@ -467,11 +453,11 @@ exports.googleLogin = async (req, res) => {
       user: { id: user.id, username: user.username, full_name: user.full_name || user.username, role: user.role, company_id: user.company_id, avatar_url: user.profile_avatar || null }
     });
   } catch (error) {
-    // ĐÃ THÊM: In lỗi ra console để debug dễ hơn
     console.error("Google Login Error:", error);
     return res.status(500).json({ success: false, message: "Google connection error: " + error.message });
   }
 };
+
 // --- 9. ADMIN LOGIN ---
 exports.adminLogin = async (req, res) => {
   const { email, password } = req.body;
@@ -490,7 +476,7 @@ exports.adminLogin = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = Date.now() + 5 * 60 * 1000; // 5 phút
 
-    // Lưu OTP Admin vào RAM
+    // ĐÃ SỬA CONFLICT: Lưu hoàn toàn vào RAM, xóa bỏ cú pháp DB thừa
     otpStorage.set(email, { type: 'ADMIN_LOGIN', otp, otpExpires });
 
     const emailHTML = generateEmailHTML(
@@ -513,8 +499,9 @@ exports.adminLogin = async (req, res) => {
 exports.verifyLoginOTP = async (req, res) => {
   const { email, otp } = req.body;
   try {
+    // ĐÃ SỬA CONFLICT: Đọc và check OTP sạch sẽ từ bộ nhớ RAM
     const otpData = otpStorage.get(email);
-    
+
     if (!otpData || otpData.type !== 'ADMIN_LOGIN') {
       return res.status(400).json({ success: false, message: "Invalid or expired session!" });
     }
@@ -524,14 +511,13 @@ exports.verifyLoginOTP = async (req, res) => {
       return res.status(400).json({ success: false, message: "OTP code has expired!" });
     }
 
-    // OTP đúng, lấy thông tin user để tạo JWT
     const [users] = await db.execute(
       `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name FROM Users u LEFT JOIN Profiles p ON u.id = p.user_id WHERE u.email = ?`,
       [email]
     );
-    
+
     const user = users[0];
-    otpStorage.delete(email); // Xóa OTP sau khi dùng
+    otpStorage.delete(email); // Giải phóng RAM
 
     const token = jwt.sign(
       { id: user.id, role: user.role, company_id: user.company_id },
