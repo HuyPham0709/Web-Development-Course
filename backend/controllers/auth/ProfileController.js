@@ -339,11 +339,13 @@ exports.uploadCover = async (req, res) => {
     }
 };
 
-// ─── 9. SEARCH CANDIDATES ─────────────────────────────────────────────────────
+// ─── 9. SEARCH CANDIDATES (ĐÃ CẬP NHẬT LỌC IGNORED) ──────────────────────────
 exports.searchCandidates = async (req, res) => {
     try {
         const { keyword, location, skills, exp_min, exp_max } = req.query;
-let query = `
+        const employerId = req.user.id; // Lấy ID của nhà tuyển dụng từ token
+
+        let query = `
     SELECT 
         p.id, 
         p.user_id, 
@@ -358,24 +360,48 @@ let query = `
         (SELECT COALESCE(SUM(TIMESTAMPDIFF(YEAR, start_date, IFNULL(end_date, CURRENT_DATE))), 0) FROM Work_Experience we WHERE we.profile_id = p.id) AS years_of_exp
     FROM Profiles p 
     JOIN Users u ON p.user_id = u.id 
-    WHERE u.role = 'candidate' AND u.is_active = 1 AND p.allow_employer_search = 1
+    WHERE u.role = 'candidate' 
+      AND u.is_active = 1 
+      AND p.allow_employer_search = 1
+      -- CHỖ MỚI THÊM: Không lấy ứng viên đã bị nhà tuyển dụng này ignore
+      AND NOT EXISTS (
+          SELECT 1 FROM employer_profile_views v 
+          WHERE v.candidate_id = u.id 
+          AND v.employer_id = ? 
+          AND v.status = 'ignored'
+      )
 `;
-        const queryParams = [];
+        // Thêm employerId vào đầu danh sách tham số
+        const queryParams = [employerId];
 
-        if (keyword) { query += ` AND (p.title LIKE ? OR p.full_name LIKE ?)`; queryParams.push(`%${keyword}%`, `%${keyword}%`); }
-        if (location) { query += ` AND p.location LIKE ?`; queryParams.push(`%${location}%`); }
+        if (keyword) { 
+            query += ` AND (p.title LIKE ? OR p.full_name LIKE ?)`; 
+            queryParams.push(`%${keyword}%`, `%${keyword}%`); 
+        }
+        if (location) { 
+            query += ` AND p.location LIKE ?`; 
+            queryParams.push(`%${location}%`); 
+        }
         if (skills) {
-          const skillList = skills.split(',').map(s => s.trim());
-          for (let i = 0; i < skillList.length; i++) {
-            query += ` AND EXISTS (SELECT 1 FROM User_Skills us JOIN Skills s ON us.skill_id = s.id WHERE us.profile_id = p.id AND s.name = ?)`;
-            queryParams.push(skillList[i]);
-          }
+            const skillList = skills.split(',').map(s => s.trim());
+            for (let i = 0; i < skillList.length; i++) {
+                query += ` AND EXISTS (SELECT 1 FROM User_Skills us JOIN Skills s ON us.skill_id = s.id WHERE us.profile_id = p.id AND s.name = ?)`;
+                queryParams.push(skillList[i]);
+            }
         }
 
         query += ` GROUP BY p.id`;
+        
         let having = '';
-        if (exp_min !== undefined && exp_min !== '') { having += ` HAVING years_of_exp >= ?`; queryParams.push(parseInt(exp_min)); }
-        if (exp_max !== undefined && exp_max !== '') { having += (having ? ' AND ' : ' HAVING ') + ` years_of_exp <= ?`; queryParams.push(parseInt(exp_max)); }
+        if (exp_min !== undefined && exp_min !== '') { 
+            having += ` HAVING years_of_exp >= ?`; 
+            queryParams.push(parseInt(exp_min)); 
+        }
+        if (exp_max !== undefined && exp_max !== '') { 
+            having += (having ? ' AND ' : ' HAVING ') + ` years_of_exp <= ?`; 
+            queryParams.push(parseInt(exp_max)); 
+        }
+        
         query += having;
         query += ` ORDER BY p.updated_at DESC`;
 

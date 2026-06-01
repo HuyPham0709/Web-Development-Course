@@ -25,17 +25,33 @@ export function timeAgo(dateStr: string): string {
 export const resolveFileUrl = (url: string | null | undefined): string => {
   if (!url) return '#';
 
-  // Nếu url đã bắt đầu bằng http hoặc https (đây là link Cloudinary), trả về luôn không nối chuỗi
   if (url.startsWith('http://') || url.startsWith('https://')) {
+    // Xóa fl_inline nếu có trong URL Cloudinary
+    if (url.includes('res.cloudinary.com')) {
+      return url.replace(/\/upload\/[^/]*\/v/, '/upload/v');
+    }
     return url;
   }
 
-  // Nếu là link cũ lưu local ở backend
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   if (url.startsWith('/uploads/')) {
     return `${baseUrl}${url}`;
   }
   return `${baseUrl}/uploads/${url}`;
+};
+
+// Hàm riêng cho download CV
+export const resolveDownloadUrl = (url: string | null | undefined, fileName = 'cv'): string => {
+  if (!url) return '#';
+
+  if (url.includes('res.cloudinary.com')) {
+    // Xóa transformation cũ trước
+    const cleanUrl = url.replace(/\/upload\/[^/]*\/v/, '/upload/v');
+    // Thêm fl_attachment để force download
+    return cleanUrl.replace('/upload/', `/upload/fl_attachment:${fileName}/`);
+  }
+
+  return resolveFileUrl(url);
 };
 
 export function formatSalary(

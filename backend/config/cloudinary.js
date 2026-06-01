@@ -6,25 +6,17 @@ require("dotenv").config({
   path: path.join(__dirname, "../.env"),
 });
 
-const cloudinary =
-  require("cloudinary").v2;
-
-const streamifier =
-  require("streamifier");
+const cloudinary = require("cloudinary").v2;
+const streamifier = require("streamifier");
 
 // ─────────────────────────────────────────────────────────────
 // Cloudinary Config
 // ─────────────────────────────────────────────────────────────
 
 cloudinary.config({
-  cloud_name:
-    process.env.CLOUDINARY_CLOUD_NAME,
-
-  api_key:
-    process.env.CLOUDINARY_API_KEY,
-
-  api_secret:
-    process.env.CLOUDINARY_API_SECRET,
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -33,12 +25,11 @@ cloudinary.config({
 
 const uploadToCloudinary = (fileBuffer, folder, originalName = "") => {
   return new Promise((resolve, reject) => {
-    
-    // Mặc định là auto, nhưng nếu là đuôi .pdf thì ép sang "raw"
     const isPdf = originalName.toLowerCase().endsWith(".pdf");
     const options = {
       folder,
       resource_type: isPdf ? "raw" : "auto",
+      // KHÔNG thêm transformation nào ở đây
     };
 
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -57,10 +48,22 @@ const uploadToCloudinary = (fileBuffer, folder, originalName = "") => {
 };
 
 // ─────────────────────────────────────────────────────────────
+// Helper tạo URL download cho file raw (PDF/DOCX)
+// Thay /upload/ thành /upload/fl_attachment/ để trình duyệt tải về
+// ─────────────────────────────────────────────────────────────
+
+const getDownloadUrl = (cloudinaryUrl, fileName = "cv") => {
+  if (!cloudinaryUrl) return null;
+  // Với file raw, dùng fl_attachment để force download
+  return cloudinaryUrl.replace("/upload/", `/upload/fl_attachment:${fileName}/`);
+};
+
+// ─────────────────────────────────────────────────────────────
 // Export
 // ─────────────────────────────────────────────────────────────
 
 module.exports = {
   cloudinary,
   uploadToCloudinary,
+  getDownloadUrl,
 };

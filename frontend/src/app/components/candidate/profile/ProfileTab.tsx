@@ -161,7 +161,16 @@ export function ProfileTab({
                 </div>
               </div>
               <div className="flex gap-3 mt-6">
-                <a href={resolveFileUrl(personalInfo.cv_url)} target="_blank" rel="noreferrer" className="flex-1 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors text-center">View</a>
+                <a href={resolveFileUrl(personalInfo.cv_url)} target="_blank" rel="noreferrer" className="flex-1 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors text-center">
+                  <a
+                    href={resolveFileUrl(personalInfo.cv_url)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 py-2 ..."
+                  >
+                    View
+                  </a>
+                </a>
                 <button onClick={handleCVDelete} className="flex-1 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center justify-center gap-2"><Trash2 className="w-4 h-4" /> Delete</button>
               </div>
             </div>

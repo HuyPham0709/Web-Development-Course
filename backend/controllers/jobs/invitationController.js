@@ -2,7 +2,7 @@ const db = require('../../config/db');
 
 exports.getEmployerJobs = async (req, res) => {
     try {
-        const employerId = req.user.id; 
+        const employerId = req.user.id;
         const [jobs] = await db.execute(
             `SELECT id, title FROM Jobs 
              WHERE posted_by = ? AND status IN ('pending', 'approved')
@@ -48,7 +48,7 @@ exports.sendInvitation = async (req, res) => {
 
 exports.getCandidateInvitations = async (req, res) => {
     try {
-        const candidateId = req.user.id; 
+        const candidateId = req.user.id;
 
         const [invitations] = await db.execute(
             `SELECT 
@@ -58,22 +58,20 @@ exports.getCandidateInvitations = async (req, res) => {
                 ji.created_at,
                 j.title AS job_title,
                 j.id AS job_id,
-                u.display_name AS employer_name,
+                COALESCE(ep.full_name, u.username) AS employer_name,
                 c.name AS company_name,
                 c.logo_url AS company_logo
              FROM job_invitations ji
              JOIN Jobs j ON ji.job_id = j.id
              JOIN Users u ON ji.employer_id = u.id
+             LEFT JOIN Profiles ep ON ep.user_id = u.id
              LEFT JOIN Companies c ON u.company_id = c.id
              WHERE ji.candidate_id = ?
              ORDER BY ji.created_at DESC`,
             [candidateId]
         );
 
-        res.status(200).json({ 
-            success: true, 
-            data: invitations 
-        });
+        res.status(200).json({ success: true, data: invitations });
     } catch (error) {
         console.error("Lỗi lấy lời mời ứng viên:", error.message);
         res.status(500).json({ success: false, message: "System error when sending invitations." });
