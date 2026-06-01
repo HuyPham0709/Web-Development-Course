@@ -109,7 +109,7 @@ export default function MyApplications() {
   };
 
   const withdrawApplication = async (applicationId: number) => {
-    const confirmed = window.confirm("Bạn có chắc muốn rút đơn ứng tuyển này không?");
+    const confirmed = window.confirm("Are you sure you want to withdraw this application?");
     if (!confirmed) return;
 
     try {
@@ -124,7 +124,7 @@ export default function MyApplications() {
       if (result.success) {
         setApplications((prev) => prev.filter((app) => app.id !== applicationId));
       } else {
-        alert(result.message || "Không thể rút đơn");
+        alert(result.message || "Cannot withdraw application");
       }
     } catch (error) {
       alert("Có lỗi xảy ra");

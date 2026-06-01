@@ -103,7 +103,7 @@ export function JobDetails() {
 
     return (
         // 🌟 Nền trang chính thích ứng với Dark Mode: bg-[#F8FAFC] -> dark:bg-slate-950
-        <div className="min-h-full bg-[#F8FAFC] dark:bg-slate-950 p-8 animate-in fade-in duration-300">
+        <div className="min-h-full bg-slate-50 dark:bg-slate-900 p-8 animate-in fade-in duration-300">
             <div className="max-w-4xl mx-auto space-y-6">
 
                 {/* Back button */}

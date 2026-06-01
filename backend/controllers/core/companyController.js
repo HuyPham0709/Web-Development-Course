@@ -41,7 +41,7 @@ exports.getCompanyProfile = async (req, res) => {
         if (rows.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'Không tìm thấy thông tin công ty yêu cầu.'
+                message: 'The required company information could not be found..'
             });
         }
 
@@ -49,10 +49,10 @@ exports.getCompanyProfile = async (req, res) => {
         return res.json(rows[0]);
 
     } catch (error) {
-        console.error('Lỗi khi lấy dữ liệu công ty:', error);
-        return res.status(500).json({
+            console.error('Lỗi khi lấy dữ liệu công ty:', error);
+            return res.status(500).json({
             success: false,
-            message: 'Lỗi hệ thống khi lấy thông tin công ty.',
+            message: 'System error while retrieving company information..',
             error: error.message
         });
     }
@@ -68,7 +68,7 @@ exports.updateCompanyProfile = async (req, res) => {
         if (!name) {
             return res.status(400).json({
                 success: false,
-                message: 'Tên công ty không được để trống!'
+                message: 'Company name cannot be empty!'
             });
         }
 
@@ -89,7 +89,7 @@ exports.updateCompanyProfile = async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'Không tìm thấy công ty để cập nhật.'
+                message: 'The required company could not be found for update.'
             });
         }
 
@@ -106,7 +106,7 @@ exports.updateCompanyProfile = async (req, res) => {
         console.error('Lỗi khi cập nhật công ty:', error);
         return res.status(500).json({
             success: false,
-            message: 'Lỗi hệ thống khi cập nhật thông tin công ty.',
+            message: 'System error while updating company information.',
             error: error.message
         });
     }
@@ -124,14 +124,14 @@ exports.uploadLogo = async (req, res) => {
         if (users.length === 0 || !users[0].company_id) {
             return res.status(403).json({ 
                 success: false, 
-                message: 'Tài khoản của bạn chưa được liên kết với bất kỳ công ty nào!' 
+                message: 'Your account is not linked to any company!' 
             });
         }
 
         const companyId = users[0].company_id;
 
         if (!req.file) {
-            return res.status(400).json({ success: false, message: 'Vui lòng chọn ảnh logo!' });
+            return res.status(400).json({ success: false, message: 'Please select a logo image!' });
         }
 
         // Đẩy file ảnh lên Cloudinary
@@ -143,13 +143,13 @@ exports.uploadLogo = async (req, res) => {
 
         return res.json({
             success: true,
-            message: 'Cập nhật logo công ty thành công!',
+            message: 'Company logo updated successfully!',
             logo_url: logoUrl
         });
 
     } catch (error) {
-        console.error('Lỗi khi upload logo:', error);
-        return res.status(500).json({ success: false, message: 'Lỗi upload logo.', error: error.message });
+        console.error('Error uploading logo:', error);
+        return res.status(500).json({ success: false, message: 'Error uploading logo.', error: error.message });
     }
 };
 
@@ -165,14 +165,14 @@ exports.uploadBanner = async (req, res) => {
         if (users.length === 0 || !users[0].company_id) {
             return res.status(403).json({ 
                 success: false, 
-                message: 'Tài khoản của bạn chưa được liên kết với bất kỳ công ty nào!' 
+                message: 'Your account is not linked to any company!' 
             });
         }
 
         const companyId = users[0].company_id;
 
         if (!req.file) {
-            return res.status(400).json({ success: false, message: 'Vui lòng chọn ảnh bìa!' });
+            return res.status(400).json({ success: false, message: 'Please select a banner image!' });
         }
 
         // Đẩy file ảnh lên Cloudinary
@@ -184,13 +184,13 @@ exports.uploadBanner = async (req, res) => {
 
         return res.json({
             success: true,
-            message: 'Cập nhật ảnh bìa công ty thành công!',
+            message: 'Company banner updated successfully!',
             banner_url: bannerUrl
         });
 
     } catch (error) {
-        console.error('Lỗi khi upload banner:', error);
-        return res.status(500).json({ success: false, message: 'Lỗi upload banner.', error: error.message });
+        console.error('Error uploading banner:', error);
+        return res.status(500).json({ success: false, message: 'Error uploading banner.', error: error.message });
     }
 };
 
@@ -227,7 +227,7 @@ exports.getTopCompanies = async (req, res) => {
         console.error('Lỗi khi nạp danh sách Top công ty kèm Tech Stack:', error);
         return res.status(500).json({
             success: false,
-            message: 'Lỗi hệ thống khi kết xuất dữ liệu công ty nổi bật.',
+            message: 'System error while fetching top companies with tech stack.',
             error: error.message
         });
     }
