@@ -18,9 +18,9 @@ router.get(
     try {
       // 1. Kiểm tra User tồn tại với role 'candidate'
       const [candidateRows] = await db.query(
-        'SELECT id, username, email, avatar_url FROM users WHERE id = ? AND role = ?',
-        [candidateId, 'candidate']
-      );
+  'SELECT id, username, email FROM users WHERE id = ? AND role = ?', // Đã xóa avatar_url
+  [candidateId, 'candidate']
+);
 
       if (candidateRows.length === 0) {
         return res.status(404).json({ 

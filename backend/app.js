@@ -113,13 +113,13 @@ app.use("/api/admin/reports", adminReportRoutes);
 
 app.post("/api/jobs/create", verifyToken, authorizeRole(["employer"]), (req, res) => {
   res.json({
-    message: "Đăng tin thành công!",
+    message: "Posting successful!",
     user: req.user,
   });
 });
 
 app.get("/", (req, res) => {
-  res.send("Backend JobFinder đang hoạt động! 🚀");
+  res.send("The JobFinder backend is working.! 🚀");
 });
 
 // ─────────────────────────────────────────────────────────────

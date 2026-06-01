@@ -10,7 +10,7 @@ exports.createReport = async (req, res) => {
         const reporter_id = req.user.id; // Lấy ID của người dùng từ token đăng nhập
 
         if (!job_id || !reason) {
-            return res.status(400).json({ success: false, message: "Thiếu thông tin job hoặc lý do báo cáo." });
+            return res.status(400).json({ success: false, message: "Missing job information or reason for reporting." });
         }
 
         const [result] = await db.execute(
@@ -34,11 +34,11 @@ exports.createReport = async (req, res) => {
 
         return res.status(201).json({
             success: true,
-            message: "Gửi báo cáo vi phạm thành công! Ban quản trị sẽ sớm xem xét."
+            message: "Report submitted successfully! The administration will review it soon."
         });
     } catch (error) {
-        console.error("Lỗi createReport:", error);
-        return res.status(500).json({ success: false, message: "Lỗi hệ thống không thể gửi báo cáo." });
+        console.error("Error in createReport:", error);
+        return res.status(500).json({ success: false, message: "System error: Unable to submit report." });
     }
 };
 
@@ -115,7 +115,7 @@ exports.getReports = async (req, res) => {
         });
     } catch (error) {
         console.error('Error in getReports:', error);
-        return res.status(500).json({ success: false, message: 'Lỗi máy chủ khi lấy danh sách báo cáo vi phạm.' });
+        return res.status(500).json({ success: false, message: 'Server error when fetching violation reports.' });
     }
 };
 
@@ -129,10 +129,10 @@ exports.updateReportStatus = async (req, res) => {
 
         await db.execute('UPDATE Reports SET status = ? WHERE id = ?', [status, id]);
 
-        return res.status(200).json({ success: true, message: 'Cập nhật trạng thái thành công.' });
+        return res.status(200).json({ success: true, message: 'Status updated successfully.' });
     } catch (error) {
-        console.error("Lỗi updateReportStatus:", error);
-        return res.status(500).json({ success: false, message: "Lỗi hệ thống khi cập nhật trạng thái." });
+        console.error("Error in updateReportStatus:", error);
+        return res.status(500).json({ success: false, message: "System error while updating status." });
     }
 };
 
@@ -152,7 +152,7 @@ exports.deleteReportedJob = async (req, res) => {
         if (reportRows.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'Không tìm thấy bản ghi báo cáo này.'
+                message: 'Report not found.'
             });
         }
 
@@ -172,14 +172,14 @@ exports.deleteReportedJob = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: 'Đã gỡ bỏ bài đăng vi phạm và cập nhật trạng thái các báo cáo liên quan.'
+            message: 'Reported job removed and related reports updated successfully.'
         });
 
     } catch (error) {
         console.error('Error in deleteReportedJob:', error);
         return res.status(500).json({
             success: false,
-            message: 'Lỗi server khi xử lý gỡ bài đăng.'
+            message: 'Server error while processing job removal.'
         });
     }
 };
