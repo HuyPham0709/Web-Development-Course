@@ -11,7 +11,7 @@ import {
   LogOut,
   Sun,
   Moon,
-  Trash2 // 1. Bổ sung thêm icon Trash2 để làm nút xóa
+  Trash2 // 1. Added Trash2 icon for the delete button
 } from "lucide-react"
 import { cn } from "../../lib/utils"
 import axios from "axios"
@@ -49,10 +49,10 @@ export function AdminLayout() {
   const location = useLocation()
   const navigate = useNavigate()
 
-  // States cho User
+  // User States
   const [user, setUser] = useState<UserProfile | null>(null)
 
-  // States & Refs cho Notifications
+  // Notification States & Refs
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [showNotifications, setShowNotifications] = useState(false)
@@ -65,7 +65,7 @@ export function AdminLayout() {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
-  // Hàm tạo avatar chữ dự phòng
+  // Function to generate fallback text avatar
   const getInitials = (name: string) => {
     if (!name) return "AD";
     const parts = name.trim().split(" ");
@@ -75,12 +75,12 @@ export function AdminLayout() {
     return name.substring(0, 2).toUpperCase();
   }
 
-  // Tránh lỗi hydration của next-themes
+  // Prevent next-themes hydration mismatch
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Lấy danh sách Notifications từ API Admin chuyên dụng
+  // Fetch Notifications from dedicated Admin API
   const fetchNotifications = useCallback(async () => {
     const token = localStorage.getItem("admin_token");
     if (!token) return;
@@ -97,7 +97,7 @@ export function AdminLayout() {
     }
   }, []);
 
-  // Hook gọi API lấy thông tin Profile & khởi tạo Notifications
+  // Hook to call API for Profile info & initialize Notifications
   useEffect(() => {
     const fetchProfile = async () => {
       const token = localStorage.getItem("admin_token");
@@ -124,7 +124,7 @@ export function AdminLayout() {
           if (userData && (userData.username || userData.email || userData.full_name)) {
             setUser({
               id: userData.id || 0,
-              username: userData.username || userData.full_name || userData.name || "Hệ thống Admin",
+              username: userData.username || userData.full_name || userData.name || "Admin System",
               email: userData.email || "admin@system.com",
               role: userData.role || "admin",
               avatar_url: userData.avatar_url || null
@@ -132,7 +132,7 @@ export function AdminLayout() {
           } else {
             setUser({
               id: 0,
-              username: "Quản trị viên",
+              username: "Administrator",
               email: "admin@gmail.com",
               role: "admin"
             });
@@ -142,27 +142,27 @@ export function AdminLayout() {
             fetchNotifications();
           }
         } else {
-          console.error("Server trả về lỗi status:", response.status, data?.message);
+          console.error("Server returned error status:", response.status, data?.message);
           localStorage.removeItem("admin_token");
           navigate("/login");
         }
       } catch (error) {
-        console.error("Lỗi kết nối API profile:", error);
+        console.error("Error connecting to profile API:", error);
       }
     };
 
     fetchProfile();
   }, [navigate, fetchNotifications]);
 
-  // Thiết lập Socket chuẩn hóa kênh Admin để nhận thông báo real-time
+  // Setup standard Admin Socket channel to receive real-time notifications
   useEffect(() => {
     const socket = io(BASE_URL);
     socketRef.current = socket;
 
-    // Gia nhập phòng Admin chung trên hệ thống Socket
+    // Join global Admin room on Socket system
     socket.emit("add_user", "admin");
 
-    // Lắng nghe sự kiện thông báo độc quyền dành cho quản trị
+    // Listen for exclusive admin notification events
     socket.on("receive_admin_notification", (newNotify: NotificationItem) => {
       setNotifications((prev) => [newNotify, ...prev]);
       setUnreadCount((prev) => prev + 1);
@@ -174,7 +174,7 @@ export function AdminLayout() {
     };
   }, []);
 
-  // Tắt dropdown khi click ra ngoài
+  // Close dropdown on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -185,7 +185,7 @@ export function AdminLayout() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Đánh dấu 1 thông báo là đã đọc
+  // Mark a single notification as read
   const handleMarkAsRead = async (id: string, linkUrl: string | null) => {
     if (isProcessing) return;
     const token = localStorage.getItem("admin_token");
@@ -220,7 +220,7 @@ export function AdminLayout() {
     }
   };
 
-  // Đánh dấu tất cả thông báo là đã đọc
+  // Mark all notifications as read
   const handleMarkAllRead = async () => {
     const token = localStorage.getItem("admin_token");
     if (!token) return;
@@ -239,16 +239,16 @@ export function AdminLayout() {
     }
   };
 
-  // 2. Hàm xử lý xóa MỘT thông báo cụ thể theo ID
+  // 2. Handle deleting a SPECIFIC notification by ID
   const handleDeleteNotification = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation(); // Ngăn chặn sự kiện click lan ra thẻ cha (tránh bị trigger chuyển link)
+    e.stopPropagation(); // Prevent click event from bubbling up to parent (avoid triggering link change)
     const token = localStorage.getItem("admin_token");
     if (!token) return;
 
-    // Tìm thông báo chuẩn bị xóa để cập nhật lại badge số lượng chưa đọc nếu cần
+    // Find the notification to be deleted to update the unread count badge if necessary
     const targetNotif = notifications.find(n => n._id === id);
 
-    // Cập nhật UI nhanh ngay lập tức (Optimistic UI)
+    // Update UI immediately (Optimistic UI)
     setNotifications((prev) => prev.filter((item) => item._id !== id));
     if (targetNotif && !targetNotif.is_read) {
       setUnreadCount((prev) => Math.max(0, prev - 1));
@@ -260,21 +260,21 @@ export function AdminLayout() {
       });
     } catch (error) {
       console.error("Error deleting notification:", error);
-      // Nếu lỗi thì kéo lại danh sách để đồng bộ lại giao diện
+      // If error, refetch list to re-sync the UI
       fetchNotifications();
     }
   };
 
-  // 3. Hàm xử lý xóa TOÀN BỘ thông báo
+  // 3. Handle clearing ALL notifications
   const handleClearAllNotifications = async () => {
     const token = localStorage.getItem("admin_token");
     if (!token) return;
 
-    if (!window.confirm("Bạn có chắc chắn muốn xóa toàn bộ thông báo hệ thống không?")) {
+    if (!window.confirm("Are you sure you want to clear all system notifications?")) {
       return;
     }
 
-    // Xóa sạch trên UI trước
+    // Clear UI first
     setNotifications([]);
     setUnreadCount(0);
 
@@ -288,7 +288,7 @@ export function AdminLayout() {
     }
   };
 
-  // Hàm xử lý Đăng xuất
+  // Handle Logout
   const handleLogout = (e: React.MouseEvent) => {
     e.preventDefault();
     if (socketRef.current) {
@@ -359,7 +359,7 @@ export function AdminLayout() {
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 className="relative p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                title="Chuyển chế độ giao diện"
+                title="Toggle theme"
               >
                 {theme === "dark" ? (
                   <Sun className="w-5 h-5" />
@@ -385,7 +385,7 @@ export function AdminLayout() {
 
               {showNotifications && (
                 <div className="absolute right-0 mt-3 w-80 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl overflow-hidden z-50">
-                  {/* Header của Dropdown */}
+                  {/* Dropdown Header */}
                   <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                     <span className="font-semibold text-sm text-slate-900 dark:text-white">
                       Notifications
@@ -396,7 +396,7 @@ export function AdminLayout() {
                       )}
                     </span>
 
-                    {/* Khu vực chứa nút Đọc hết & Xóa hết */}
+                    {/* Area containing Mark All Read & Clear All buttons */}
                     <div className="flex items-center space-x-2">
                       {unreadCount > 0 && (
                         <span
@@ -420,7 +420,7 @@ export function AdminLayout() {
                     </div>
                   </div>
 
-                  {/* Danh sách thông báo */}
+                  {/* Notification list */}
                   <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-50 dark:divide-slate-800">
                     {notifications.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-10 text-slate-400 dark:text-slate-500">
@@ -444,7 +444,7 @@ export function AdminLayout() {
                             )} />
                           </div>
 
-                          {/* Thêm pr-6 để nội dung text không đè lấn lên nút xóa góc phải */}
+                          {/* Add pr-6 so text content doesn't overlap the right corner delete button */}
                           <div className="flex-1 min-w-0 pr-6">
                             <p className={cn(
                               "text-sm text-slate-900 dark:text-slate-100 leading-snug",
@@ -457,7 +457,7 @@ export function AdminLayout() {
                             </p>
                             <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
                               {notif.created_at
-                                ? new Date(notif.created_at).toLocaleString("vi-VN", {
+                                ? new Date(notif.created_at).toLocaleString("en-US", {
                                   hour: "2-digit",
                                   minute: "2-digit",
                                   day: "2-digit",
@@ -467,11 +467,11 @@ export function AdminLayout() {
                             </p>
                           </div>
 
-                          {/* 5. Nút xóa từng item ẩn mặc định (opacity-0) và hiện lên khi hover dòng thông báo (group-hover:opacity-100) */}
+                          {/* 5. Item delete button hidden by default (opacity-0) and shown on hover (group-hover:opacity-100) */}
                           <button
                             onClick={(e) => handleDeleteNotification(e, notif._id)}
                             className="absolute right-3 top-3 p-1 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 opacity-0 group-hover:opacity-100 transition-all duration-150"
-                            title="Xóa thông báo này"
+                            title="Delete this notification"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -501,7 +501,7 @@ export function AdminLayout() {
 
               <div className="text-sm">
                 <p className="font-medium text-slate-900 dark:text-white leading-none">
-                  {user ? user.username : "Đang tải..."}
+                  {user ? user.username : "Loading..."}
                 </p>
                 <p className="text-slate-500 dark:text-slate-400 text-xs mt-1">
                   {user ? user.email : "..."}
