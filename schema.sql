@@ -347,3 +347,7 @@ DROP COLUMN display_name,
 DROP COLUMN avatar_url, 
 DROP COLUMN otp_expires;
 DROP COLUMN phone;
+
+UPDATE Profiles 
+SET cv_url = REPLACE(cv_url, '/upload/fl_inline/', '/upload/')
+WHERE cv_url LIKE '%fl_inline%';
