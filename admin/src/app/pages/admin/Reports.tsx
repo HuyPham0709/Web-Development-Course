@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
-import { AlertOctagon, MessageSquare, Trash2, MailWarning, CheckSquare, Search, Loader2, RefreshCw, Clock, CheckCircle2, XCircle } from "lucide-react"
+import { AlertOctagon, MessageSquare, Trash2, MailWarning, CheckSquare, Search, Loader2, RefreshCw, Clock, CheckCircle2, XCircle, Ban } from "lucide-react"
 import { Card } from "../../components/ui/card"
 import { Button } from "../../components/ui/button"
 import { Badge } from "../../components/ui/badge"
@@ -379,14 +379,9 @@ export function Reports() {
                   <Button
                     variant="destructive"
                     onClick={handleDeleteJob}
-                    disabled={actionLoading || selectedReport.job_status === 'closed'}
-                    className="transition-colors duration-200"
+                    disabled={actionLoading || selectedReport.job_status === 'banned'}
                   >
-                    {actionLoading
-                      ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      : <Trash2 className="w-4 h-4 mr-2" />
-                    }
-                    Delete Job
+                    <Ban className="w-4 h-4 mr-2" /> Ban Job
                   </Button>
                 </div>
               </div>

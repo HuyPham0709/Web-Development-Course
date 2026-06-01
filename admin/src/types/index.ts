@@ -27,6 +27,7 @@ export interface JobStats {
     total_pending: number
     total_closed: number
     total_rejected: number
+    total_banned: number
 }
 
 export interface AdminJob {
@@ -39,7 +40,7 @@ export interface AdminJob {
     experience_level: string
     salary_min: number
     salary_max: number
-    status: 'pending' | 'approved' | 'rejected' | 'closed'
+    status: 'pending' | 'approved' | 'rejected' | 'closed' | 'banned'
     created_at: string
     description: string
     requirements: string
@@ -149,9 +150,9 @@ export interface CategoryChartItem {
 }
 
 export interface CompanyFeedback {
-  id: string;
-  employerName: string;
-  note: string;
-  rating: number;
-  addedAt: string;
+    id: string;
+    employerName: string;
+    note: string;
+    rating: number;
+    addedAt: string;
 }

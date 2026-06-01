@@ -21,12 +21,13 @@ const STATUS_BADGE: Record<string, React.ReactElement> = {
   pending: <Badge className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/40">Pending</Badge>,
   rejected: <Badge className="bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40">Rejected</Badge>,
   closed: <Badge className="bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">Closed</Badge>,
+  banned: <Badge className="bg-red-100 text-red-700 border-red-300 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-950/40">Banned</Badge>,
 }
 
 export function JobManagement() {
   const navigate = useNavigate()
   const [jobs, setJobs] = useState<AdminJob[]>([])
-  const [stats, setStats] = useState<JobStats>({ total: 0, total_approved: 0, total_pending: 0, total_closed: 0, total_rejected: 0 })
+  const [stats, setStats] = useState<JobStats>({ total: 0, total_approved: 0, total_pending: 0, total_closed: 0, total_rejected: 0, total_banned: 0 })
   const [pagination, setPagination] = useState<PaginationMeta>({ total: 0, page: 1, limit: 10, totalPages: 1 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -203,7 +204,7 @@ export function JobManagement() {
   }
 
   return (
-    <div className="min-h-full bg-[#F8FAFC] dark:bg-slate-950 p-8 animate-in fade-in duration-500 text-slate-900 dark:text-slate-100">
+    <div className="min-h-full bg-slate-50 dark:bg-slate-900 p-8 animate-in fade-in duration-500 text-slate-900 dark:text-slate-100">
       <div className="max-w-7xl mx-auto space-y-8">
 
         {/* Header */}
@@ -242,7 +243,7 @@ export function JobManagement() {
               { label: 'Total Jobs', value: stats.total, icon: Briefcase, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/40' },
               { label: 'Active', value: stats.total_approved, icon: CheckCircle2, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40' },
               { label: 'Pending Review', value: stats.total_pending, icon: Clock, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40' },
-              { label: 'Closed/Rejected', value: Number(stats.total_closed || 0) + Number(stats.total_rejected || 0), icon: XCircle, color: 'text-slate-500 dark:text-slate-400', bg: 'bg-slate-100 dark:bg-slate-800/60' },
+              { label: 'Closed/Rejected/Banned', value: Number(stats.total_closed || 0) + Number(stats.total_rejected || 0) + Number(stats.total_banned || 0), icon: XCircle, color: 'text-slate-500 dark:text-slate-400', bg: 'bg-slate-100 dark:bg-slate-800/60' },
             ].map((stat, i) => (
               <div key={i} className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
                 <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${stat.bg}`}>
@@ -276,6 +277,7 @@ export function JobManagement() {
             <option value="approved">Approved</option>
             <option value="rejected">Rejected</option>
             <option value="closed">Closed</option>
+            <option value="banned">Banned</option>
           </select>
 
           <select value={filterType} onChange={e => setFilterType(e.target.value)}
