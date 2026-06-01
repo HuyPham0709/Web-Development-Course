@@ -34,6 +34,7 @@ const applicationRoutes = require("./core/applicationRoutes");
 const cvBuilderRoutes = require("./core/cvBuilderRoutes");
 const candidateVisibilityRoutes = require('./core/candidateVisibilityRoutes');
 const employerCandidateRoutes = require('./employer/employerCandidateRoutes');
+const invitationRoutes = require("./employer/invitationRoutes"); // ✅ ĐÃ THÊM: Import tuyến đường Lời mời ứng tuyển
 
 // ─────────────────────────────────────────────────────────────
 // 5. Nhóm Social (Tương tác & Kết nối)
@@ -88,13 +89,12 @@ safeRegisterRoute("/applications", applicationRoutes, "applicationRoutes");
 safeRegisterRoute("/cv-builder", cvBuilderRoutes, "cvBuilderRoutes");
 safeRegisterRoute("/candidate", candidateVisibilityRoutes, "candidateVisibilityRoutes");
 safeRegisterRoute("/employer", employerCandidateRoutes, "employerCandidateRoutes");
+safeRegisterRoute("/invitations", invitationRoutes, "invitationRoutes"); // ✅ ĐÃ THÊM: Kích hoạt đường dẫn /api/invitations
 
 // Phân hệ Social
 safeRegisterRoute("/messages", messageRoutes, "messageRoutes");
 safeRegisterRoute("/notifications", notificationRoutes, "notificationRoutes");
 safeRegisterRoute("/favorites", favoriteRoutes, "favoriteRoutes");
 safeRegisterRoute("/recommendations", recommendationRoutes, "recommendationRoutes");
-
-//  ĐÃ XÓA: Bỏ hoàn toàn dòng đăng ký "/reports" cũ ở đây vì đã chuyển vào cụm admin phía trên.
 
 module.exports = router;

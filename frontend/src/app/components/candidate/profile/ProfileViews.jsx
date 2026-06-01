@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { vi } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale';
 import { Building2, Eye, ExternalLink } from 'lucide-react';
 import { getProfileViews, EmployerView } from '../../../services/candidateVisibilityService';
 
@@ -27,9 +27,9 @@ export const ProfileViews: React.FC = () => {
     return (
       <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-8 text-center">
         <Eye className="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500 mb-3" />
-        <h3 className="text-gray-900 dark:text-white font-medium">Chưa có lượt xem nào</h3>
+        <h3 className="text-gray-900 dark:text-white font-medium">No profile views yet</h3>
         <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-          Khi bạn bật "Cho phép Nhà tuyển dụng tìm bạn", họ sẽ thấy hồ sơ của bạn ở đây.
+          When you enable "Allow Employers to find you", their profile visits will appear here.
         </p>
       </div>
     );
@@ -40,7 +40,7 @@ export const ProfileViews: React.FC = () => {
       <div className="p-5 border-b border-gray-100 dark:border-white/10">
         <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <Building2 className="w-5 h-5 text-blue-600" />
-          Nhà tuyển dụng đã xem hồ sơ bạn
+          Employers who viewed your profile
         </h2>
       </div>
       <ul className="divide-y divide-gray-100 dark:divide-white/10">
@@ -65,7 +65,7 @@ export const ProfileViews: React.FC = () => {
                   </h3>
                   {view.is_new && (
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                      Mới
+                      New
                     </span>
                   )}
                 </div>
@@ -73,11 +73,11 @@ export const ProfileViews: React.FC = () => {
                   <span>
                     {formatDistanceToNow(new Date(view.viewed_at), {
                       addSuffix: true,
-                      locale: vi,
+                      locale: enUS,
                     })}
                   </span>
                   <span>•</span>
-                  <span>Đã xem hồ sơ của bạn</span>
+                  <span>Viewed your profile</span>
                 </div>
               </div>
               <button className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">

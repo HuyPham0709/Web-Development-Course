@@ -8,12 +8,12 @@ import App from "./App";
 import Home from "./pages/public/Home";
 import JobDetail from "./pages/public/JobDetail";
 import Auth from "./pages/auth/Auth";
-import { Jobs } from "./pages/public/Jobs"; // <-- THÊM COMPONENT MỚI Ở ĐÂY
+import { Jobs } from "./pages/public/Jobs"; 
 
 // CANDIDATE PAGES
 import ProfileDashboard from "./pages/candidate/ProfileDashboard";
 import MyApplications from "./pages/candidate/MyApplications";
-
+import { InviteDetail } from "./pages/candidate/InviteDetail"; // ĐÃ IMPORT COMPONENT MỚI
 // EMPLOYER PAGES
 import EmployerDashboard from "./pages/employer/EmployerDashboard";
 import CandidateManagement from "./pages/employer/CandidateManagement";
@@ -94,7 +94,7 @@ export const router = createBrowserRouter([
         element: <Auth />,
       },
       {
-        path: "jobs", // <-- TUYẾN ĐƯỜNG XEM TẤT CẢ VIỆC LÀM
+        path: "jobs", 
         element: <Jobs />,
       },
       {
@@ -127,6 +127,7 @@ export const router = createBrowserRouter([
           { path: "applications", element: <MyApplications /> },
           { path: "profile/applications", element: <MyApplications /> },
           { path: "profile/viewed-by-employer", element: <ViewedByEmployers /> },
+          { path: "invite-detail/:id", element: <InviteDetail /> }, // <-- THÊM ROUTE Ở ĐÂY
         ],
       },
 

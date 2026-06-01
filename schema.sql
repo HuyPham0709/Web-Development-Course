@@ -347,10 +347,17 @@ ALTER TABLE Users
 DROP COLUMN otp_code, 
 DROP COLUMN display_name, 
 DROP COLUMN avatar_url, 
-DROP COLUMN otp_expires,
+DROP COLUMN otp_expires;
 DROP COLUMN phone;
 
+-- 1. Tắt chế độ an toàn cho phiên làm việc này
+SET SQL_SAFE_UPDATES = 0;
+
+-- 2. Chạy câu lệnh cập nhật dữ liệu
 UPDATE Profiles 
 SET cv_url = REPLACE(cv_url, '/upload/fl_inline/', '/upload/')
 WHERE cv_url LIKE '%fl_inline%';
+
+-- 3. Bật lại chế độ an toàn sau khi xong việc
+SET SQL_SAFE_UPDATES = 1;
 ALTER TABLE employer_profile_views ADD COLUMN status VARCHAR(50) DEFAULT NULL;

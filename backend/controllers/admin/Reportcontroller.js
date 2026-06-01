@@ -1,5 +1,12 @@
 const db = require('../../config/db'); // Đường dẫn cấp 2 đi từ controllers/admin/ ra config/db
 const { createAdminNotification } = require("../admin/adminNotificationController");
+const nodemailer = require('nodemailer');
+const emailUser = "txxh1004@gmail.com";
+const emailPass = "wrwvarvgrqlkhjwq";
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: { user: emailUser, pass: emailPass }
+});
 
 // =======================================================
 // 1. DÀNH CHO ỨNG VIÊN: Tạo báo cáo vi phạm công việc (MỚI BỔ SUNG)
@@ -10,7 +17,7 @@ exports.createReport = async (req, res) => {
         const reporter_id = req.user.id; // Lấy ID của người dùng từ token đăng nhập
 
         if (!job_id || !reason) {
-            return res.status(400).json({ success: false, message: "Thiếu thông tin job hoặc lý do báo cáo." });
+            return res.status(400).json({ success: false, message: "Missing job information or reason for reporting." });
         }
 
         const [result] = await db.execute(
@@ -34,11 +41,11 @@ exports.createReport = async (req, res) => {
 
         return res.status(201).json({
             success: true,
-            message: "Gửi báo cáo vi phạm thành công! Ban quản trị sẽ sớm xem xét."
+            message: "Report submitted successfully! The administration will review it soon."
         });
     } catch (error) {
-        console.error("Lỗi createReport:", error);
-        return res.status(500).json({ success: false, message: "Lỗi hệ thống không thể gửi báo cáo." });
+        console.error("Error in createReport:", error);
+        return res.status(500).json({ success: false, message: "System error: Unable to submit report." });
     }
 };
 
@@ -115,7 +122,7 @@ exports.getReports = async (req, res) => {
         });
     } catch (error) {
         console.error('Error in getReports:', error);
-        return res.status(500).json({ success: false, message: 'Lỗi máy chủ khi lấy danh sách báo cáo vi phạm.' });
+        return res.status(500).json({ success: false, message: 'Server error when fetching violation reports.' });
     }
 };
 
@@ -129,10 +136,10 @@ exports.updateReportStatus = async (req, res) => {
 
         await db.execute('UPDATE Reports SET status = ? WHERE id = ?', [status, id]);
 
-        return res.status(200).json({ success: true, message: 'Cập nhật trạng thái thành công.' });
+        return res.status(200).json({ success: true, message: 'Status updated successfully.' });
     } catch (error) {
-        console.error("Lỗi updateReportStatus:", error);
-        return res.status(500).json({ success: false, message: "Lỗi hệ thống khi cập nhật trạng thái." });
+        console.error("Error in updateReportStatus:", error);
+        return res.status(500).json({ success: false, message: "System error while updating status." });
     }
 };
 
@@ -143,43 +150,64 @@ exports.deleteReportedJob = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Truy vết tìm ra mã công việc (job_id) từ ID của báo cáo
         const [reportRows] = await db.execute(
-            'SELECT job_id FROM Reports WHERE id = ?',
-            [id]
+            'SELECT job_id FROM Reports WHERE id = ?', [id]
         );
-
         if (reportRows.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'Không tìm thấy bản ghi báo cáo này.'
+                message: 'Report not found.'
             });
         }
 
         const jobId = reportRows[0].job_id;
 
-        // Thay vì xóa cứng làm mất toàn bộ liên kết dữ liệu, chuyển trạng thái tin tuyển dụng sang 'closed'
-        await db.execute(
-            "UPDATE Jobs SET status = 'closed' WHERE id = ?",
+        // Lấy thông tin job + employer để gửi mail
+        const [jobRows] = await db.execute(
+            `SELECT j.title, u.email, u.username 
+             FROM Jobs j JOIN Users u ON j.posted_by = u.id 
+             WHERE j.id = ?`,
             [jobId]
         );
 
-        // Tự động chuyển toàn bộ các báo cáo khác liên kết với tin tuyển dụng này thành 'resolved'
-        await db.execute(
-            "UPDATE Reports SET status = 'resolved' WHERE job_id = ?",
-            [jobId]
-        );
+        await db.execute("UPDATE Jobs SET status = 'banned' WHERE id = ?", [jobId]);
+        await db.execute("UPDATE Reports SET status = 'resolved' WHERE job_id = ?", [jobId]);
+
+        // Gửi mail cho employer
+        if (jobRows.length > 0) {
+            const { title, email, username } = jobRows[0];
+            await transporter.sendMail({
+                from: `"JobSpot Admin" <${emailUser}>`,
+                to: email,
+                subject: "⛔ Your job posting has been banned",
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+                        <div style="background: #dc2626; padding: 20px 24px;">
+                            <h2 style="color: white; margin: 0;">⛔ Job Posting Banned</h2>
+                        </div>
+                        <div style="padding: 24px;">
+                            <p>Hello <strong>${username}</strong>,</p>
+                            <p>Your job posting <strong>"${title}"</strong> has been banned by our admin team due to a violation report.</p>
+                            <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 12px 16px; border-radius: 4px; margin: 16px 0;">
+                                <p style="margin: 0;"><strong>Reason:</strong> Violated platform terms of service based on user reports.</p>
+                            </div>
+                            <p>If you believe this is a mistake, please contact our support team.</p>
+                            <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Best regards,<br/>JobSpot Admin Team</p>
+                        </div>
+                    </div>
+                `
+            });
+        }
 
         return res.status(200).json({
             success: true,
-            message: 'Đã gỡ bỏ bài đăng vi phạm và cập nhật trạng thái các báo cáo liên quan.'
+            message: 'Job banned and employer notified.'
         });
-
     } catch (error) {
         console.error('Error in deleteReportedJob:', error);
         return res.status(500).json({
             success: false,
-            message: 'Lỗi server khi xử lý gỡ bài đăng.'
+            message: 'Server error while processing job removal.'
         });
     }
 };

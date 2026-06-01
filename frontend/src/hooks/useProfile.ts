@@ -25,7 +25,7 @@ export function useProfile(userId: string) {
           setSkills(data.skills || []);
         }
       })
-      .catch(err => console.error("Lỗi lấy Profile:", err))
+      .catch(err => console.error("Profile Fetch Error:", err))
       .finally(() => setLoading(false));
   }, [userId]);
 
@@ -51,7 +51,7 @@ export function useProfile(userId: string) {
       
       return { success: true };
     } catch (error: any) {
-      console.error("Lỗi cập nhật Profile:", error);
+      console.error("Profile Update Error:", error);
       return { success: false, message: error.response?.data?.message || error.message };
     } finally {
       setSaving(false);
@@ -60,7 +60,7 @@ export function useProfile(userId: string) {
 
   // 🎯 ĐÃ SỬA: Truyền thêm userId vào hàm upload và delete để service gửi lên Backend
   const handleUploadCV = async (file: File) => {
-    if (!userId) return { success: false, message: "Không tìm thấy thông tin User!" };
+    if (!userId) return { success: false, message: "User information not found!" };
     try {
       const result = await uploadCV(userId, file); // Thêm userId ở đây
       
@@ -70,20 +70,20 @@ export function useProfile(userId: string) {
       
       return { success: true, cv_url: result.cv_url };
     } catch (error: any) {
-      console.error("Lỗi upload CV:", error);
+      console.error("Profile Update Error:", error);
       return { success: false, message: error.response?.data?.message || error.message };
     }
   };
 
   const handleDeleteCV = async () => {
-    if (!userId) return { success: false, message: "Không tìm thấy thông tin User!" };
+    if (!userId) return { success: false, message: "User information not found!" };
     try {
       await deleteCV(userId); // Thêm userId ở đây
       
       setPersonalInfo(prev => ({ ...prev, cv_url: null }));
       return { success: true };
     } catch (error: any) {
-      console.error("Lỗi xóa CV:", error);
+      console.error("Profile Update Error:", error);
       return { success: false, message: error.response?.data?.message || error.message };
     }
   };
