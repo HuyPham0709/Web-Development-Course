@@ -16,9 +16,9 @@ router.get(
     console.log(">>> ĐANG TRUY VẤN HỒ SƠ CHO ID:", candidateId);
 
     try {
-      // 1. Kiểm tra User tồn tại với role 'candidate'
+      // 1. Kiểm tra User tồn tại với role 'candidate' (Bỏ avatar_url vì đã chuyển sang Profiles)
       const [candidateRows] = await db.query(
-        'SELECT id, username, email, avatar_url FROM users WHERE id = ? AND role = ?',
+        'SELECT id, username, email FROM users WHERE id = ? AND role = ?',
         [candidateId, 'candidate']
       );
 
@@ -76,7 +76,7 @@ router.get(
           title: profile.title,
           bio: profile.bio,
           location: profile.location,
-          avatar_url: candidate.avatar_url || profile.avatar_url,
+          avatar_url: profile.avatar_url, // Lấy trực tiếp từ bảng Profiles
           cv_url: profile.cv_url,
           email: candidate.email,
           phone: profile.phone,
@@ -108,17 +108,16 @@ router.post(
   async (req, res) => {
     const employerId = req.user.id;
     const { candidateId } = req.params;
-    const today = new Date().toISOString().slice(0, 10); // Lấy YYYY-MM-DD
 
     try {
       // Sử dụng INSERT IGNORE kết hợp với view_date để mỗi ngày chỉ tính 1 lượt xem/1 employer
       // (Giả sử bạn có UNIQUE KEY trên employer_id, candidate_id, view_date)
       await db.query(
-    `INSERT INTO employer_profile_views 
-     (employer_id, candidate_id, is_notified) 
-     VALUES (?, ?, 0)
-     ON DUPLICATE KEY UPDATE viewed_at = CURRENT_TIMESTAMP`,
-    [employerId, candidateId] // Bỏ đi biến today
+        `INSERT INTO employer_profile_views 
+         (employer_id, candidate_id, is_notified) 
+         VALUES (?, ?, 0)
+         ON DUPLICATE KEY UPDATE viewed_at = CURRENT_TIMESTAMP`,
+        [employerId, candidateId]
       );
 
       return res.json({ success: true });
