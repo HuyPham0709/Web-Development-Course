@@ -353,3 +353,4 @@ DROP COLUMN phone;
 UPDATE Profiles 
 SET cv_url = REPLACE(cv_url, '/upload/fl_inline/', '/upload/')
 WHERE cv_url LIKE '%fl_inline%';
+ALTER TABLE employer_profile_views ADD COLUMN status VARCHAR(50) DEFAULT NULL;

@@ -143,7 +143,7 @@ export function CandidateProfileModal({ candidateId, candidateName, onClose, onR
 
   const handleReject = async () => {
     if (!candidateId) return;
-    const confirm = window.confirm('Bạn có chắc chắn muốn bỏ qua ứng viên này?');
+    const confirm = window.confirm('Are you sure you want to skip this candidate?');
     if (!confirm) return;
     setIsRejecting(true);
     try {
@@ -152,12 +152,12 @@ export function CandidateProfileModal({ candidateId, candidateName, onClose, onR
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
       });
-      if (!res.ok) throw new Error('Lỗi khi gọi API từ chối ứng viên');
+      if (!res.ok) throw new Error('Error when calling API rejects candidate');
       if (onReject) onReject(candidateId);
       onClose();
     } catch (err) {
       console.error('Error rejecting candidate:', err);
-      alert('Có lỗi xảy ra khi bỏ qua ứng viên. Vui lòng thử lại sau.');
+      alert('An error occurred while skipping the candidate. Please try again later.');
     } finally {
       setIsRejecting(false);
     }
@@ -363,9 +363,9 @@ export function CandidateProfileModal({ candidateId, candidateName, onClose, onR
                 className="flex-[2] flex items-center justify-center gap-2 py-3 bg-gray-700 text-white rounded-2xl font-bold hover:bg-gray-600 shadow-lg shadow-gray-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isRejecting ? (
-                  <><Loader2 size={18} className="animate-spin" /> Đang xử lý...</>
+                  <><Loader2 size={18} className="animate-spin" /> Processing...</>
                 ) : (
-                  'Bỏ qua ứng viên này'
+                  'Skip this candidate'
                 )}
               </button>
             </div>
