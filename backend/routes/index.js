@@ -6,11 +6,10 @@ const router = express.Router();
 // 1. Nhóm Admin
 // ─────────────────────────────────────────────────────────────
 const adminRoutes = require("./admin/adminRoutes");
-const adminUserRoutes = require("./admin/userRoutes"); 
 const adminJobRoutes = require("./admin/adminJobRoutes");
 const metadataRoutes = require("./admin/metadataRoutes");
 const adminReportRoutes = require("./admin/reportRoutes")
-
+const adminUserRoutes = require("./admin/userRoutes"); 
 // ─────────────────────────────────────────────────────────────
 // 2. Nhóm Auth & Profile
 // ─────────────────────────────────────────────────────────────
