@@ -8,7 +8,7 @@ const router = express.Router();
 const adminRoutes = require("./admin/adminRoutes");
 const adminJobRoutes = require("./admin/adminJobRoutes");
 const metadataRoutes = require("./admin/metadataRoutes");
-const adminReportRoutes = require("./admin/reportRoutes")
+const adminReportRoutes = require("./admin/Reportroutes")
 const adminUserRoutes = require("./admin/Userroutes"); 
 // ─────────────────────────────────────────────────────────────
 // 2. Nhóm Auth & Profile
