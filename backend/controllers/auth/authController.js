@@ -326,7 +326,17 @@ exports.getProfile = async (req, res) => {
 // --- 6. FORGOT PASSWORD ---
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
+
+  // 1. THÊM ĐOẠN KIỂM TRA NÀY ĐỂ FIX LỖI 500 UNDEFINED
+  if (!email) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Backend không nhận được email! Vui lòng kiểm tra lại dữ liệu gửi từ Frontend." 
+    });
+  }
+
   try {
+    // Bây giờ 'email' chắc chắn đã tồn tại, câu lệnh này sẽ không bao giờ bị lỗi 'undefined' nữa
     const [users] = await db.execute("SELECT * FROM Users WHERE email = ?", [email]);
     if (users.length === 0) return res.status(404).json({ success: false, message: "Email address does not exist!" });
 
