@@ -1,7 +1,7 @@
 import axios from "axios";
 import toast from "react-hot-toast";
 
-const API = import.meta.env.VITE_API_URL ?? "http://127.0.https://web-development-course-y23i.onrender.com/api0.1:5000";
+const API = import.meta.env.VITE_API_URL ?? "https://web-development-course-y23i.onrender.com";
 
 export const api = axios.create({
   baseURL: API,
