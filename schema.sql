@@ -1,17 +1,13 @@
 -- ==========================================================
--- DATABASE: job_finder_db (Clean & 100% Monolithic Version)
+-- DATABASE: job_finder_db (Clean V2 - No Drop, No Alter)
 -- ==========================================================
-
-SET FOREIGN_KEY_CHECKS = 0;
-CREATE DATABASE job_finder_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE job_finder_db;
-SET FOREIGN_KEY_CHECKS = 1;
+USE defaultdb;
 
 -- ==========================================================
 -- 1. SYSTEM CATEGORIES
 -- ==========================================================
 
-CREATE TABLE Categories (
+CREATE TABLE IF NOT EXISTS Categories (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL UNIQUE,
     slug VARCHAR(100) UNIQUE,
@@ -19,7 +15,7 @@ CREATE TABLE Categories (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE Locations (
+CREATE TABLE IF NOT EXISTS Locations (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL UNIQUE,
     slug VARCHAR(100) UNIQUE,
@@ -27,7 +23,7 @@ CREATE TABLE Locations (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE Skills (
+CREATE TABLE IF NOT EXISTS Skills (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(50) NOT NULL UNIQUE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -36,7 +32,7 @@ CREATE TABLE Skills (
 -- 2. MAIN ENTITIES (Companies & Users)
 -- ==========================================================
 
-CREATE TABLE Companies (
+CREATE TABLE IF NOT EXISTS Companies (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     logo_url VARCHAR(512) NULL,
@@ -51,7 +47,7 @@ CREATE TABLE Companies (
     deleted_at TIMESTAMP NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE Users (
+CREATE TABLE IF NOT EXISTS Users (
     id INT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
@@ -60,12 +56,9 @@ CREATE TABLE Users (
     company_id INT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     is_verified BOOLEAN DEFAULT FALSE,
-    otp_code VARCHAR(6) NULL,
-    otp_expires DATETIME NULL,
-    avatar_url VARCHAR(512) NULL,
-    display_name VARCHAR(100) NULL,
     reset_password_token VARCHAR(255) NULL,
     reset_password_expires DATETIME NULL,
+    ban_reason TEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL DEFAULT NULL,
@@ -76,7 +69,7 @@ CREATE TABLE Users (
 -- 3. DETAILED PROFILES (Profiles, Education, Work_Experience)
 -- ==========================================================
 
-CREATE TABLE Profiles (
+CREATE TABLE IF NOT EXISTS Profiles (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT UNIQUE NOT NULL,
     full_name VARCHAR(100) NULL,
@@ -90,11 +83,13 @@ CREATE TABLE Profiles (
     cover_url VARCHAR(512) NULL,     
     bio TEXT NULL,
     social_links JSON NULL COMMENT 'Save social links as JSON',
+    allow_employer_search BOOLEAN DEFAULT FALSE,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
+    INDEX idx_allow_employer_search (allow_employer_search)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE Education (
+CREATE TABLE IF NOT EXISTS Education (
     id INT PRIMARY KEY AUTO_INCREMENT,
     profile_id INT NOT NULL,
     school_name VARCHAR(255) NOT NULL,
@@ -107,7 +102,7 @@ CREATE TABLE Education (
     FOREIGN KEY (profile_id) REFERENCES Profiles(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE Work_Experience (
+CREATE TABLE IF NOT EXISTS Work_Experience (
     id INT PRIMARY KEY AUTO_INCREMENT,
     profile_id INT NOT NULL,
     company_name VARCHAR(255) NOT NULL,
@@ -123,7 +118,7 @@ CREATE TABLE Work_Experience (
 -- 4. JOB MANAGEMENT (Jobs & Skill Mapping Tables)
 -- ==========================================================
 
-CREATE TABLE Jobs (
+CREATE TABLE IF NOT EXISTS Jobs (
     id INT PRIMARY KEY AUTO_INCREMENT,
     company_id INT NOT NULL,
     posted_by INT NOT NULL,
@@ -139,22 +134,20 @@ CREATE TABLE Jobs (
     description TEXT NOT NULL,
     requirements TEXT NULL,
     benefit TEXT NULL,                
-    status ENUM('pending', 'approved', 'rejected', 'closed') DEFAULT 'pending',
+    status ENUM('pending', 'approved', 'rejected', 'closed', 'banned') DEFAULT 'pending',
     rejection_reason TEXT NULL DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL DEFAULT NULL,
-    
     FOREIGN KEY (company_id) REFERENCES Companies(id) ON DELETE CASCADE,
     FOREIGN KEY (posted_by) REFERENCES Users(id) ON DELETE RESTRICT,
     FOREIGN KEY (category_id) REFERENCES Categories(id) ON DELETE RESTRICT,
     FOREIGN KEY (location_id) REFERENCES Locations(id) ON DELETE RESTRICT,
-    
     INDEX idx_job_status (status),
     INDEX idx_job_type (job_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE User_Skills (
+CREATE TABLE IF NOT EXISTS User_Skills (
     profile_id INT NOT NULL,
     skill_id INT NOT NULL,
     PRIMARY KEY (profile_id, skill_id),
@@ -162,7 +155,7 @@ CREATE TABLE User_Skills (
     FOREIGN KEY (skill_id) REFERENCES Skills(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE Job_Skills (
+CREATE TABLE IF NOT EXISTS Job_Skills (
     job_id INT NOT NULL,
     skill_id INT NOT NULL,
     PRIMARY KEY (job_id, skill_id),
@@ -174,7 +167,7 @@ CREATE TABLE Job_Skills (
 -- 5. CONNECTION & INTERACTION OPERATIONS
 -- ==========================================================
 
-CREATE TABLE Applications (
+CREATE TABLE IF NOT EXISTS Applications (
     id INT PRIMARY KEY AUTO_INCREMENT,
     candidate_id INT NOT NULL,
     job_id INT NOT NULL,
@@ -182,14 +175,12 @@ CREATE TABLE Applications (
     cv_snapshot_url VARCHAR(512) NULL,
     status ENUM('pending', 'reviewed', 'accepted', 'rejected', 'interviewing') DEFAULT 'pending',
     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
     FOREIGN KEY (candidate_id) REFERENCES Users(id) ON DELETE CASCADE,
     FOREIGN KEY (job_id) REFERENCES Jobs(id) ON DELETE CASCADE,
-    
     INDEX idx_application_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE Favorite_Jobs (
+CREATE TABLE IF NOT EXISTS Favorite_Jobs (
     user_id INT NOT NULL,
     job_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -198,47 +189,11 @@ CREATE TABLE Favorite_Jobs (
     FOREIGN KEY (job_id) REFERENCES Jobs(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE Messages (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    sender_id INT NOT NULL,
-    receiver_id INT NOT NULL,
-    job_id INT NULL,
-    content TEXT NOT NULL,
-    is_read BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (sender_id) REFERENCES Users(id) ON DELETE RESTRICT,
-    FOREIGN KEY (receiver_id) REFERENCES Users(id) ON DELETE RESTRICT,
-    FOREIGN KEY (job_id) REFERENCES Jobs(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE Notifications (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    message TEXT NOT NULL,
-    link_url VARCHAR(512) DEFAULT NULL,
-    is_read BOOLEAN DEFAULT FALSE,
-    type ENUM('application_status', 'new_job', 'system') DEFAULT 'system',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE Reports (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    reporter_id INT NOT NULL,
-    job_id INT NOT NULL,
-    reason TEXT NOT NULL,
-    status ENUM('pending', 'resolved', 'ignored') DEFAULT 'pending',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (reporter_id) REFERENCES Users(id) ON DELETE RESTRICT,
-    FOREIGN KEY (job_id) REFERENCES Jobs(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 -- ==========================================================
--- 6. JOB SEARCH CRITERIA & NOTES
+-- 6. JOB SEARCH CRITERIA & NOTES & VIEWS
 -- ==========================================================
 
-CREATE TABLE JobCriteria (
+CREATE TABLE IF NOT EXISTS JobCriteria (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL UNIQUE,
     desired_position VARCHAR(255) NULL,
@@ -259,9 +214,7 @@ CREATE TABLE JobCriteria (
     is_open_to_work BOOLEAN DEFAULT TRUE,            
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
     FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
-    
     INDEX idx_jobcriteria_user (user_id),
     INDEX idx_jobcriteria_salary (salary_min, salary_max),
     INDEX idx_jobcriteria_location (preferred_location),
@@ -271,7 +224,7 @@ CREATE TABLE JobCriteria (
     INDEX idx_jobcriteria_open_to_work (is_open_to_work)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE Application_Notes (
+CREATE TABLE IF NOT EXISTS Application_Notes (
     id INT PRIMARY KEY AUTO_INCREMENT,
     application_id INT NOT NULL,
     author_id INT NOT NULL,
@@ -281,14 +234,7 @@ CREATE TABLE Application_Notes (
     FOREIGN KEY (application_id) REFERENCES Applications(id) ON DELETE CASCADE,
     FOREIGN KEY (author_id) REFERENCES Users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-ALTER TABLE Users ADD COLUMN phone VARCHAR(20) NULL;
 
--- 1. Thêm cột bật/tắt cho phép NTD tìm bạn (trong bảng Profiles)
-ALTER TABLE Profiles 
-ADD COLUMN allow_employer_search BOOLEAN DEFAULT FALSE,
-ADD INDEX idx_allow_employer_search (allow_employer_search);
-
--- 2. Bảng lưu lịch sử NTD xem profile ứng viên
 CREATE TABLE IF NOT EXISTS Employer_Profile_Views (
     id INT PRIMARY KEY AUTO_INCREMENT,
     employer_id INT NOT NULL,
@@ -296,18 +242,15 @@ CREATE TABLE IF NOT EXISTS Employer_Profile_Views (
     viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     is_notified TINYINT DEFAULT 0,
     view_date DATE GENERATED ALWAYS AS (DATE(viewed_at)) STORED,
+    status VARCHAR(50) DEFAULT NULL,
     FOREIGN KEY (employer_id) REFERENCES Users(id) ON DELETE CASCADE,
     FOREIGN KEY (candidate_id) REFERENCES Users(id) ON DELETE CASCADE,
     INDEX idx_candidate (candidate_id),
-    UNIQUE KEY uk_view_per_day (employer_id, candidate_id, view_date)
-);
+    INDEX idx_employer (employer_id),
+    UNIQUE KEY uk_employer_candidate (employer_id, candidate_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- (Tùy chọn) Nếu bạn thực sự muốn drop 2 bảng này, hãy giữ lại, nếu không thì nên xóa đi để tránh ảnh hưởng cấu trúc
-DROP TABLE IF EXISTS Messages;
-DROP TABLE IF EXISTS Notifications;
-
--- 3. Bảng Job_Invitations
-CREATE TABLE Job_Invitations (
+CREATE TABLE IF NOT EXISTS Job_Invitations (
     id INT PRIMARY KEY AUTO_INCREMENT,
     employer_id INT NOT NULL,       
     candidate_id INT NOT NULL,      
@@ -316,48 +259,12 @@ CREATE TABLE Job_Invitations (
     status ENUM('pending', 'accepted', 'declined') DEFAULT 'pending', 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
     FOREIGN KEY (employer_id) REFERENCES Users(id) ON DELETE CASCADE,
     FOREIGN KEY (candidate_id) REFERENCES Users(id) ON DELETE CASCADE,
     FOREIGN KEY (job_id) REFERENCES Jobs(id) ON DELETE CASCADE,
-    
     INDEX idx_invitation_candidate (candidate_id),
     INDEX idx_invitation_employer (employer_id),
     INDEX idx_invitation_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-ALTER TABLE Users ADD COLUMN ban_reason TEXT NULL;
-ALTER TABLE Jobs MODIFY COLUMN status ENUM('pending', 'approved', 'rejected', 'closed', 'banned') DEFAULT 'pending';
-
-
--- -- 1. Tắt chế độ an toàn (Safe Update Mode) cho phiên làm việc này
-SET SQL_SAFE_UPDATES = 0;
--- -- 2. Dọn sạch rác để không bị lỗi trùng lặp dữ liệu khi tạo Key mới
-DELETE FROM Employer_Profile_Views;
--- -- 3. Xây "chống lưng" mới cho Foreign Key (Tạo index riêng cho employer_id)
-ALTER TABLE Employer_Profile_Views ADD INDEX idx_employer (employer_id);
--- -- 4. Bây giờ thì đập cái Unique Key cũ thoải mái
-ALTER TABLE Employer_Profile_Views DROP INDEX uk_view_per_day;
--- -- 5. Tạo Unique Key chuẩn (1 NTD - 1 Ứng viên - 1 Dòng duy nhất)
-ALTER TABLE Employer_Profile_Views ADD UNIQUE KEY uk_employer_candidate (employer_id, candidate_id);
--- -- (Tùy chọn) Bật lại chế độ an toàn sau khi xong việc
-SET SQL_SAFE_UPDATES = 1;
-
-ALTER TABLE Users 
-DROP COLUMN otp_code, 
-DROP COLUMN display_name, 
-DROP COLUMN avatar_url, 
-DROP COLUMN otp_expires;
-DROP COLUMN phone;
-
--- 1. Tắt chế độ an toàn cho phiên làm việc này
-SET SQL_SAFE_UPDATES = 0;
-
--- 2. Chạy câu lệnh cập nhật dữ liệu
-UPDATE Profiles 
-SET cv_url = REPLACE(cv_url, '/upload/fl_inline/', '/upload/')
-WHERE cv_url LIKE '%fl_inline%';
-
--- 3. Bật lại chế độ an toàn sau khi xong việc
-SET SQL_SAFE_UPDATES = 1;
-ALTER TABLE employer_profile_views ADD COLUMN status VARCHAR(50) DEFAULT NULL;
+SET FOREIGN_KEY_CHECKS = 1;
