@@ -10,12 +10,11 @@ const pool = mysql.createPool({
 
   user: process.env.DB_USER || "root",
 
-  password:
-    process.env.DB_PASSWORD || "",
+  password: process.env.DB_PASSWORD || "",
 
-  database:
-    process.env.DB_NAME ||
-    "job_finder_db",
+  database: process.env.DB_NAME || "job_finder_db",
+
+  port: process.env.DB_PORT || 3306, // Thêm cổng kết nối từ biến môi trường
 
   waitForConnections: true,
 
@@ -24,6 +23,11 @@ const pool = mysql.createPool({
   queueLimit: 0,
 
   dateStrings: true,
+
+  // BẮT BUỘC PHẢI THÊM ĐOẠN NÀY ĐỂ KẾT NỐI ĐƯỢC VỚI CLOUD AIVEN
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
 const promisePool = pool.promise();
