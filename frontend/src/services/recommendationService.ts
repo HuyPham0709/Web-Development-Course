@@ -2,7 +2,7 @@
 
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/recommendations';
+const API_URL = 'https://web-development-course-y23i.onrender.com/api/recommendations';
 
 export const getRecommendations = async () => {
   return axios.get(API_URL, {

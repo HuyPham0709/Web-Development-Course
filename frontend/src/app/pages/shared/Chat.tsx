@@ -14,7 +14,7 @@ import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { Send, Paperclip, Trash2 } from "lucide-react";
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const SOCKET_URL = import.meta.env.VITE_API_URL || "https://web-development-course-y23i.onrender.com";
 
 // ======================================================================
 // 🔥 HÀM HELPER CHUẨN HÓA ID: Xử lý an toàn cả Object lẫn String/Number

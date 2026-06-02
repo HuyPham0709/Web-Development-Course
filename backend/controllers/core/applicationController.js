@@ -534,7 +534,7 @@ exports.inviteInterview = async (req, res, next) => {
 
     await db.execute("UPDATE Applications SET status = 'reviewed' WHERE id = ?", [application_id]);
 
-    const baseUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+    const baseUrl = process.env.BACKEND_URL || 'https://web-development-course-y23i.onrender.com';
 
     // NÂNG CẤP GIAO DIỆN EMAIL THEO THIẾT KẾ PREMIUM GRADIENT
     const htmlEmailContent = `

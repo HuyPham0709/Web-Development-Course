@@ -32,7 +32,7 @@ export default function CandidateDetail() {
 
   const steps = ['Pending', 'Reviewed', 'Interview', 'Hired'];
 
-  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const backendUrl = import.meta.env.VITE_API_URL || 'https://web-development-course-y23i.onrender.com';
 
   useEffect(() => {
     if (!id) return;

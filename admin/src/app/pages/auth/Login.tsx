@@ -47,7 +47,7 @@ export function Login() {
 
     try {
       // ĐÃ SỬA: Đổi từ /login sang /admin-login
-      const response = await fetch("http://localhost:5000/api/auth/admin-login", {
+      const response = await fetch("https://web-development-course-y23i.onrender.com/api/auth/admin-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, role: "admin" }), 
@@ -107,7 +107,7 @@ const handleVerify = async (e: React.FormEvent) => {
 
   try {
     // Gọi API kiểm tra OTP
-    const response = await fetch("http://localhost:5000/api/auth/verify-login-otp", {
+    const response = await fetch("https://web-development-course-y23i.onrender.com/api/auth/verify-login-otp", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, otp: otpCode }), 

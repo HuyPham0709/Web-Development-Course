@@ -27,7 +27,7 @@ import {
 
 import { chatService } from "../../../services/chatService";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const BASE_URL = import.meta.env.VITE_API_URL || "https://web-development-course-y23i.onrender.com";
 
 const toFullUrl = (url: string | null | undefined): string => {
   if (!url) return "";

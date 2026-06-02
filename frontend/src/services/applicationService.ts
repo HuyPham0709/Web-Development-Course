@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://web-development-course-y23i.onrender.com/api";
 
 // Cải tiến: Chỉ đính kèm Bearer token nếu token thực sự tồn tại trong localStorage
 function getHeaders() {

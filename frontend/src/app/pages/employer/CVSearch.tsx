@@ -227,7 +227,7 @@ export function CVSearch() {
                   const delayClass = delays[index % delays.length] || 'delay-300';
                   const candidateName = candidate.full_name || candidate.name || 'Candidate';
                   const rawAvatar = candidate.avatar_url || candidate.avatar;
-                  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                  const backendUrl = import.meta.env.VITE_API_URL || 'https://web-development-course-y23i.onrender.com';
                   const avatarSrc = rawAvatar
                     ? (rawAvatar.startsWith('http') || rawAvatar.startsWith('data:')
                       ? rawAvatar

@@ -100,7 +100,7 @@ export default function AuthPage() {
     setIsLoading(true);
     try {
       if (activeTab === "login") {
-        const response = await axios.post("http://localhost:5000/api/auth/login", {
+        const response = await axios.post("https://web-development-course-y23i.onrender.com/api/auth/login", {
           email: formData.email, password: formData.password, role: role,
         });
 
@@ -112,7 +112,7 @@ export default function AuthPage() {
           window.location.reload();
         }
       } else {
-        const response = await axios.post("http://localhost:5000/api/auth/register", {
+        const response = await axios.post("https://web-development-course-y23i.onrender.com/api/auth/register", {
           username: formData.fullName, name: formData.fullName, email: formData.email, phone: formData.phone, password: formData.password, role: role,
         });
 
@@ -137,7 +137,7 @@ export default function AuthPage() {
 
     setIsLoading(true);
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/verify-email", {
+      const response = await axios.post("https://web-development-course-y23i.onrender.com/api/auth/verify-email", {
         email: formData.email, otp: otpCode,
       });
 
@@ -172,7 +172,7 @@ export default function AuthPage() {
     setIsLoading(true);
     
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/resend-otp", { email: formData.email });
+      const response = await axios.post("https://web-development-course-y23i.onrender.com/api/auth/resend-otp", { email: formData.email });
 
       if (response.data.success) {
         Swal.fire({ title: "Resent!", text: "The new OTP code has been sent to your email.", icon: "success", toast: true, position: "top-end", showConfirmButton: false, timer: 3000 });
@@ -190,7 +190,7 @@ export default function AuthPage() {
     onSuccess: async (tokenResponse) => {
       setIsLoading(true);
       try {
-        const response = await axios.post("http://localhost:5000/api/auth/google", {
+        const response = await axios.post("https://web-development-course-y23i.onrender.com/api/auth/google", {
           accessToken: tokenResponse.access_token, role: role,
         });
 
@@ -228,7 +228,7 @@ export default function AuthPage() {
 
     setIsLoading(true);
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/forgot-password", { email: formData.email });
+      const response = await axios.post("https://web-development-course-y23i.onrender.com/api/auth/forgot-password", { email: formData.email });
       if (response.data.success) {
         Swal.fire({ title: "Success!", text: response.data.message, icon: "success" });
         setOtpCode("");
@@ -247,7 +247,7 @@ export default function AuthPage() {
     if (!otpCode || !formData.newPassword) return setError("Please enter the OTP and new password!");
     setIsLoading(true);
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/reset-password", {
+      const response = await axios.post("https://web-development-course-y23i.onrender.com/api/auth/reset-password", {
         email: formData.email, otp: otpCode, newPassword: formData.newPassword,
       });
       if (response.data.success) {

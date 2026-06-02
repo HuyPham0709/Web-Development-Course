@@ -1,4 +1,4 @@
-export const API_BASE = 'http://localhost:5000/api';
+export const API_BASE = 'https://web-development-course-y23i.onrender.com/api';
 
 // Admin routes — khớp với app.js
 export const ADMIN_USERS_API = `${API_BASE}/admin/users`;

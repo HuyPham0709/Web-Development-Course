@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { PendingJob } from '../../../types'
 import { formatDate, formatSalary } from "../../../utils"
 
-const API_URL = 'http://localhost:5000/api/admin';
+const API_URL = 'https://web-development-course-y23i.onrender.com/api/admin';
 
 function getHeaders() {
   const token = localStorage.getItem('admin_token');
