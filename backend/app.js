@@ -61,10 +61,10 @@ const routes = require('./routes/index');
 
 // Phân hệ Admin Routes (Đã sửa lại viết hoa/thường theo đúng file tree)
 const adminRoutes = require("./routes/admin/adminRoutes");
-const adminUserRoutes = require("./routes/admin/userRoutes");
+const adminUserRoutes = require("./routes/admin/Userroutes");
 const adminJobRoutes = require("./routes/admin/adminJobRoutes");
 const metadataRoutes = require("./routes/admin/metadataRoutes");
-const adminReportRoutes = require("./routes/admin/reportRoutes"); 
+const adminReportRoutes = require("./routes/admin/Reportroutes"); 
 
 // Custom Middlewares & Utils
 const { verifyToken, authorizeRole } = require("./middlewares/authMiddleware");
