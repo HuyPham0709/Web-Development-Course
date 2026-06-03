@@ -11,11 +11,10 @@ module.exports = {
   init: (httpServer) => {
     io = new Server(httpServer, {
       cors: {
-        origin: [
-          process.env.CLIENT_URL || "http://localhost:5173",
-          "http://localhost:5174"
-        ],
+        // ✅ ĐÃ SỬA: Tự động chấp nhận mọi origin động, giải quyết triệt để lỗi chặn CORS trên link Vercel Preview
+        origin: (origin, callback) => callback(null, true),
         methods: ["GET", "POST"],
+        credentials: true // Cho phép truyền token/cookie qua kết nối socket
       },
     });
 
