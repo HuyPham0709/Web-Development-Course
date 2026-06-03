@@ -1,5 +1,9 @@
 require("dotenv").config();
 
+// Đã chèn cấu hình ép Node.js dùng IPv4 để sửa lỗi gửi Email của Google
+const dns = require("dns");
+dns.setDefaultResultOrder("ipv4first");
+
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
