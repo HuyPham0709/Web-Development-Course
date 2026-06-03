@@ -2,10 +2,16 @@ require('dotenv').config();
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail', // Nếu dùng Gmail
+  host: "smtp.gmail.com",
+  port: 587,              // Dùng cổng 587 thay vì 465
+  secure: false,          // Cổng 587 bắt buộc secure phải là false
+  requireTLS: true,       // Bật mã hóa TLS
   auth: {
-    user: process.env.EMAIL_USER, // SỬA THÀNH EMAIL_USER ĐỂ KHỚP VỚI .ENV
-    pass: process.env.EMAIL_PASS  // SỬA THÀNH EMAIL_PASS ĐỂ KHỚP VỚI .ENV
+    user: process.env.EMAIL_USER || "txxh1004@gmail.com",
+    pass: process.env.EMAIL_PASS || "wrwvarvgrqlkhjwq"
+  },
+  tls: {
+    rejectUnauthorized: false // Bỏ qua chứng chỉ SSL khắt khe của Render
   }
 });
 

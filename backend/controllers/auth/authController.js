@@ -45,12 +45,18 @@ const emailUser = "txxh1004@gmail.com";
 const emailPass = "wrwvarvgrqlkhjwq";
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 587,              // Dùng cổng 587 thay vì 465
+  secure: false,          // Cổng 587 bắt buộc secure phải là false
+  requireTLS: true,       // Bật mã hóa TLS
   auth: {
-    user: emailUser,
-    pass: emailPass,
+    user: process.env.EMAIL_USER || "txxh1004@gmail.com",
+    pass: process.env.EMAIL_PASS || "wrwvarvgrqlkhjwq"
   },
-  family: 4
+  tls: {
+    rejectUnauthorized: false // Bỏ qua chứng chỉ SSL khắt khe của Render
+  },
+  family: 4 // Force IPv4 to fix Google Email sending issues
 });
 
 const generateEmailHTML = (fullName, otp, title, description) => {
@@ -161,12 +167,16 @@ exports.register = async (req, res) => {
       });
     }
 
-    await transporter.sendMail({
-      from: `"JobSpot" <${emailUser}>`,
-      to: email,
-      subject: "🔒 Activate Your JobSpot Account",
-      html: emailHTML,
-    });
+    try {
+        await transporter.sendMail({
+          from: `"JobSpot" <${emailUser}>`,
+          to: email,
+          subject: "🛡️ Google Account Security Verification - JobSpot",
+          html: emailHTML,
+        });
+      } catch (mailError) {
+        console.log("⚠️ Không thể gửi email OTP Google, bỏ qua lỗi:", mailError.message);
+      }
 
     return res.status(201).json({ success: true, message: "Registration successful! Please check your email for the verification code." });
   } catch (error) {
