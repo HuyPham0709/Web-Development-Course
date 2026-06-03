@@ -14,13 +14,10 @@ const PORT = process.env.PORT || 5000;
 // 1. GLOBAL MIDDLEWARES (Cấu hình toàn cục)
 // ─────────────────────────────────────────────────────────────
 
-app.use(
-  cors({
-    origin: ["http://localhost:5173", "http://localhost:5174","https://web-development-course-steel.vercel.app"],
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true,
-  })
-);
+app.use(cors({
+    origin: true, // Tự động chấp nhận mọi origin (domain) gọi đến nó
+    credentials: true // Cho phép gửi cookie/token nếu có
+}));
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
