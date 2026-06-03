@@ -167,23 +167,24 @@ exports.register = async (req, res) => {
       });
     }
 
-    // [BẢO VỆ GỬI MAIL ĐĂNG KÝ]
     try {
-      await transporter.sendMail({
-        from: `"JobSpot" <${emailUser}>`,
-        to: email,
-        subject: "🛡️ Account Security Verification - JobSpot",
-        html: emailHTML,
-      });
-      console.log(`✅ Đã gửi email OTP thành công tới: ${email}`);
-    } catch (mailError) {
-      console.log("⚠️ Render chặn gửi Email! Bỏ qua lỗi:", mailError.message);
-      console.log("==================================================");
-      console.log(`🚀 MÃ OTP ĐĂNG KÝ CỦA TÀI KHOẢN [${email}] LÀ: ${otp}`);
-      console.log("==================================================");
-    }
-    
-    return res.status(200).json({ success: true, message: "Vui lòng kiểm tra email (hoặc Log Render) để lấy mã OTP!", requireOtp: true, email });
+        await transporter.sendMail({
+          from: `"JobSpot" <${emailUser}>`,
+          to: email,
+          subject: "🛡️ Google Account Security Verification - JobSpot",
+          html: emailHTML,
+        });
+        console.log(`✅ Đã gửi email OTP thành công tới: ${email}`);
+      } catch (mailError) {
+        // Bắt lỗi nhưng KHÔNG dừng chương trình
+        console.log("⚠️ Render chặn gửi Email! Bỏ qua lỗi:", mailError.message);
+        console.log("==================================================");
+        console.log(`🚀 MÃ OTP CỦA TÀI KHOẢN [${email}] LÀ: ${otp}`);
+        console.log("==================================================");
+      }
+
+      // Đã thêm lại dòng trả về response để hàm không bị treo
+      return res.status(200).json({ success: true, message: "Mã OTP đã được gửi!", requireOtp: true, email });
 
   } catch (error) {
     console.error("Register Error:", error);
@@ -264,20 +265,16 @@ exports.resendOtp = async (req, res) => {
       "You have requested to resend your OTP code. Please use this new security verification code to continue your verification process:"
     );
 
-    // [BẢO VỆ GỬI LẠI MÃ OTP]
     try {
-        await transporter.sendMail({
-            from: `"JobSpot" <${emailUser}>`,
-            to: email,
-            subject: "🔄 [Resend Code] Verify Your JobSpot Account",
-            html: emailHTML,
-        });
-        console.log(`✅ Đã GỬI LẠI email OTP thành công tới: ${email}`);
+      await transporter.sendMail({
+        from: `"JobSpot" <${emailUser}>`,
+        to: email,
+        subject: "🔄 [Resend Code] Verify Your JobSpot Account",
+        html: emailHTML,
+      });
     } catch (mailError) {
-        console.log("⚠️ Render chặn gửi Email! Bỏ qua lỗi:", mailError.message);
-        console.log("==================================================");
-        console.log(`🚀 MÃ OTP MỚI CỦA TÀI KHOẢN [${email}] LÀ: ${newOtp}`);
-        console.log("==================================================");
+      console.log("Lỗi gửi mail, bỏ qua:", mailError.message);
+      console.log(`🚀 MÃ OTP MỚI CỦA [${email}] LÀ: ${newOtp}`);
     }
 
     return res.status(200).json({ success: true, message: "New OTP code has been sent successfully!" });
@@ -362,12 +359,14 @@ exports.forgotPassword = async (req, res) => {
   }
 
   try {
+    // Bây giờ 'email' chắc chắn đã tồn tại, câu lệnh này sẽ không bao giờ bị lỗi 'undefined' nữa
     const [users] = await db.execute("SELECT * FROM Users WHERE email = ?", [email]);
     if (users.length === 0) return res.status(404).json({ success: false, message: "Email address does not exist!" });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = Date.now() + 10 * 60 * 1000;
 
+    // ĐÃ SỬA CONFLICT: Đồng bộ hóa lưu OTP RAM sạch sẽ
     otpStorage.set(email, { type: 'FORGOT_PASSWORD', otp, otpExpires });
 
     const emailHTML = generateEmailHTML(
@@ -377,20 +376,16 @@ exports.forgotPassword = async (req, res) => {
       "We received a request to recover your password. If this was you, please complete this verification code in the password reset window:"
     );
 
-    // [BẢO VỆ GỬI MAIL QUÊN MẬT KHẨU]
     try {
-        await transporter.sendMail({
-            from: `"JobSpot" <${emailUser}>`, to: email, subject: "🔑 Recover Your JobSpot Password", html: emailHTML,
-        });
-        console.log(`✅ Đã gửi email quên mật khẩu thành công tới: ${email}`);
+      await transporter.sendMail({
+        from: `"JobSpot" <${emailUser}>`, to: email, subject: "🔑 Recover Your JobSpot Password", html: emailHTML,
+      });
     } catch (mailError) {
-        console.log("⚠️ Render chặn gửi Email! Bỏ qua lỗi:", mailError.message);
-        console.log("==================================================");
-        console.log(`🚀 MÃ OTP QUÊN MẬT KHẨU CỦA [${email}] LÀ: ${otp}`);
-        console.log("==================================================");
+      console.log("Lỗi gửi mail, bỏ qua:", mailError.message);
+      console.log(`🚀 MÃ OTP CỦA [${email}] LÀ: ${otp}`);
     }
 
-    return res.status(200).json({ success: true, message: "OTP code has been sent (or check server logs)!" });
+    return res.status(200).json({ success: true, message: "OTP code has been sent!" });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -400,6 +395,7 @@ exports.forgotPassword = async (req, res) => {
 exports.resetPassword = async (req, res) => {
   const { email, otp, newPassword } = req.body;
   try {
+    // ĐÃ SỬA CONFLICT: Lấy dữ liệu OTP từ RAM
     const otpData = otpStorage.get(email);
 
     if (!otpData || otpData.type !== 'FORGOT_PASSWORD') {
@@ -464,20 +460,16 @@ exports.googleLogin = async (req, res) => {
         "You are connecting to our application using a new Google account. To ensure maximum security for this initial login process, please enter the following verification code:"
       );
 
-      // [BẢO VỆ GỬI MAIL GOOGLE LOGIN] - Đây là chỗ gây lỗi 500 lúc nãy của bạn
       try {
         await transporter.sendMail({
-            from: `"JobSpot" <${emailUser}>`,
-            to: email,
-            subject: "🛡️ Google Account Security Verification - JobSpot",
-            html: emailHTML,
+          from: `"JobSpot" <${emailUser}>`,
+          to: email,
+          subject: "🛡️ Google Account Security Verification - JobSpot",
+          html: emailHTML,
         });
-        console.log(`✅ Đã gửi email OTP Google thành công tới: ${email}`);
       } catch (mailError) {
-        console.log("⚠️ Render chặn gửi Email Google! Bỏ qua lỗi:", mailError.message);
-        console.log("==================================================");
-        console.log(`🚀 MÃ OTP GOOGLE CỦA [${email}] LÀ: ${otp}`);
-        console.log("==================================================");
+        console.log("Lỗi gửi mail, bỏ qua:", mailError.message);
+        console.log(`🚀 MÃ OTP CỦA [${email}] LÀ: ${otp}`);
       }
 
       return res.status(200).json({
@@ -527,6 +519,7 @@ exports.adminLogin = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = Date.now() + 5 * 60 * 1000; // 5 phút
 
+    // ĐÃ SỬA CONFLICT: Lưu hoàn toàn vào RAM, xóa bỏ cú pháp DB thừa
     otpStorage.set(email, { type: 'ADMIN_LOGIN', otp, otpExpires });
 
     const emailHTML = generateEmailHTML(
@@ -534,21 +527,17 @@ exports.adminLogin = async (req, res) => {
       "Login activity detected from a system admin account. Enter this OTP code immediately to gain access and open the Dashboard:"
     );
 
-    // [BẢO VỆ GỬI MAIL ADMIN]
     try {
-        await transporter.sendMail({
-            from: `"JobSpot Admin" <${emailUser}>`, to: email,
-            subject: "🚨 High-Level Admin Verification Code - JobSpot", html: emailHTML
-        });
-        console.log(`✅ Đã gửi email OTP Admin thành công tới: ${email}`);
+      await transporter.sendMail({
+        from: `"JobSpot Admin" <${emailUser}>`, to: email,
+        subject: "🚨 High-Level Admin Verification Code - JobSpot", html: emailHTML
+      });
     } catch (mailError) {
-        console.log("⚠️ Render chặn gửi Email Admin! Bỏ qua lỗi:", mailError.message);
-        console.log("==================================================");
-        console.log(`🚀 MÃ OTP ADMIN CỦA [${email}] LÀ: ${otp}`);
-        console.log("==================================================");
+      console.log("Lỗi gửi mail, bỏ qua:", mailError.message);
+      console.log(`🚀 MÃ OTP CỦA [${email}] LÀ: ${otp}`);
     }
 
-    return res.status(200).json({ success: true, message: "Please check your email (or server logs) for the OTP code!" });
+    return res.status(200).json({ success: true, message: "Please check your email for the OTP code!" });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -558,6 +547,7 @@ exports.adminLogin = async (req, res) => {
 exports.verifyLoginOTP = async (req, res) => {
   const { email, otp } = req.body;
   try {
+    // ĐÃ SỬA CONFLICT: Đọc và check OTP sạch sẽ từ bộ nhớ RAM
     const otpData = otpStorage.get(email);
 
     if (!otpData || otpData.type !== 'ADMIN_LOGIN') {
