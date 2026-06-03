@@ -5,8 +5,8 @@ const emailPass = "wrwvarvgrqlkhjwq";
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 587,              // Dùng cổng 587 thay vì 465
-  secure: false,          // Cổng 587 bắt buộc secure phải là false
+  port: 465,              // Dùng cổng 465 thay vì 465
+  secure: false,          // Cổng 465 bắt buộc secure phải là false
   requireTLS: true,       // Bật mã hóa TLS
   auth: {
     user: process.env.EMAIL_USER || "txxh1004@gmail.com",
