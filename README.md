@@ -80,6 +80,7 @@ Dự án được phát triển theo kiến trúc Monorepo, tách biệt rõ rà
 │   └── 📄 vite.config.ts
 ├── 📄 schema.sql                  # Cấu trúc khởi tạo cơ sở dữ liệu MySQL
 └── 📄 seed.sql                    # Dữ liệu mẫu phục vụ kiểm thử hệ thống
+
 ⚙️ Công nghệ & Thư viện sử dụng
 
 * Khối Front-end (Client & Admin)
