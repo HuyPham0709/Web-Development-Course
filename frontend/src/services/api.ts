@@ -7,7 +7,7 @@ export const api = axios.create({
   baseURL: API,
 });
 
-// Request interceptor - attach token
+// Request interceptor - đính kèm token vào header
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {
@@ -16,13 +16,14 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor - bắt token hết hạn
+// Response interceptor - Xử lý tập trung các lỗi Auth & Banned (Đã gộp)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status;
     const message = error.response?.data?.message ?? "";
 
+    // 1. Kiểm tra Token hết hạn / không hợp lệ
     const isTokenExpired =
       status === 401 ||
       (status === 403 && (
@@ -32,6 +33,10 @@ api.interceptors.response.use(
         message.includes("invalid token")
       ));
 
+    // 2. Kiểm tra tài khoản bị khóa
+    const isBanned = status === 403 && message.includes("bị khóa");
+
+    // XỬ LÝ LOGIC
     if (isTokenExpired) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
@@ -43,48 +48,16 @@ api.interceptors.response.use(
       setTimeout(() => {
         window.location.href = "/auth";
       }, 1500);
-    }
-
-    return Promise.reject(error);
-  }
-);
-
-// Response interceptor - bắt token hết hạn
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    const status = error.response?.status;
-    const message = error.response?.data?.message ?? "";
-
-    const isTokenExpired =
-      status === 401 ||
-      (status === 403 && (
-        message.includes("không hợp lệ") ||
-        message.includes("hết hạn") ||
-        message.includes("expired") ||
-        message.includes("invalid token")
-      ));
-
-    // ✅ THÊM: bắt riêng trường hợp bị ban
-    const isBanned =
-      status === 403 && message.includes("bị khóa");
-
-    if (isTokenExpired) {
+      
+    } else if (isBanned) {
+      // Dùng else if để tách biệt rõ ràng với lỗi hết hạn token
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", {
-        duration: 4000,
+
+      toast.error(message || "Tài khoản của bạn đã bị khóa.", { 
+        duration: 5000 
       });
-      setTimeout(() => {
-        window.location.href = "/auth";
-      }, 1500);
-    }
 
-    // ✅ THÊM: logout và hiển thị lý do ban
-    if (isBanned) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      toast.error(message, { duration: 5000 });
       setTimeout(() => {
         window.location.href = "/auth";
       }, 1500);
