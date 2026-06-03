@@ -1,4 +1,4 @@
-# JobFinder - Cổng Tìm Kiếm Việc Làm Trực Tuyến
+# #️⃣ JobFinder - Cổng Tìm Kiếm Việc Làm Trực Tuyến
 
 > **ĐỀ TÀI SỐ 10**
 > * **Học viện:** Học viện Công nghệ Bưu chính Viễn thông (Cơ sở 2)
@@ -8,22 +8,23 @@
 ---
 
 ## 📌 Giới thiệu dự án
-JobFinder là một nền tảng kết nối ứng viên (Candidate) và nhà tuyển dụng (Employer) dưới sự quản lý và kiểm duyệt của quản trị viên (Admin). Hệ thống mô phỏng toàn diện quy trình tuyển dụng thực tế từ bước tạo CV, đăng tin, ứng tuyển, lọc hồ sơ cho đến tương tác thời gian thực thông qua Chat và thông báo.
 
-Dự án được phát triển theo kiến trúc Monorepo, tách biệt rõ ràng giữa các phân hệ Front-end (Client & Admin) sử dụng **ReactJS + TypeScript + Vite** và Back-end sử dụng **NodeJS + Express + MySQL**.
+**JobFinder** là một nền tảng kết nối ứng viên (Candidate) và nhà tuyển dụng (Employer) dưới sự quản lý và kiểm duyệt của quản trị viên (Admin). Hệ thống mô phỏng toàn diện quy trình tuyển dụng thực tế từ bước tạo CV, đăng tin, ứng tuyển, lọc hồ sơ cho đến tương tác thời gian thực thông qua Chat và thông báo.
+
+Dự án được phát triển theo kiến trúc **Monorepo**, tách biệt rõ ràng giữa các phân hệ Front-end (Client & Admin) sử dụng **ReactJS + TypeScript + Vite** và Back-end sử dụng **NodeJS + Express + MySQL**.
 
 ---
 
 ## ✨ Các tính năng cốt lõi
 
 ### 1. Hệ thống tài khoản & Bảo mật (Auth & Security)
-* Đăng ký, đăng nhập và phân quyền nghiêm ngặt 3 phân hệ: Candidate, Employer, Admin.
+* Đăng ký, đăng nhập và phân quyền nghiêm ngặt 3 phân hệ: `Candidate`, `Employer`, `Admin`.
 * Xác thực an toàn bằng **JSON Web Token (JWT)**, mã hóa mật khẩu ở tầng cơ sở dữ liệu.
-* Tích hợp tải lên hình ảnh qua Cloudinary và hệ thống gửi mail thông báo tự động (Nodemailer).
+* Tích hợp tải lên hình ảnh qua **Cloudinary** và hệ thống gửi mail thông báo tự động (**Nodemailer**).
 
 ### 2. Phân hệ Ứng viên (Candidate)
 * **CV Builder:** Công cụ tạo hồ sơ cá nhân trực tuyến và xuất file CV định dạng PDF (`jsPDF`).
-* **Quản lý ứng tuyển:** Nộp hồ sơ, theo dõi trạng thái lịch sử xử lý (Chờ duyệt, Phỏng vấn, Từ chối).
+* **Quản lý ứng tuyển:** Nộp hồ sơ, theo dõi trạng thái lịch sử xử lý (*Chờ duyệt, Phỏng vấn, Từ chối*).
 * **Job Criteria & Gợi ý:** Thiết lập bộ tiêu chí công việc mong muốn để nhận gợi ý việc làm phù hợp.
 * **Tương tác nâng cao:** Lưu việc làm yêu thích, xem danh sách các nhà tuyển dụng đã ghé thăm hồ sơ.
 
@@ -80,58 +81,89 @@ Dự án được phát triển theo kiến trúc Monorepo, tách biệt rõ rà
 │   └── 📄 vite.config.ts
 ├── 📄 schema.sql                  # Cấu trúc khởi tạo cơ sở dữ liệu MySQL
 └── 📄 seed.sql                    # Dữ liệu mẫu phục vụ kiểm thử hệ thống
+```
 
-⚙️ Công nghệ & Thư viện sử dụng
+---
 
-* Khối Front-end (Client & Admin)
-- Core: ReactJS (v18/v19), TypeScript, Vite (v6).
-- Styling & UI: Tailwind CSS (v4), Radix UI Primitives, Material-UI (MUI Icons).
-- State & Routing: React Router v7, React Hook Form.
-- Libraries: Axios (Kết nối API), Framer Motion (Hiệu ứng chuyển động), Recharts (Biểu đồ), jsPDF (Xuất file), i18next (Đa ngôn ngữ), Socket.io-client (Realtime).
+## ⚙️ Công nghệ & Thư viện sử dụng
 
-* Khối Back-end (Server)
-- Core: NodeJS, ExpressJS.
-- Database: MySQL.
-- Realtime: Socket.io.
-- Services: Cloudinary API (Lưu trữ ảnh), Multer (Xử lý Multipart/form-data), Nodemailer (Gửi Mail OTP).
-🛠️ Hướng dẫn cài đặt và khởi chạy dưới Local
-1. Khởi tạo Cơ sở dữ liệu
-- Cài đặt MySQL Server (hoặc sử dụng XAMPP).
-- Tạo một cơ sở dữ liệu mới tên là jobfinder_db.
-- Khởi chạy tệp schema.sql để tạo cấu trúc bảng.
-- Khởi chạy tệp seed.sql để nạp dữ liệu chạy thử.
-2. Cấu hình và chạy Back-end
+### 💻 Khối Front-end (Client & Admin)
+* **Core:** ReactJS (v18/v19), TypeScript, Vite (v6).
+* **Styling & UI:** Tailwind CSS (v4), Radix UI Primitives, Material-UI (MUI Icons).
+* **State & Routing:** React Router v7, React Hook Form.
+* **Libraries:** Axios (Kết nối API), Framer Motion (Hiệu ứng chuyển động), Recharts (Biểu đồ), jsPDF (Xuất file), i18next (Đa ngôn ngữ), Socket.io-client (Realtime).
+
+### ⚙️ Khối Back-end (Server)
+* **Core:** NodeJS, ExpressJS.
+* **Database:** MySQL.
+* **Realtime:** Socket.io.
+* **Services:** Cloudinary API (Lưu trữ ảnh), Multer (Xử lý Multipart/form-data), Nodemailer (Gửi Mail OTP).
+
+---
+
+## 🛠️ Hướng dẫn cài đặt và khởi chạy dưới Local
+
+### 1️⃣ Khởi tạo Cơ sở dữ liệu
+* Cài đặt **MySQL Server** (hoặc sử dụng phần mềm tích hợp **XAMPP**).
+* Tạo một cơ sở dữ liệu mới với tên là `jobfinder_db`.
+* Khởi chạy tệp `schema.sql` để tạo cấu trúc các bảng.
+* Khởi chạy tệp `seed.sql` để nạp dữ liệu mẫu chạy thử.
+
+### 2️⃣ Cấu hình và chạy Back-end
+```bash
 cd backend
 npm install
-# Tạo tệp .env tại thư mục gốc backend và điền các tham số cấu hình kết nối DB, JWT_SECRET, CLOUDINARY
+```
+> 📝 **Lưu ý:** Tạo tệp `.env` tại thư mục gốc của phân hệ `backend` và điền đầy đủ các tham số cấu hình kết nối Database, `JWT_SECRET`, và cấu hình API `CLOUDINARY`.
+
+Khởi động server phát triển:
+```bash
 npm run dev
-3. Khởi chạy ứng dụng Frontend (Candidate & Employer)
-cd frontend
+```
+
+### 3️⃣ Khởi chạy ứng dụng Frontend (Candidate & Employer)
+```bash
+cd ../frontend
 npm install
 npm run dev
-4. Khởi chạy ứng dụng Admin Dashboard
-cd admin
+```
+
+### 4️⃣ Khởi chạy ứng dụng Admin Dashboard
+```bash
+cd ../admin
 npm install
 npm run dev
-👥 Phân chia công việc trong nhóm
-| Thành viên | Vai trò                | Nhiệm vụ                     |
-| ---------- | ---------------------- | ---------------------------- |
-| Phạm Hoàng Quốc Huy          | Leader / Frontend Lead | Setup project, UI/UX, Deploy |
-| Nguyễn Trung Hiếu            | Backend Lead           | Database, JWT, API           |
-| Nguyễn Hữu Đức               | Candidate Logic        | CV, ứng tuyển, PDF           |
-| Trương Đình Tấn Tài          | Admin & Employer       | Dashboard, Notification      |
-🔄 Quy trình Git Workflow của nhóm
-Tạo nhánh tính năng mới từ main:
-Bash
+```
+
+---
+
+## 👥 Phân chia công việc trong nhóm
+
+| Thành viên | Vai trò | Nhiệm vụ |
+| :--- | :--- | :--- |
+| **Phạm Hoàng Quốc Huy** | Leader / Frontend Lead | Setup project, UI/UX, Deploy |
+| **Nguyễn Trung Hiếu** | Backend Lead | Database, JWT, API |
+| **Nguyễn Hữu Đức** | Candidate Logic | CV, ứng tuyển, PDF |
+| **Trương Đình Tấn Tài** | Admin & Employer | Dashboard, Notification |
+
+---
+
+## 🔄 Quy trình Git Workflow của nhóm
+
+### 📌 Tạo nhánh tính năng mới từ nhánh `main`
+```bash
 git checkout main
 git pull origin main
-git checkout -b <ten_nhánh_hoặc_mssv>
-Cam kết mã nguồn (Commit) theo chuẩn:
+git checkout -b <ten_nhanh_hoac_mssv>
+```
 
-Bash
+### ✅ Cam kết mã nguồn (Commit) theo chuẩn cấu trúc
+```bash
 git add .
 git commit -m "feat: tích hợp tính năng xuất file hồ sơ pdf"
-Đẩy mã nguồn và tạo Pull Request (PR):
+```
 
-Bash
-git push origin <ten_nhánh_hoặc_mssv>
+### 🚀 Đẩy mã nguồn lên hệ thống và tạo Pull Request (PR)
+```bash
+git push origin <ten_nhanh_hoac_mssv>
+```
