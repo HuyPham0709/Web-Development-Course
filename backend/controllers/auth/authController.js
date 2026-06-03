@@ -50,6 +50,7 @@ const transporter = nodemailer.createTransport({
     user: emailUser,
     pass: emailPass,
   },
+  family: 4
 });
 
 const generateEmailHTML = (fullName, otp, title, description) => {
