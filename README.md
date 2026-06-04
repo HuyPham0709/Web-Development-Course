@@ -161,7 +161,26 @@ Dự án áp dụng một chiến lược lưu trữ dữ liệu lai ghép cực
 * **Global Middlewares:** CORS được định cấu hình chuẩn xác để chỉ nhận nguồn từ `localhost:5173` / `5174` (Môi trường Dev). Kích thước Payload được mở rộng giới hạn lên `50mb` thông qua `express.json` để phục vụ upload hình ảnh lớn / CV PDF.
 
 ## 🛠️ Hướng dẫn cài đặt và khởi chạy dưới Local
+---
 
+## 5. ⚠️ Lưu ý quan trọng (Important Notes)
+
+Để đảm bảo hệ thống vận hành trơn tru và an toàn khi phát triển nhóm hoặc triển khai lên môi trường Production, toàn bộ thành viên cần nắm rõ các lưu ý sau:
+
+### 🔐 Bảo mật biến môi trường (Environment Variables)
+* Tuyệt đối **KHÔNG** commit file `.env` lên GitHub (đã được thiết lập sẵn trong tệp `.gitignore` ở cả Frontend và Backend).
+* Mọi cấu hình nhạy cảm như `JWT_SECRET`, thông tin kết nối CSDL (`MONGO_URI`, thông tin MySQL), và API Key phải được quản lý cục bộ. Khi có thành viên mới, Leader sẽ cấp phát file `.env.example` hoặc chia sẻ nội bộ.
+
+### 🔌 Cơ chế Fallback của Cơ sở dữ liệu
+* Hệ thống được thiết kế để tự động kích hoạt **chế độ Fallback** nếu MongoDB bị lỗi kết nối hoặc chưa được bật. Server Node.js vẫn sẽ khởi chạy thành công để phục vụ các API dùng MySQL.
+* **Lưu ý:** Trong chế độ Fallback này, các tính năng thuộc phân hệ Social (như Chat thời gian thực, Thông báo) sẽ tạm thời không hoạt động. Hãy đảm bảo MongoDB đang chạy ở cổng `27017` trước khi test tính năng Chat.
+
+### ☁️ Lưu trữ tệp tin (File Storage)
+* Trong quá trình phát triển ở Local, ảnh hoặc file PDF tạm thời có thể được lưu tại thư mục `backend/uploads/` và được phục vụ tĩnh qua đường dẫn tĩnh (Static Route).
+* Tuy nhiên, trên môi trường Production (Render), hệ thống tệp cục bộ (Local File System) sẽ bị reset mỗi khi Server khởi động lại. Do đó, toàn bộ logic upload ảnh đại diện hoặc CV bắt buộc phải được đẩy lên dịch vụ **Cloudinary** thông qua cấu hình tại `config/cloudinary.js`.
+
+### ⚡ Giao tiếp thời gian thực (Real-time Communication)
+* Dự án sử dụng **Socket.io** (`utils/socket.js`) để xử lý tin nhắn và thông báo. Khi test các luồng này, bắt buộc phải khởi chạy đồng bộ cả 2 ứng dụng Frontend (Cổng `5173`/`5174`) và Backend (Cổng `5000`), đồng thời kiểm tra luồng Network trên DevTools để đảm bảo kết nối WebSocket (ws://) không bị chặn bởi CORS.
 ### 1️⃣ Khởi tạo Cơ sở dữ liệu
 * Cài đặt **MySQL Server** (hoặc sử dụng phần mềm tích hợp **XAMPP**).
 * Tạo một cơ sở dữ liệu mới với tên là `jobfinder_db`.
