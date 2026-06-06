@@ -469,7 +469,7 @@ exports.googleLogin = async (req, res) => {
       return res.status(403).json({ success: false, message: banMsg });
     }
 
-    await db.execute(`UPDATE Users SET is_verified = 1 WHERE id = ?`, [user.id]);
+    await db.execute(`UPDATE users SET is_verified = 1 WHERE id = ?`, [user.id]);
     const token = jwt.sign(
       { id: user.id, role: user.role, company_id: user.company_id },
       process.env.JWT_SECRET, { expiresIn: "1d" }
