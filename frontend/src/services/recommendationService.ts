@@ -1,8 +1,8 @@
-// services/recommendationService.ts — thêm hàm invalidate
-
 import axios from 'axios';
 
-const API_URL = 'https://web-development-course-y23i.onrender.com//api/recommendations';
+// Lấy base URL từ biến môi trường (nhớ bỏ dấu / ở cuối biến trên Vercel nhé)
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://web-development-course-y23i.onrender.com';
+const API_URL = `${BASE_URL}/api/recommendations`;
 
 export const getRecommendations = async () => {
   return axios.get(API_URL, {
@@ -10,7 +10,6 @@ export const getRecommendations = async () => {
   });
 };
 
-// Dispatch event để báo cho sidebar biết cần refresh
 export const notifyRecommendationsRefresh = () => {
   window.dispatchEvent(new CustomEvent('criteria-updated'));
 };
