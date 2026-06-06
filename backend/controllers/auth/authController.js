@@ -161,15 +161,15 @@ exports.register = async (req, res) => {
           subject: "🛡️ Account Security Verification - JobSpot",
           html: emailHTML,
         });
-        console.log(`✅ Đã gửi email OTP thành công tới: ${email}`);
+        console.log(`✅ OTP email successfully sent to: ${email}`);
       } catch (mailError) {
-        console.log("⚠️ Lỗi gửi Email Resend! Bỏ qua lỗi:", mailError.message);
+        console.log("⚠️ Email Resend Error! Ignore the error:", mailError.message);
         console.log("==================================================");
-        console.log(`🚀 MÃ OTP CỦA TÀI KHOẢN [${email}] LÀ: ${otp}`);
+        console.log(`🚀 OTP CODE FOR THE ACCOUNT [${email}] LÀ: ${otp}`);
         console.log("==================================================");
       }
 
-      return res.status(200).json({ success: true, message: "Mã OTP đã được gửi!", requireOtp: true, email });
+      return res.status(200).json({ success: true, message: "OTP code has been sent!", requireOtp: true, email });
 
   } catch (error) {
     console.error("Register Error:", error);
@@ -258,8 +258,8 @@ exports.resendOtp = async (req, res) => {
         html: emailHTML,
       });
     } catch (mailError) {
-      console.log("Lỗi gửi mail, bỏ qua:", mailError.message);
-      console.log(`🚀 MÃ OTP MỚI CỦA [${email}] LÀ: ${newOtp}`);
+      console.log("Email Resend Error, ignoring:", mailError.message);
+      console.log(`🚀 NEW OTP CODE FOR [${email}] IS: ${newOtp}`);
     }
 
     return res.status(200).json({ success: true, message: "New OTP code has been sent successfully!" });
@@ -366,8 +366,8 @@ exports.forgotPassword = async (req, res) => {
         html: emailHTML,
       });
     } catch (mailError) {
-      console.log("Lỗi gửi mail, bỏ qua:", mailError.message);
-      console.log(`🚀 MÃ OTP CỦA [${email}] LÀ: ${otp}`);
+      console.log("Email Resend Error, ignoring:", mailError.message);
+      console.log(`🚀 OTP CODE FOR [${email}] IS: ${otp}`);
     }
 
     return res.status(200).json({ success: true, message: "OTP code has been sent!" });
@@ -452,8 +452,8 @@ exports.googleLogin = async (req, res) => {
           html: emailHTML,
         });
       } catch (mailError) {
-        console.log("Lỗi gửi mail, bỏ qua:", mailError.message);
-        console.log(`🚀 MÃ OTP CỦA [${email}] LÀ: ${otp}`);
+        console.log("Email Resend Error, ignoring:", mailError.message);
+        console.log(`🚀 OTP CODE FOR [${email}] IS: ${otp}`);
       }
 
       return res.status(200).json({
@@ -518,8 +518,8 @@ exports.adminLogin = async (req, res) => {
         html: emailHTML
       });
     } catch (mailError) {
-      console.log("Lỗi gửi mail, bỏ qua:", mailError.message);
-      console.log(`🚀 MÃ OTP CỦA [${email}] LÀ: ${otp}`);
+      console.log("Email Resend Error, ignoring:", mailError.message);
+      console.log(`🚀 OTP CODE FOR [${email}] IS: ${otp}`);
     }
 
     return res.status(200).json({ success: true, message: "Please check your email for the OTP code!" });

@@ -194,9 +194,9 @@ exports.deleteReportedJob = async (req, res) => {
                         </div>
                     `
                 });
-                console.log(`✅ Đã gửi mail thông báo khóa bài tuyển dụng thành công tới: ${email}`);
+                console.log(`✅ The email notifying you that the job posting has been successfully closed has been sent to you.: ${email}`);
             } catch (mailError) {
-                console.error("⚠️ Không gửi được mail bằng Resend, bỏ qua lỗi để hệ thống tiếp tục chạy:", mailError.message);
+                console.error("⚠️ Cannot send email via Resend, ignoring error to allow system to continue:", mailError.message);
             }
         }
 

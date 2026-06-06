@@ -19,7 +19,7 @@ const sendMail = async ({ to, subject, html }) => {
     
     return data;
   } catch (error) {
-    console.error("❌ Lỗi hàm sendMail (Resend):", error.message);
+    console.error("❌ Error in the sendMail function (Resend):", error.message);
     // In ra log để bạn dễ theo dõi nếu có lỗi phát sinh
     return null; 
   }

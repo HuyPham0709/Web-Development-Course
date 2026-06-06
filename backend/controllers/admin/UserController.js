@@ -167,9 +167,9 @@ exports.toggleBanUser = async (req, res) => {
                         </div>
                     `
                 });
-                console.log(`✅ Đã gửi mail thông báo khóa tài khoản thành công tới: ${user.email}`);
+                console.log(`✅ I have been successfully notified that my account has been locked via email.i: ${user.email}`);
             } catch (mailError) {
-                console.error("⚠️ Không gửi được mail bằng Resend, bỏ qua để hệ thống tiếp tục chạy:", mailError.message);
+                console.error("⚠️ Cannot send email via Resend, ignoring error to allow system to continue:", mailError.message);
             }
         }
 
@@ -199,17 +199,17 @@ exports.verifyCompany = async (req, res) => {
         );
 
         if (users.length === 0) {
-            return res.status(404).json({ success: false, message: "Không tìm thấy người dùng!" });
+            return res.status(404).json({ success: false, message: "No user found!" });
         }
 
         const user = users[0];
 
         if (!user.company_id) {
-            return res.status(400).json({ success: false, message: "Người dùng này chưa có công ty!" });
+            return res.status(400).json({ success: false, message: "User does not belong to a company!" });
         }
 
         if (user.is_verified) {
-            return res.status(400).json({ success: false, message: "Công ty này đã được xác minh rồi!" });
+            return res.status(400).json({ success: false, message: "This company is already verified!" });
         }
 
         await db.execute("UPDATE Companies SET is_verified = 1 WHERE id = ?", [user.company_id]);
@@ -245,7 +245,7 @@ exports.getUserDetail = async (req, res) => {
         `, [user_id]);
 
         if (users.length === 0) {
-            return res.status(404).json({ success: false, message: "Không tìm thấy người dùng!" });
+            return res.status(404).json({ success: false, message: "No user found!" });
         }
 
         let extra = {};
