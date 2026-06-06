@@ -1,29 +1,28 @@
 require('dotenv').config();
-const nodemailer = require('nodemailer');
+const { Resend } = require("resend");
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",        // Thêm dòng này để Nodemailer tự định tuyến qua máy chủ Google
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,            // Cổng 465 bắt buộc secure phải là true
-  auth: {
-    user: process.env.EMAIL_USER, // Sẽ tự đọc từ Render Environment
-    pass: process.env.EMAIL_PASS  // Sẽ tự đọc từ Render Environment
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
-});
+// Khởi tạo Resend (Ưu tiên đọc từ .env, nếu không có thì dán mã thô vào đây)
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Hàm mẫu gửi email đa dụng
 const sendMail = async ({ to, subject, html }) => {
-  const mailOptions = {
-    from: `"Human Resources Department" <${process.env.GMAIL_USER}>`,
-    to,
-    subject,
-    html
-  };
-  return transporter.sendMail(mailOptions);
+  try {
+    const data = await resend.emails.send({
+      // LƯU Ý: Nếu dùng tài khoản Resend miễn phí (chưa xác thực tên miền riêng),
+      // bạn BẮT BUỘC phải giữ nguyên đuôi <onboarding@resend.dev>. 
+      // Bạn chỉ có thể đổi tên hiển thị phía trước (ví dụ: "Human Resources Department")
+      from: "Human Resources Department <onboarding@resend.dev>",
+      to: to,       // Email nhận (ở chế độ test phải là chính email đăng ký Resend của bạn)
+      subject: subject,
+      html: html
+    });
+    
+    return data;
+  } catch (error) {
+    console.error("❌ Lỗi hàm sendMail (Resend):", error.message);
+    // In ra log để bạn dễ theo dõi nếu có lỗi phát sinh
+    return null; 
+  }
 };
 
 module.exports = { sendMail };

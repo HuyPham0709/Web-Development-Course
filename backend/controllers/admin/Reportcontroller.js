@@ -1,24 +1,12 @@
 const db = require('../../config/db'); // Đường dẫn cấp 2 đi từ controllers/admin/ ra config/db
 const { createAdminNotification } = require("../admin/adminNotificationController");
-const nodemailer = require('nodemailer');
-const emailUser = "txxh1004@gmail.com";
-const emailPass = "wrwvarvgrqlkhjwq";
-const transporter = nodemailer.createTransport({
-  service: "gmail",        // Thêm dòng này để Nodemailer tự định tuyến qua máy chủ Google
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,            // Cổng 465 bắt buộc secure phải là true
-  auth: {
-    user: process.env.EMAIL_USER, // Sẽ tự đọc từ Render Environment
-    pass: process.env.EMAIL_PASS  // Sẽ tự đọc từ Render Environment
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
-});
+const { Resend } = require("resend");
+
+// Khởi tạo Resend (Ưu tiên đọc từ .env, nếu không có thì dán mã thô vào đây)
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // =======================================================
-// 1. DÀNH CHO ỨNG VIÊN: Tạo báo cáo vi phạm công việc (MỚI BỔ SUNG)
+// 1. DÀNH CHO ỨNG VIÊN: Tạo báo cáo vi phạm công việc
 // =======================================================
 exports.createReport = async (req, res) => {
     try {
@@ -35,8 +23,8 @@ exports.createReport = async (req, res) => {
         );
         const [jobRows] = await db.execute(
             `SELECT j.title, u.username 
-     FROM Jobs j, Users u 
-     WHERE j.id = ? AND u.id = ?`,
+             FROM Jobs j, Users u 
+             WHERE j.id = ? AND u.id = ?`,
             [job_id, reporter_id]
         );
         const jobTitle = jobRows[0]?.title || `Job #${job_id}`;
@@ -123,7 +111,6 @@ exports.getReports = async (req, res) => {
 
         const [reports] = await db.execute(query, queryParams);
 
-        // Trả về cấu trúc JSON chuẩn mực mà Frontend đang bóc tách (.data và .stats)
         return res.status(200).json({
             success: true,
             data: reports,
@@ -153,7 +140,7 @@ exports.updateReportStatus = async (req, res) => {
 };
 
 // =======================================================
-// 4. DÀNH CHO ADMIN: Xóa/Gỡ bỏ bài đăng vi phạm (Khóa Job)
+// 4. DÀNH CHO ADMIN: Xóa/Gỡ bỏ bài đăng vi phạm (Khóa Job và gửi Mail)
 // =======================================================
 exports.deleteReportedJob = async (req, res) => {
     try {
@@ -182,30 +169,35 @@ exports.deleteReportedJob = async (req, res) => {
         await db.execute("UPDATE Jobs SET status = 'banned' WHERE id = ?", [jobId]);
         await db.execute("UPDATE Reports SET status = 'resolved' WHERE job_id = ?", [jobId]);
 
-        // Gửi mail cho employer
+        // ĐÃ CHUYỂN ĐỔI: Gửi mail thông báo khóa Job sang cho Resend
         if (jobRows.length > 0) {
             const { title, email, username } = jobRows[0];
-            await transporter.sendMail({
-                from: `"JobSpot Admin" <${emailUser}>`,
-                to: email,
-                subject: "⛔ Your job posting has been banned",
-                html: `
-                    <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
-                        <div style="background: #dc2626; padding: 20px 24px;">
-                            <h2 style="color: white; margin: 0;">⛔ Job Posting Banned</h2>
-                        </div>
-                        <div style="padding: 24px;">
-                            <p>Hello <strong>${username}</strong>,</p>
-                            <p>Your job posting <strong>"${title}"</strong> has been banned by our admin team due to a violation report.</p>
-                            <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 12px 16px; border-radius: 4px; margin: 16px 0;">
-                                <p style="margin: 0;"><strong>Reason:</strong> Violated platform terms of service based on user reports.</p>
+            try {
+                await resend.emails.send({
+                    from: "JobSpot Admin <onboarding@resend.dev>",
+                    to: email, // Lưu ý: Email employer này phải trùng với mail bạn đăng ký Resend nếu đang ở tài khoản Test miễn phí
+                    subject: "⛔ Your job posting has been banned",
+                    html: `
+                        <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+                            <div style="background: #dc2626; padding: 20px 24px;">
+                                <h2 style="color: white; margin: 0;">⛔ Job Posting Banned</h2>
                             </div>
-                            <p>If you believe this is a mistake, please contact our support team.</p>
-                            <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Best regards,<br/>JobSpot Admin Team</p>
+                            <div style="padding: 24px;">
+                                <p>Hello <strong>${username}</strong>,</p>
+                                <p>Your job posting <strong>"${title}"</strong> has been banned by our admin team due to a violation report.</p>
+                                <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 12px 16px; border-radius: 4px; margin: 16px 0;">
+                                    <p style="margin: 0;"><strong>Reason:</strong> Violated platform terms of service based on user reports.</p>
+                                </div>
+                                <p>If you believe this is a mistake, please contact our support team.</p>
+                                <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Best regards,<br/>JobSpot Admin Team</p>
+                            </div>
                         </div>
-                    </div>
-                `
-            });
+                    `
+                });
+                console.log(`✅ Đã gửi mail thông báo khóa bài tuyển dụng thành công tới: ${email}`);
+            } catch (mailError) {
+                console.error("⚠️ Không gửi được mail bằng Resend, bỏ qua lỗi để hệ thống tiếp tục chạy:", mailError.message);
+            }
         }
 
         return res.status(200).json({

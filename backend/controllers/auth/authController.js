@@ -8,9 +8,11 @@ require("dotenv").config({
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { validationResult } = require("express-validator");
-const nodemailer = require("nodemailer");
 const rateLimit = require("express-rate-limit");
 const axios = require("axios");
+
+// 1. IMPORT THƯ VIỆN RESEND
+const { Resend } = require("resend");
 
 // In-memory storage for unverified registrations (Both Standard & Google)
 const otpStorage = new Map();
@@ -41,22 +43,8 @@ const formatToMySQLDateTime = (date) => {
   return date.toISOString().slice(0, 19).replace("T", " ");
 };
 
-const emailUser = "txxh1004@gmail.com";
-const emailPass = "wrwvarvgrqlkhjwq";
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",        // Thêm dòng này để Nodemailer tự định tuyến qua máy chủ Google
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,            // Cổng 465 bắt buộc secure phải là true
-  auth: {
-    user: process.env.EMAIL_USER, // Sẽ tự đọc từ Render Environment
-    pass: process.env.EMAIL_PASS  // Sẽ tự đọc từ Render Environment
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
-});
+// 2. KHỞI TẠO RESEND (Nhớ thay bằng API Key thật của bạn)
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const generateEmailHTML = (fullName, otp, title, description) => {
   return `
@@ -167,22 +155,20 @@ exports.register = async (req, res) => {
     }
 
     try {
-        await transporter.sendMail({
-          from: `"JobSpot" <${emailUser}>`,
+        await resend.emails.send({
+          from: "JobSpot <onboarding@resend.dev>", // Bắt buộc dùng mail này ở chế độ Test
           to: email,
-          subject: "🛡️ Google Account Security Verification - JobSpot",
+          subject: "🛡️ Account Security Verification - JobSpot",
           html: emailHTML,
         });
         console.log(`✅ Đã gửi email OTP thành công tới: ${email}`);
       } catch (mailError) {
-        // Bắt lỗi nhưng KHÔNG dừng chương trình
-        console.log("⚠️ Render chặn gửi Email! Bỏ qua lỗi:", mailError.message);
+        console.log("⚠️ Lỗi gửi Email Resend! Bỏ qua lỗi:", mailError.message);
         console.log("==================================================");
         console.log(`🚀 MÃ OTP CỦA TÀI KHOẢN [${email}] LÀ: ${otp}`);
         console.log("==================================================");
       }
 
-      // Đã thêm lại dòng trả về response để hàm không bị treo
       return res.status(200).json({ success: true, message: "Mã OTP đã được gửi!", requireOtp: true, email });
 
   } catch (error) {
@@ -265,8 +251,8 @@ exports.resendOtp = async (req, res) => {
     );
 
     try {
-      await transporter.sendMail({
-        from: `"JobSpot" <${emailUser}>`,
+      await resend.emails.send({
+        from: "JobSpot <onboarding@resend.dev>",
         to: email,
         subject: "🔄 [Resend Code] Verify Your JobSpot Account",
         html: emailHTML,
@@ -349,7 +335,6 @@ exports.getProfile = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
 
-  // 1. THÊM ĐOẠN KIỂM TRA NÀY ĐỂ FIX LỖI 500 UNDEFINED
   if (!email) {
     return res.status(400).json({ 
       success: false, 
@@ -358,14 +343,12 @@ exports.forgotPassword = async (req, res) => {
   }
 
   try {
-    // Bây giờ 'email' chắc chắn đã tồn tại, câu lệnh này sẽ không bao giờ bị lỗi 'undefined' nữa
     const [users] = await db.execute("SELECT * FROM Users WHERE email = ?", [email]);
     if (users.length === 0) return res.status(404).json({ success: false, message: "Email address does not exist!" });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = Date.now() + 10 * 60 * 1000;
 
-    // ĐÃ SỬA CONFLICT: Đồng bộ hóa lưu OTP RAM sạch sẽ
     otpStorage.set(email, { type: 'FORGOT_PASSWORD', otp, otpExpires });
 
     const emailHTML = generateEmailHTML(
@@ -376,8 +359,11 @@ exports.forgotPassword = async (req, res) => {
     );
 
     try {
-      await transporter.sendMail({
-        from: `"JobSpot" <${emailUser}>`, to: email, subject: "🔑 Recover Your JobSpot Password", html: emailHTML,
+      await resend.emails.send({
+        from: "JobSpot <onboarding@resend.dev>", 
+        to: email, 
+        subject: "🔑 Recover Your JobSpot Password", 
+        html: emailHTML,
       });
     } catch (mailError) {
       console.log("Lỗi gửi mail, bỏ qua:", mailError.message);
@@ -394,7 +380,6 @@ exports.forgotPassword = async (req, res) => {
 exports.resetPassword = async (req, res) => {
   const { email, otp, newPassword } = req.body;
   try {
-    // ĐÃ SỬA CONFLICT: Lấy dữ liệu OTP từ RAM
     const otpData = otpStorage.get(email);
 
     if (!otpData || otpData.type !== 'FORGOT_PASSWORD') {
@@ -460,8 +445,8 @@ exports.googleLogin = async (req, res) => {
       );
 
       try {
-        await transporter.sendMail({
-          from: `"JobSpot" <${emailUser}>`,
+        await resend.emails.send({
+          from: "JobSpot <onboarding@resend.dev>",
           to: email,
           subject: "🛡️ Google Account Security Verification - JobSpot",
           html: emailHTML,
@@ -518,7 +503,6 @@ exports.adminLogin = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = Date.now() + 5 * 60 * 1000; // 5 phút
 
-    // ĐÃ SỬA CONFLICT: Lưu hoàn toàn vào RAM, xóa bỏ cú pháp DB thừa
     otpStorage.set(email, { type: 'ADMIN_LOGIN', otp, otpExpires });
 
     const emailHTML = generateEmailHTML(
@@ -527,9 +511,11 @@ exports.adminLogin = async (req, res) => {
     );
 
     try {
-      await transporter.sendMail({
-        from: `"JobSpot Admin" <${emailUser}>`, to: email,
-        subject: "🚨 High-Level Admin Verification Code - JobSpot", html: emailHTML
+      await resend.emails.send({
+        from: "JobSpot Admin <onboarding@resend.dev>", 
+        to: email,
+        subject: "🚨 High-Level Admin Verification Code - JobSpot", 
+        html: emailHTML
       });
     } catch (mailError) {
       console.log("Lỗi gửi mail, bỏ qua:", mailError.message);
@@ -546,7 +532,6 @@ exports.adminLogin = async (req, res) => {
 exports.verifyLoginOTP = async (req, res) => {
   const { email, otp } = req.body;
   try {
-    // ĐÃ SỬA CONFLICT: Đọc và check OTP sạch sẽ từ bộ nhớ RAM
     const otpData = otpStorage.get(email);
 
     if (!otpData || otpData.type !== 'ADMIN_LOGIN') {

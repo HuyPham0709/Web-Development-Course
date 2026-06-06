@@ -1,21 +1,8 @@
 const db = require('../../config/db');
-const nodemailer = require('nodemailer');
-const emailUser = "txxh1004@gmail.com";
-const emailPass = "wrwvarvgrqlkhjwq";
+const { Resend } = require("resend");
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",        // Thêm dòng này để Nodemailer tự định tuyến qua máy chủ Google
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,            // Cổng 465 bắt buộc secure phải là true
-  auth: {
-    user: process.env.EMAIL_USER, // Sẽ tự đọc từ Render Environment
-    pass: process.env.EMAIL_PASS  // Sẽ tự đọc từ Render Environment
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
-});
+// Khởi tạo Resend (Ưu tiên đọc từ .env, nếu không có thì dán mã thô vào đây)
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ================= LẤY DANH SÁCH USERS =================
 exports.getUsers = async (req, res) => {
@@ -155,30 +142,35 @@ exports.toggleBanUser = async (req, res) => {
             );
         }
 
-        // Gửi email thông báo khi BAN (không gửi khi unban)
+        // ĐÃ CHUYỂN ĐỔI: Gửi email thông báo bằng Resend khi BAN (không gửi khi unban)
         if (newStatus === 0) {
             const banReason = reason?.trim() || "Violation of the terms of service.";
-            await transporter.sendMail({
-                from: `"JobSpot Admin" <${emailUser}>`,
-                to: user.email,
-                subject: "⚠️ Your account has been temporarily locked",
-                html: `
-                    <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
-                        <div style="background: #dc2626; padding: 20px 24px;">
-                            <h2 style="color: white; margin: 0;">⚠️ Your account has been temporarily locked</h2>
-                        </div>
-                        <div style="padding: 24px;">
-                            <p>Hello <strong>${user.username}</strong>,</p>
-                            <p>Your account on <strong>JobSpot</strong> has been temporarily locked by an administrator.</p>
-                            <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 12px 16px; border-radius: 4px; margin: 16px 0;">
-                                <p style="margin: 0;"><strong>Reason:</strong> ${banReason}</p>
+            try {
+                await resend.emails.send({
+                    from: "JobSpot Admin <onboarding@resend.dev>",
+                    to: user.email, // Lưu ý: Email người dùng phải trùng với mail đăng ký Resend nếu ở tài khoản Test miễn phí
+                    subject: "⚠️ Your account has been temporarily locked",
+                    html: `
+                        <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+                            <div style="background: #dc2626; padding: 20px 24px;">
+                                <h2 style="color: white; margin: 0;">⚠️ Your account has been temporarily locked</h2>
                             </div>
-                            <p>If you believe this is a mistake, please contact our support team for assistance.</p>
-                            <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Best regards,<br/>The JobSpot Team</p>
+                            <div style="padding: 24px;">
+                                <p>Hello <strong>${user.username}</strong>,</p>
+                                <p>Your account on <strong>JobSpot</strong> has been temporarily locked by an administrator.</p>
+                                <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 12px 16px; border-radius: 4px; margin: 16px 0;">
+                                    <p style="margin: 0;"><strong>Reason:</strong> ${banReason}</p>
+                                </div>
+                                <p>If you believe this is a mistake, please contact our support team for assistance.</p>
+                                <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Best regards,<br/>The JobSpot Team</p>
+                            </div>
                         </div>
-                    </div>
-                `
-            });
+                    `
+                });
+                console.log(`✅ Đã gửi mail thông báo khóa tài khoản thành công tới: ${user.email}`);
+            } catch (mailError) {
+                console.error("⚠️ Không gửi được mail bằng Resend, bỏ qua để hệ thống tiếp tục chạy:", mailError.message);
+            }
         }
 
         const action = newStatus === 0 ? 'banned' : 'unbanned';
@@ -242,7 +234,7 @@ exports.getUserDetail = async (req, res) => {
         const [users] = await db.execute(`
             SELECT
                 u.id, u.username, u.email, u.role,
-                u.is_active, u.is_verified, u.created_at,u.ban_reason,
+                u.is_active, u.is_verified, u.created_at, u.ban_reason,
                 c.id AS company_id, c.name AS company_name,
                 c.is_verified AS company_verified, c.website, c.address,
                 p.full_name, p.avatar_url, p.phone, p.bio
@@ -256,7 +248,6 @@ exports.getUserDetail = async (req, res) => {
             return res.status(404).json({ success: false, message: "Không tìm thấy người dùng!" });
         }
 
-        // Đoạn code thống kê bên dưới giữ nguyên...
         let extra = {};
         if (users[0].role === 'candidate') {
             const [appCount] = await db.execute(
