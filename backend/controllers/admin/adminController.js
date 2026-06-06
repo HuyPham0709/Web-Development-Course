@@ -12,21 +12,21 @@ exports.getDashboardStats = async (req, res) => {
             [trends] // Lấy dữ liệu danh sách rows của câu query trends
         ] = await Promise.all([
             db.query("SELECT COUNT(*) as total FROM Users WHERE role = 'candidate'"),
-            db.query("SELECT COUNT(*) as total FROM Companies WHERE is_verified = 1"),
-            db.query("SELECT COUNT(*) as total FROM Jobs WHERE status = 'pending'"),
+            db.query("SELECT COUNT(*) as total FROM companies WHERE is_verified = 1"),
+            db.query("SELECT COUNT(*) as total FROM jobs WHERE status = 'pending'"),
             db.query("SELECT COUNT(*) as total FROM Reports WHERE status = 'pending'"),
             // Đếm số lượng tin tuyển dụng theo từng danh mục để vẽ Pie Chart
             db.query(`
                 SELECT cat.name, COUNT(j.id) as value 
-                FROM Categories cat 
-                LEFT JOIN Jobs j ON cat.id = j.category_id 
+                FROM categories cat 
+                LEFT JOIN jobs j ON cat.id = j.category_id 
                 GROUP BY cat.id
                 HAVING value > 0
             `),
             // Câu truy vấn mới: Lấy số lượng Job theo từng thứ trong tuần của 7 ngày gần đây
             db.query(`
                 SELECT WEEKDAY(created_at) as dayIndex, COUNT(*) as count
-                FROM Jobs
+                FROM jobs
                 WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
                 GROUP BY WEEKDAY(created_at)
             `)

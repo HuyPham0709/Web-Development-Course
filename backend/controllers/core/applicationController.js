@@ -17,7 +17,7 @@ exports.applyJob = async (req, res) => {
     );
 
     const [jobs] = await db.execute(
-      "SELECT id, title, posted_by FROM Jobs WHERE id = ? AND deleted_at IS NULL",
+      "SELECT id, title, posted_by FROM jobs WHERE id = ? AND deleted_at IS NULL",
       [job_id],
     );
 
@@ -163,7 +163,7 @@ exports.getApplicationById = async (req, res) => {
             FROM Applications a
             JOIN Users u ON a.candidate_id = u.id
             LEFT JOIN Profiles p ON u.id = p.user_id
-            JOIN Jobs j ON a.job_id = j.id
+            JOIN jobs j ON a.job_id = j.id
             WHERE a.id = ? AND j.posted_by = ?
         `,
       [id, employer_id],
@@ -226,7 +226,7 @@ exports.updateApplicationStatus = async (req, res) => {
     const [applications] = await db.execute(
       `SELECT a.candidate_id, j.title as job_title 
        FROM Applications a 
-       JOIN Jobs j ON a.job_id = j.id 
+       JOIN jobs j ON a.job_id = j.id 
        WHERE a.id = ?`,
       [application_id],
     );
@@ -300,7 +300,7 @@ exports.getEmployerJobs = async (req, res) => {
         j.salary_min, j.salary_max, j.rejection_reason,
         l.name AS location_name,
         COUNT(a.id) AS application_count
-      FROM Jobs j
+      FROM jobs j
       LEFT JOIN Locations l ON j.location_id = l.id
       LEFT JOIN Applications a ON j.id = a.job_id
       WHERE j.posted_by = ? AND j.deleted_at IS NULL
@@ -494,7 +494,7 @@ exports.toggleJobStatus = async (req, res) => {
 
   try {
     const [jobs] = await db.execute(
-      "SELECT id, status FROM Jobs WHERE id = ? AND posted_by = ?",
+      "SELECT id, status FROM jobs WHERE id = ? AND posted_by = ?",
       [job_id, employer_id],
     );
 
@@ -550,7 +550,7 @@ exports.inviteInterview = async (req, res, next) => {
       FROM Applications a
       JOIN Users u ON a.candidate_id = u.id
       LEFT JOIN Profiles p ON u.id = p.user_id
-      JOIN Jobs j ON a.job_id = j.id
+      JOIN jobs j ON a.job_id = j.id
       LEFT JOIN Companies c ON j.company_id = c.id
       WHERE a.id = ?
     `,
@@ -684,7 +684,7 @@ exports.inviteInterview = async (req, res, next) => {
               <tr>
                 <td style="padding: 24px 40px; background-color: #F8FAFC; border-top: 1px solid #E2E8F0; text-align: center;">
                   <p style="margin: 0; font-size: 12px; color: #94A3B8; line-height: 1.5;">
-                    This is an automated notification from JobSpot Network.<br>© 2026 JobSpot Network. All rights reserved.
+                    This is an automated notification FROM jobspot Network.<br>© 2026 JobSpot Network. All rights reserved.
                   </p>
                 </td>
               </tr>
@@ -747,7 +747,7 @@ exports.acceptInterview = async (req, res, next) => {
       FROM Applications a
       JOIN Users u ON a.candidate_id = u.id
       LEFT JOIN Profiles p ON u.id = p.user_id
-      JOIN Jobs j ON a.job_id = j.id
+      JOIN jobs j ON a.job_id = j.id
       WHERE a.id = ?
     `,
       [id],
@@ -826,7 +826,7 @@ exports.declineInterview = async (req, res, next) => {
       FROM Applications a
       JOIN Users u ON a.candidate_id = u.id
       LEFT JOIN Profiles p ON u.id = p.user_id
-      JOIN Jobs j ON a.job_id = j.id
+      JOIN jobs j ON a.job_id = j.id
       WHERE a.id = ?
     `,
       [id],

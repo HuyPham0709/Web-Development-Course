@@ -72,7 +72,7 @@ exports.createJob = async (req, res) => {
             }
         }
 
-        const [companyRows] = await db.execute('SELECT name FROM Companies WHERE id = ?', [company_id]);
+        const [companyRows] = await db.execute('SELECT name FROM companies WHERE id = ?', [company_id]);
         const companyName = companyRows[0]?.name || 'The employer';
 
         await createAdminNotification({
@@ -175,7 +175,7 @@ exports.getAllJobs = async (req, res) => {
 
         let countQuery = `
             SELECT COUNT(DISTINCT j.id) as total 
-            FROM Jobs j
+            FROM jobs j
             LEFT JOIN Locations l ON j.location_id = l.id
             ${whereClause}
         `;
@@ -193,7 +193,7 @@ exports.getAllJobs = async (req, res) => {
                 c.is_verified,
                 l.name as location_name,
                 GROUP_CONCAT(s.name SEPARATOR ',') as skills
-            FROM Jobs j
+            FROM jobs j
             LEFT JOIN Companies c ON j.company_id = c.id
             LEFT JOIN Locations l ON j.location_id = l.id
             LEFT JOIN Job_Skills js ON j.id = js.job_id
@@ -235,7 +235,7 @@ exports.getJobDetail = async (req, res) => {
                    l.name as location_name,
                    cat.name as category_name,
                    GROUP_CONCAT(s.name SEPARATOR ',') as skills -- <--- THÊM: Gộp tên kĩ năng thành chuỗi
-            FROM Jobs j
+            FROM jobs j
             LEFT JOIN Companies c ON j.company_id = c.id
             LEFT JOIN Locations l ON j.location_id = l.id
             LEFT JOIN Categories cat ON j.category_id = cat.id
@@ -269,7 +269,7 @@ exports.updateJob = async (req, res) => {
     try {
         // Kiểm tra job thuộc công ty này không
         const [jobs] = await db.execute(
-            'SELECT id FROM Jobs WHERE id = ? AND company_id = ? AND deleted_at IS NULL',
+            'SELECT id FROM jobs WHERE id = ? AND company_id = ? AND deleted_at IS NULL',
             [jobId, company_id]
         );
         if (jobs.length === 0) {
@@ -321,7 +321,7 @@ exports.updateJob = async (req, res) => {
             }
         }
 
-        const [companyRows] = await db.execute('SELECT name FROM Companies WHERE id = ?', [company_id]);
+        const [companyRows] = await db.execute('SELECT name FROM companies WHERE id = ?', [company_id]);
         const companyName = companyRows[0]?.name || 'The employer';
         await createAdminNotification({
             title: "✏️ Job updated",
@@ -344,7 +344,7 @@ exports.deleteJob = async (req, res) => {
         const role = req.user.role;
 
         const [jobs] = await db.execute(
-            'SELECT * FROM Jobs WHERE id = ? AND deleted_at IS NULL',
+            'SELECT * FROM jobs WHERE id = ? AND deleted_at IS NULL',
             [jobId]
         );
         if (jobs.length === 0) {
@@ -374,7 +374,7 @@ exports.getJobsByEmployer = async (req, res) => {
                 l.name AS location_name,
                 cat.name AS category_name,
                 COUNT(a.id) AS application_count
-            FROM Jobs j
+            FROM jobs j
             LEFT JOIN Locations l ON j.location_id = l.id
             LEFT JOIN Categories cat ON j.category_id = cat.id
             LEFT JOIN Applications a ON j.id = a.job_id
@@ -418,7 +418,7 @@ exports.getSuggestions = async (req, res, next) => {
                 j.id AS id, 
                 j.title AS label, 
                 c.name AS description
-            FROM Jobs j
+            FROM jobs j
             LEFT JOIN Companies c ON j.company_id = c.id
             WHERE j.status = 'approved' 
               AND j.deleted_at IS NULL 

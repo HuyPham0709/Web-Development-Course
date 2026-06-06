@@ -7,8 +7,8 @@ exports.getAllCategories = async (req, res) => {
         const [rows] = await db.execute(`
             SELECT c.id, c.name, c.slug, c.icon_url, c.created_at,
                 COUNT(j.id) AS job_count
-            FROM Categories c
-            LEFT JOIN Jobs j ON j.category_id = c.id AND j.deleted_at IS NULL
+            FROM categories c
+            LEFT JOIN jobs j ON j.category_id = c.id AND j.deleted_at IS NULL
             GROUP BY c.id
             ORDER BY c.name ASC
         `);
@@ -32,7 +32,7 @@ exports.createCategory = async (req, res) => {
             'INSERT INTO Categories (name, slug, icon_url) VALUES (?, ?, ?)',
             [name.trim(), autoSlug, icon_url || null]
         );
-        const [newRow] = await db.execute('SELECT * FROM Categories WHERE id = ?', [result.insertId]);
+        const [newRow] = await db.execute('SELECT * FROM categories WHERE id = ?', [result.insertId]);
         res.status(201).json({ success: true, data: newRow[0] });
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') {
@@ -56,7 +56,7 @@ exports.updateCategory = async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Không tìm thấy danh mục' });
         }
-        const [updated] = await db.execute('SELECT * FROM Categories WHERE id = ?', [id]);
+        const [updated] = await db.execute('SELECT * FROM categories WHERE id = ?', [id]);
         res.status(200).json({ success: true, data: updated[0] });
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') {
@@ -71,7 +71,7 @@ exports.deleteCategory = async (req, res) => {
     try {
         // Kiểm tra có jobs đang dùng không
         const [jobs] = await db.execute(
-            'SELECT COUNT(*) AS count FROM Jobs WHERE category_id = ? AND deleted_at IS NULL',
+            'SELECT COUNT(*) AS count FROM jobs WHERE category_id = ? AND deleted_at IS NULL',
             [id]
         );
         if (jobs[0].count > 0) {
@@ -80,7 +80,7 @@ exports.deleteCategory = async (req, res) => {
                 message: `Không thể xóa: có ${jobs[0].count} tin tuyển dụng đang dùng danh mục này`
             });
         }
-        const [result] = await db.execute('DELETE FROM Categories WHERE id = ?', [id]);
+        const [result] = await db.execute('DELETE FROM categories WHERE id = ?', [id]);
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Không tìm thấy danh mục' });
         }
@@ -98,7 +98,7 @@ exports.getAllLocations = async (req, res) => {
             SELECT l.id, l.name, l.slug, l.created_at,
                 COUNT(j.id) AS job_count
             FROM Locations l
-            LEFT JOIN Jobs j ON j.location_id = l.id AND j.deleted_at IS NULL
+            LEFT JOIN jobs j ON j.location_id = l.id AND j.deleted_at IS NULL
             GROUP BY l.id
             ORDER BY l.name ASC
         `);
@@ -161,7 +161,7 @@ exports.deleteLocation = async (req, res) => {
     const { id } = req.params;
     try {
         const [jobs] = await db.execute(
-            'SELECT COUNT(*) AS count FROM Jobs WHERE location_id = ? AND deleted_at IS NULL',
+            'SELECT COUNT(*) AS count FROM jobs WHERE location_id = ? AND deleted_at IS NULL',
             [id]
         );
         if (jobs[0].count > 0) {

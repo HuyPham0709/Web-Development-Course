@@ -257,7 +257,7 @@ exports.getUserDetail = async (req, res) => {
             extra.total_applications = appCount[0].total;
         } else if (users[0].role === 'employer') {
             const [jobCount] = await db.execute(
-                "SELECT COUNT(*) AS total FROM Jobs WHERE posted_by = ? AND deleted_at IS NULL",
+                "SELECT COUNT(*) AS total FROM jobs WHERE posted_by = ? AND deleted_at IS NULL",
                 [user_id]
             );
             extra.total_jobs = jobCount[0].total;

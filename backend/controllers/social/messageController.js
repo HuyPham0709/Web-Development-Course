@@ -58,7 +58,7 @@ exports.getConversations = async (req, res, next) => {
                     // Ứng viên đang xem chat -> Lấy thông tin hiển thị là đối phương (Công Ty)
                     if (currentCompanyId) {
                         const [companyRows] = await db.query(
-                            `SELECT id, name, logo_url FROM Companies WHERE id = ?`, 
+                            `SELECT id, name, logo_url FROM companies WHERE id = ?`, 
                             [currentCompanyId]
                         );
                         if (companyRows.length > 0) {

@@ -9,8 +9,8 @@ exports.getAllCategories = async (req, res) => {
                 c.slug, 
                 c.icon_url, 
                 COUNT(j.id) AS job_count
-            FROM Categories c
-            LEFT JOIN Jobs j ON c.id = j.category_id
+            FROM categories c
+            LEFT JOIN jobs j ON c.id = j.category_id
             GROUP BY c.id
             ORDER BY job_count DESC -- Sắp xếp từ nhiều job nhất xuống ít nhất
             LIMIT 5;                -- Chỉ lấy đúng 5 danh mục đứng đầu

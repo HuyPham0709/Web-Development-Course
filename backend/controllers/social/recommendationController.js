@@ -39,7 +39,7 @@ exports.getRecommendedJobs = async (req, res) => {
         j.created_at,
         c.name      AS company_name,
         l.name      AS location_name
-      FROM Jobs j
+      FROM jobs j
       LEFT JOIN Companies c ON j.company_id = c.id
       LEFT JOIN Locations l ON j.location_id = l.id
       WHERE j.status = 'approved'

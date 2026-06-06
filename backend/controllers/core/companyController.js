@@ -22,7 +22,7 @@ exports.getCompanyProfile = async (req, res) => {
                 address, 
                 slug, 
                 is_verified 
-            FROM Companies 
+            FROM companies 
             WHERE 
         `;
         const queryParams = [];
@@ -96,7 +96,7 @@ exports.updateCompanyProfile = async (req, res) => {
         // Truy vấn lại để lấy thông tin mới nhất trả về cho Frontend hiển thị tức thời
         const [updatedRows] = await db.query(
             `SELECT id, name, logo_url, banner_url, website, description, address, slug, is_verified 
-             FROM Companies WHERE id = ?`,
+             FROM companies WHERE id = ?`,
             [id]
         );
 
@@ -208,8 +208,8 @@ exports.getTopCompanies = async (req, res) => {
                 c.is_verified,
                 -- Gom nhóm toàn bộ tên kỹ năng từ các Jobs đang kích hoạt thành chuỗi phân tách bằng dấu phẩy
                 GROUP_CONCAT(DISTINCT s.name SEPARATOR ',') AS tech_stack
-            FROM Companies c
-            LEFT JOIN Jobs j ON c.id = j.company_id AND j.status = 'approved' AND j.deleted_at IS NULL
+            FROM companies c
+            LEFT JOIN jobs j ON c.id = j.company_id AND j.status = 'approved' AND j.deleted_at IS NULL
             LEFT JOIN Job_Skills js ON j.id = js.job_id
             LEFT JOIN Skills s ON js.skill_id = s.id
             WHERE c.deleted_at IS NULL

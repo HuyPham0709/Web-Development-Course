@@ -190,7 +190,7 @@ export default function AuthPage() {
     onSuccess: async (tokenResponse) => {
       setIsLoading(true);
       try {
-        const response = await axios.post("https://web-development-course-y23i.onrender.com//api/auth/google", {
+        const response = await axios.post("https://web-development-course-y23i.onrender.com/api/auth/google", {
           accessToken: tokenResponse.access_token, role: role,
         });
 

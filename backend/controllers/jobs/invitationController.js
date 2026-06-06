@@ -6,7 +6,7 @@ exports.getEmployerJobs = async (req, res) => {
   try {
     const employerId = req.user.id;
     const [jobs] = await db.execute(
-      `SELECT id, title FROM Jobs 
+      `SELECT id, title FROM jobs 
              WHERE posted_by = ? AND status IN ('pending', 'approved')
              ORDER BY created_at DESC`,
       [employerId],
@@ -117,7 +117,7 @@ exports.getCandidateInvitations = async (req, res) => {
                 c.name AS company_name,
                 c.logo_url AS company_logo
              FROM Job_Invitations ji
-             JOIN Jobs j ON ji.job_id = j.id
+             JOIN jobs j ON ji.job_id = j.id
              JOIN Users u ON ji.employer_id = u.id
              LEFT JOIN Profiles ep ON ep.user_id = u.id
              LEFT JOIN Companies c ON u.company_id = c.id
@@ -155,7 +155,7 @@ exports.getInvitationDetail = async (req, res) => {
                 c.name AS company_name,
                 c.logo_url AS company_logo
              FROM Job_Invitations ji
-             JOIN Jobs j ON ji.job_id = j.id
+             JOIN jobs j ON ji.job_id = j.id
              JOIN Users u ON ji.employer_id = u.id
              LEFT JOIN Profiles ep ON ep.user_id = u.id
              LEFT JOIN Companies c ON u.company_id = c.id

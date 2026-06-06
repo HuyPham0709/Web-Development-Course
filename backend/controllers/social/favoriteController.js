@@ -20,7 +20,7 @@ exports.getFavorites = async (req, res) => {
         l.name AS location_name,
         fj.created_at AS saved_at
       FROM Favorite_Jobs fj
-      JOIN Jobs j ON fj.job_id = j.id
+      JOIN jobs j ON fj.job_id = j.id
       JOIN Companies c ON j.company_id = c.id
       JOIN Locations l ON j.location_id = l.id
       WHERE fj.user_id = ? 

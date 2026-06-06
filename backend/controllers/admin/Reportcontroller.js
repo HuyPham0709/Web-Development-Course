@@ -23,7 +23,7 @@ exports.createReport = async (req, res) => {
         );
         const [jobRows] = await db.execute(
             `SELECT j.title, u.username 
-             FROM Jobs j, Users u 
+             FROM jobs j, Users u 
              WHERE j.id = ? AND u.id = ?`,
             [job_id, reporter_id]
         );
@@ -85,7 +85,7 @@ exports.getReports = async (req, res) => {
                 u.username AS reporter_username,
                 u.email AS reporter_email
             FROM Reports r
-            INNER JOIN Jobs j ON r.job_id = j.id
+            INNER JOIN jobs j ON r.job_id = j.id
             INNER JOIN Companies c ON j.company_id = c.id
             INNER JOIN Users u ON r.reporter_id = u.id
             WHERE 1=1
@@ -161,7 +161,7 @@ exports.deleteReportedJob = async (req, res) => {
         // Lấy thông tin job + employer để gửi mail
         const [jobRows] = await db.execute(
             `SELECT j.title, u.email, u.username 
-             FROM Jobs j JOIN Users u ON j.posted_by = u.id 
+             FROM jobs j JOIN Users u ON j.posted_by = u.id 
              WHERE j.id = ?`,
             [jobId]
         );

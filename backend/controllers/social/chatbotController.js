@@ -33,10 +33,10 @@ exports.chatWithBot = async (req, res, next) => {
         greetingKeywords.forEach(kw => { if (cleanText.includes(kw)) intent.greeting++; });
 
         // 3. Quét Database lấy thông tin thực tế để đối chiếu (Động 100%)
-        const [companies] = await db.query("SELECT id, name, address FROM Companies");
+        const [companies] = await db.query("SELECT id, name, address FROM companies");
         let matchedCompany = companies.find(c => cleanText.includes(c.name.toLowerCase()));
 
-        const [categories] = await db.query("SELECT id, name FROM Categories");
+        const [categories] = await db.query("SELECT id, name FROM categories");
         let matchedCategory = categories.find(c => cleanText.includes(c.name.toLowerCase()));
 
         // Chuẩn bị sẵn một vài cái tên có thật trong DB để làm gợi ý cho User (Đã xóa bỏ dấu markdown)
@@ -94,7 +94,7 @@ exports.chatWithBot = async (req, res, next) => {
         // Có từ khóa Việc làm + Khớp tên Công ty
         else if (intent.job > 0 && matchedCompany) {
             const [jobs] = await db.query(
-                "SELECT title FROM Jobs WHERE company_id = ? AND status = 'approved' LIMIT 5", 
+                "SELECT title FROM jobs WHERE company_id = ? AND status = 'approved' LIMIT 5", 
                 [matchedCompany.id]
             );
 
@@ -108,7 +108,7 @@ exports.chatWithBot = async (req, res, next) => {
         // Có từ khóa Việc làm + Khớp danh mục Ngành nghề
         else if (intent.job > 0 && matchedCategory) {
             const [jobs] = await db.query(
-                `SELECT j.title, c.name as company_name FROM Jobs j 
+                `SELECT j.title, c.name as company_name FROM jobs j 
                  JOIN Companies c ON j.company_id = c.id 
                  WHERE j.category_id = ? AND j.status = 'approved' LIMIT 5`, 
                 [matchedCategory.id]

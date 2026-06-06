@@ -39,7 +39,7 @@ exports.getAllJobs = async (req, res) => {
                 c.name AS company_name,
                 l.name AS location_name,
                 cat.name AS category_name
-            FROM Jobs j
+            FROM jobs j
             JOIN Companies  c   ON j.company_id  = c.id
             JOIN Locations  l   ON j.location_id = l.id
             JOIN Categories cat ON j.category_id = cat.id
@@ -50,7 +50,7 @@ exports.getAllJobs = async (req, res) => {
 
         const [countResult] = await db.execute(`
             SELECT COUNT(*) AS total
-            FROM Jobs j
+            FROM jobs j
             JOIN Companies c ON j.company_id = c.id
             ${whereClause}
         `, params);
@@ -64,7 +64,7 @@ exports.getAllJobs = async (req, res) => {
                 SUM(CASE WHEN status = 'closed'   THEN 1 ELSE 0 END) AS total_closed,
                 SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) AS total_rejected,
                 SUM(CASE WHEN status = 'banned' THEN 1 ELSE 0 END) AS total_banned
-            FROM Jobs
+            FROM jobs
             WHERE deleted_at IS NULL
         `);
 
@@ -116,7 +116,7 @@ exports.getPendingJobs = async (req, res) => {
                 cat.name AS category_name,
                 u.username AS posted_by_username,
                 u.email    AS posted_by_email
-            FROM Jobs j
+            FROM jobs j
             JOIN Companies  c   ON j.company_id   = c.id
             JOIN Locations  l   ON j.location_id  = l.id
             JOIN Categories cat ON j.category_id  = cat.id
@@ -135,7 +135,7 @@ exports.approveJob = async (req, res) => {
     const { job_id } = req.params;
     try {
         const [jobs] = await db.execute(
-            "SELECT id, title, status FROM Jobs WHERE id = ? AND deleted_at IS NULL",
+            "SELECT id, title, status FROM jobs WHERE id = ? AND deleted_at IS NULL",
             [job_id]
         );
         if (jobs.length === 0) {
@@ -158,7 +158,7 @@ exports.rejectJob = async (req, res) => {
 
     try {
         const [jobs] = await db.execute(
-            "SELECT id, title, status FROM Jobs WHERE id = ? AND deleted_at IS NULL",
+            "SELECT id, title, status FROM jobs WHERE id = ? AND deleted_at IS NULL",
             [job_id]
         );
 
@@ -192,7 +192,7 @@ exports.getJobStats = async (req, res) => {
                 SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS total_approved,
                 SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) AS total_rejected,
                 SUM(CASE WHEN status = 'closed'   THEN 1 ELSE 0 END) AS total_closed
-            FROM Jobs WHERE deleted_at IS NULL
+            FROM jobs WHERE deleted_at IS NULL
         `);
         res.status(200).json({ success: true, data: stats[0] });
     } catch (error) {
@@ -228,7 +228,7 @@ exports.duplicateJob = async (req, res) => {
     try {
         // Lấy thông tin bản gốc cũ
         const [jobs] = await db.execute(
-            "SELECT * FROM Jobs WHERE id = ? AND deleted_at IS NULL",
+            "SELECT * FROM jobs WHERE id = ? AND deleted_at IS NULL",
             [job_id]
         );
         if (jobs.length === 0) {
@@ -278,7 +278,7 @@ exports.exportJobsCSV = async (req, res) => {
         const [jobs] = await db.execute(`
             SELECT j.id, j.title, j.job_type, j.experience_level, j.salary_min, j.salary_max, j.status,
                    c.name AS company_name, l.name AS location_name, cat.name AS category_name, j.created_at
-            FROM Jobs j
+            FROM jobs j
             JOIN Companies c ON j.company_id = c.id
             JOIN Locations l ON j.location_id = l.id
             JOIN Categories cat ON j.category_id = cat.id
@@ -310,7 +310,7 @@ exports.getJobById = async (req, res) => {
                    c.name AS company_name, 
                    l.name AS location_name, 
                    cat.name AS category_name
-            FROM Jobs j
+            FROM jobs j
             JOIN Companies c ON j.company_id = c.id
             JOIN Locations l ON j.location_id = l.id
             JOIN Categories cat ON j.category_id = cat.id
