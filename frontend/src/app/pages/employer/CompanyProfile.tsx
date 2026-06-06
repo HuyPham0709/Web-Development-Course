@@ -14,7 +14,7 @@ import { EditModal } from '../../components/candidate/profile/EditModal';
 import { Field, inputCls } from '../../components/candidate/profile/Field';
 
 // Thêm cấu hình API_BASE thống nhất, tối ưu cho cả local và Render
-const API_BASE = import.meta.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'https://web-development-course-y23i.onrender.com';
+const API_BASE = import.meta.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'https://web-development-course-y23i.onrender.com/';
 
 const DEFAULT_LOGO = 'https://placehold.co/150?text=Logo';
 const DEFAULT_BANNER = 'https://placehold.co/800x200?text=Banner';

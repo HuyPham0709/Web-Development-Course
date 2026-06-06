@@ -33,7 +33,7 @@ export const resolveFileUrl = (url: string | null | undefined): string => {
     return url;
   }
 
-  const baseUrl = import.meta.env.VITE_API_URL || 'https://web-development-course-y23i.onrender.com';
+  const baseUrl = import.meta.env.VITE_API_URL || 'https://web-development-course-y23i.onrender.com/';
   if (url.startsWith('/uploads/')) {
     return `${baseUrl}${url}`;
   }

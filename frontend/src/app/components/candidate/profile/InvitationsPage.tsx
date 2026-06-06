@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Mail, Building2, Calendar, MessageSquare, ArrowUpRight, Loader2, Inbox } from 'lucide-react';
 
 // Thêm cấu hình API_BASE thống nhất
-const API_BASE = import.meta.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'https://web-development-course-y23i.onrender.com';
+const API_BASE = import.meta.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'https://web-development-course-y23i.onrender.com/';
 
 interface Invitation {
   id: number;

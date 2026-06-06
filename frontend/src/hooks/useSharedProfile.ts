@@ -36,7 +36,7 @@ export function useSharedProfile() {
       const userId = user?.id;
 
       if (token && userId) {
-        fetch(`https://web-development-course-y23i.onrender.comapi/profile/${userId}`, {
+        fetch(`https://web-development-course-y23i.onrender.com/api/profile/${userId}`, {
           headers: { Authorization: `Bearer ${token}` }
         })
           .then(res => res.json())

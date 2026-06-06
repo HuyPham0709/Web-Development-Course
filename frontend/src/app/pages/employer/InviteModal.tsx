@@ -72,7 +72,7 @@ export const InviteModal = ({
         setError(null);
         try {
           const response = await fetch(
-            "https://web-development-course-y23i.onrender.com/api/invitations/jobs",
+            "https://web-development-course-y23i.onrender.com//api/invitations/jobs",
             {
               headers: {
                 Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -119,7 +119,7 @@ export const InviteModal = ({
     setSubmitError(null);
     try {
       const response = await fetch(
-        "https://web-development-course-y23i.onrender.com/api/invitations/send",
+        "https://web-development-course-y23i.onrender.com//api/invitations/send",
         {
           method: "POST",
           headers: {

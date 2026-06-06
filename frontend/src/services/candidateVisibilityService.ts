@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Lấy base URL từ env, nếu không có thì dùng mặc định
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://web-development-course-y23i.onrender.com';
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://web-development-course-y23i.onrender.com/';
 // Tự động thêm /api nếu chưa có
 const API_BASE = BASE_URL.endsWith('/api') ? BASE_URL : `${BASE_URL}/api`;
 

@@ -8,7 +8,7 @@ import { getInitials, formatDateVN } from '../../../utils/format';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import { io } from 'socket.io-client';
 
-const BASE_URL = 'https://web-development-course-y23i.onrender.com';
+const BASE_URL = 'https://web-development-course-y23i.onrender.com/';
 
 const toFullUrl = (url: string | null | undefined): string => {
   if (!url) return '';

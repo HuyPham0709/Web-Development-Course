@@ -116,7 +116,7 @@ export default function JobDetail() {
         remote_comfort: formData.remoteComfort,
       };
 
-      await axios.post("https://web-development-course-y23i.onrender.comapi/applications/apply", payload, {
+      await axios.post("https://web-development-course-y23i.onrender.com/api/applications/apply", payload, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -155,7 +155,7 @@ export default function JobDetail() {
         reason: finalReason
       };
 
-      await axios.post("https://web-development-course-y23i.onrender.comapi/admin/reports", payload, {
+      await axios.post("https://web-development-course-y23i.onrender.com/api/admin/reports", payload, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -174,7 +174,7 @@ export default function JobDetail() {
     window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
     const fetchJob = async () => {
       try {
-        const res = await axios.get(`https://web-development-course-y23i.onrender.comapi/jobs/${id}`);
+        const res = await axios.get(`https://web-development-course-y23i.onrender.com/api/jobs/${id}`);
         setJob(res.data.data);
       } catch (err) {
         console.error("API Error:", err);
@@ -219,7 +219,7 @@ export default function JobDetail() {
   if (url.startsWith("http")) return url;
   
   // Thay localhost bằng domain backend thực tế của bạn
-  const baseUrl = "https://web-development-course-y23i.onrender.com";
+  const baseUrl = "https://web-development-course-y23i.onrender.com/";
   return `${baseUrl}${url.startsWith("/") ? "" : "/"}${url}`;
 };
   return (

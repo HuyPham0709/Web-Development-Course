@@ -28,7 +28,7 @@ import { ProfileSkeleton } from '../../components/candidate/profile/ProfileSkele
 import { invalidateProfileCache } from '../../../hooks/useSharedProfile';
 
 // Thêm biến môi trường API_BASE dùng chung để không bị lỗi thiếu dấu "/" nữa
-const API_BASE = import.meta.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'https://web-development-course-y23i.onrender.com';
+const API_BASE = import.meta.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'https://web-development-course-y23i.onrender.com/';
 
 interface RecommendedJob {
   id: number;

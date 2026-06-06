@@ -1,6 +1,6 @@
 // frontend/src/services/profileService.ts
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://web-development-course-y23i.onrender.com';
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://web-development-course-y23i.onrender.com/';
 
 // ─── Headers ────────────────────────────────────────────────────────────────
 

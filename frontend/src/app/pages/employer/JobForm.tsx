@@ -7,7 +7,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { formatSalary } from "../../../utils/format";
 
 // Ensure this URL targets your correct Backend port 5000
-const BACKEND_URL = "https://web-development-course-y23i.onrender.com/api";
+const BACKEND_URL = "https://web-development-course-y23i.onrender.com//api";
 
 function getHeaders() {
   const token = localStorage.getItem("token");

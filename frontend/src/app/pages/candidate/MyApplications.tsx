@@ -17,7 +17,7 @@ import { getRecommendations } from '../../../services/recommendationService';
 import { useSharedProfile } from '../../../hooks/useSharedProfile';
 
 // Thêm cấu hình API_BASE thống nhất
-const API_BASE = import.meta.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'https://web-development-course-y23i.onrender.com';
+const API_BASE = import.meta.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'https://web-development-course-y23i.onrender.com/';
 
 interface Application {
   id: number;
