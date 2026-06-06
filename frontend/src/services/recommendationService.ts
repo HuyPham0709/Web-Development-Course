@@ -5,6 +5,7 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'https://web-development-course
 const API_URL = `${BASE_URL}/api/recommendations`;
 
 export const getRecommendations = async () => {
+  console.log("🔥 KIỂM TRA URL AI:", API_URL);
   return axios.get(API_URL, {
     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
   });
