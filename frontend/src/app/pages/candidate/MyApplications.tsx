@@ -16,6 +16,9 @@ import { RecommendedJobsAside } from '../../components/candidate/profile/Recomme
 import { getRecommendations } from '../../../services/recommendationService';
 import { useSharedProfile } from '../../../hooks/useSharedProfile';
 
+// Thêm cấu hình API_BASE thống nhất
+const API_BASE = import.meta.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'https://web-development-course-y23i.onrender.com';
+
 interface Application {
   id: number;
   job_id: number;
@@ -53,7 +56,8 @@ export default function MyApplications() {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch('https://web-development-course-y23i.onrender.comapi/applications/my', {
+      // Đã sửa: Dùng API_BASE
+      const response = await fetch(`${API_BASE}/api/applications/my`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -78,10 +82,11 @@ export default function MyApplications() {
             ? new Date(item.applied_at).toLocaleDateString('vi-VN')
             : 'N/A',
           status: item.status || 'pending',
+          // Đã sửa: Bỏ localhost, dùng API_BASE
           logoUrl: item.logo_url
             ? item.logo_url.startsWith('http')
               ? item.logo_url
-              : `http://127.0.0.1:5000${item.logo_url.startsWith('/') ? '' : '/'}${item.logo_url}`
+              : `${API_BASE}${item.logo_url.startsWith('/') ? '' : '/'}${item.logo_url}`
             : `https://ui-avatars.com/api/?name=${encodeURIComponent(item.company_name || 'Co')}&background=random`
         }));
         setApplications(formattedData);
@@ -115,7 +120,8 @@ export default function MyApplications() {
     try {
       setWithdrawingId(applicationId);
       const token = localStorage.getItem("token");
-      const response = await fetch(`https://web-development-course-y23i.onrender.comapi/applications/withdraw/${applicationId}`, {
+      // Đã sửa: Dùng API_BASE
+      const response = await fetch(`${API_BASE}/api/applications/withdraw/${applicationId}`, {
         method: "DELETE",
         headers: { 'Authorization': `Bearer ${token}` },
       });

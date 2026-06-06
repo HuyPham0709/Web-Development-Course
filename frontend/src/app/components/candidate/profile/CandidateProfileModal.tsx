@@ -52,7 +52,7 @@ interface CandidateProfileModalProps {
   onReject?: (candidateId: number) => void;
 }
 
-const API_BASE = 'http://127.0.0.1:5000';
+const API_BASE = 'https://web-development-course-y23i.onrender.com';
 
 const getFullUrl = (path: string | null) => {
   if (!path) return null;

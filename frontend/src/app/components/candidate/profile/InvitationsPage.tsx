@@ -3,6 +3,9 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Building2, Calendar, MessageSquare, ArrowUpRight, Loader2, Inbox } from 'lucide-react';
 
+// Thêm cấu hình API_BASE thống nhất
+const API_BASE = import.meta.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'https://web-development-course-y23i.onrender.com';
+
 interface Invitation {
   id: number;
   job_id: number;
@@ -25,7 +28,8 @@ export const InvitationsPage = () => {
     const fetchInvitations = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('https://web-development-course-y23i.onrender.comapi/invitations/my-invitations', {
+        // Đã sửa: Dùng API_BASE thay vì fix cứng chuỗi dễ bị sai typo
+        const response = await fetch(`${API_BASE}/api/invitations/my-invitations`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -43,7 +47,7 @@ export const InvitationsPage = () => {
   }, []);
 
   const handleViewDetail = (invite: Invitation) => {
-    console.log('Invitation data:', invite); // debug xem có company_id không
+    console.log('Invitation data:', invite);
 
     if (invite.job_id) {
       navigate(`/job/${invite.job_id}`);
@@ -97,9 +101,10 @@ export const InvitationsPage = () => {
                   <div className="w-16 h-16 rounded-2xl bg-white dark:bg-white/10 flex items-center justify-center border border-gray-200 dark:border-white/10 overflow-hidden shadow-sm">
                     {invite.company_logo ? (
                       <img
+                        // Đã sửa: Xóa localhost và dùng API_BASE
                         src={invite.company_logo.startsWith('http')
                           ? invite.company_logo
-                          : `http://127.0.0.1:5000${invite.company_logo}`}
+                          : `${API_BASE}${invite.company_logo.startsWith('/') ? '' : '/'}${invite.company_logo}`}
                         alt="company logo"
                         className="w-full h-full object-cover p-2"
                       />
@@ -129,7 +134,7 @@ export const InvitationsPage = () => {
                 </div>
 
                 <button
-                  onClick={() => handleViewDetail(invite)} // truyền cả object invite
+                  onClick={() => handleViewDetail(invite)}
                   className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-sm font-bold transition-all shadow-lg shadow-blue-500/25 active:scale-95"
                 >
                   View Details <ArrowUpRight className="w-4 h-4" />

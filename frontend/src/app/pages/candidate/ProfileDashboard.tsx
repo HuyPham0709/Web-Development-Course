@@ -27,6 +27,9 @@ import { ProfileTab } from '../../components/candidate/profile/ProfileTab';
 import { ProfileSkeleton } from '../../components/candidate/profile/ProfileSkeleton';
 import { invalidateProfileCache } from '../../../hooks/useSharedProfile';
 
+// Thêm biến môi trường API_BASE dùng chung để không bị lỗi thiếu dấu "/" nữa
+const API_BASE = import.meta.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'https://web-development-course-y23i.onrender.com';
+
 interface RecommendedJob {
   id: number;
   title: string;
@@ -42,10 +45,11 @@ interface RecommendedJob {
   match_score: number;
 }
 
+// Đã sửa lỗi dính hardcode localhost
 const resolveFileUrl = (url: string | null) => {
   if (!url) return '';
   if (url.startsWith('http')) return url;
-  return `http://127.0.0.1:5000${url}`;
+  return `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
 };
 
 export default function ProfileDashboard() {
@@ -158,7 +162,6 @@ export default function ProfileDashboard() {
       if (modal === 'education') {
         newEdu = editEdu.map(edu => ({ ...edu, start_date: edu.start_date || '', end_date: edu.end_date || null }));
       }
-      // Fixed syntax error here
       if (modal === 'skills') {
         newSkills = editSkills;
       }
@@ -248,7 +251,8 @@ export default function ProfileDashboard() {
       const formData = new FormData();
       formData.append('avatar', file);
       const token = localStorage.getItem('token');
-      const { data } = await axios.post('https://web-development-course-y23i.onrender.comapi/profile/upload-avatar', formData, {
+      // Đã sửa: Dùng API_BASE thay vì string hardcode bị thiếu dấu "/"
+      const { data } = await axios.post(`${API_BASE}/api/profile/upload-avatar`, formData, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -280,7 +284,8 @@ export default function ProfileDashboard() {
       const formData = new FormData();
       formData.append('cover', file);
       const token = localStorage.getItem('token');
-      const { data } = await axios.post('https://web-development-course-y23i.onrender.comapi/profile/upload-cover', formData, {
+      // Đã sửa: Dùng API_BASE thay vì string hardcode bị thiếu dấu "/"
+      const { data } = await axios.post(`${API_BASE}/api/profile/upload-cover`, formData, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

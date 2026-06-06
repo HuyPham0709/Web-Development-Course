@@ -215,11 +215,13 @@ export default function JobDetail() {
     );
 
   const getLogoUrl = (url: string) => {
-    if (!url) return "https://ui-avatars.com/api/?name=Company&background=random";
-    if (url.startsWith("http")) return url;
-    return `http://127.0.0.1:5000${url.startsWith("/") ? "" : "/"}${url}`;
-  };
-
+  if (!url) return "https://ui-avatars.com/api/?name=Company&background=random";
+  if (url.startsWith("http")) return url;
+  
+  // Thay localhost bằng domain backend thực tế của bạn
+  const baseUrl = "https://web-development-course-y23i.onrender.com";
+  return `${baseUrl}${url.startsWith("/") ? "" : "/"}${url}`;
+};
   return (
     <div className="bg-[#F8FAFC] dark:bg-[#070A13] text-gray-900 dark:text-gray-100 transition-colors duration-300 min-h-screen pb-24 text-left font-sans relative overflow-hidden">
       

@@ -13,8 +13,18 @@ import { ProfileSkeleton } from '../../components/candidate/profile/ProfileSkele
 import { EditModal } from '../../components/candidate/profile/EditModal';
 import { Field, inputCls } from '../../components/candidate/profile/Field';
 
+// Thêm cấu hình API_BASE thống nhất, tối ưu cho cả local và Render
+const API_BASE = import.meta.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'https://web-development-course-y23i.onrender.com';
+
 const DEFAULT_LOGO = 'https://placehold.co/150?text=Logo';
 const DEFAULT_BANNER = 'https://placehold.co/800x200?text=Banner';
+
+// Hàm helper giải quyết đường dẫn ảnh, xóa lỗi hardcode localhost cũ
+const resolveFileUrl = (url: string | null) => {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  return `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
+};
 
 export default function CompanyProfile() {
   const { id } = useParams<{ id: string }>();
@@ -65,9 +75,9 @@ export default function CompanyProfile() {
     getCompanyProfile(targetCompanyId)
       .then(data => {
         setCompanyInfo(data);
-        const baseUrl = 'http://127.0.0.1:5000'; 
-        setLogoSrc(data.logo_url ? (data.logo_url.startsWith('http') ? data.logo_url : `${baseUrl}${data.logo_url}`) : DEFAULT_LOGO);
-        setBannerSrc(data.banner_url ? (data.banner_url.startsWith('http') ? data.banner_url : `${baseUrl}${data.banner_url}`) : DEFAULT_BANNER);
+        // Đã sửa lỗi: Dùng hàm helper resolveFileUrl, không fix cứng nữa
+        setLogoSrc(resolveFileUrl(data.logo_url) || DEFAULT_LOGO);
+        setBannerSrc(resolveFileUrl(data.banner_url) || DEFAULT_BANNER);
       })
       .catch(() => showToast('error', 'Failed to load company profile'))
       .finally(() => setLoading(false));
@@ -118,8 +128,9 @@ export default function CompanyProfile() {
       formData.append('logo', file);
       const token = localStorage.getItem('token');
 
+      // Đã sửa: Dùng API_BASE để xóa lỗi thiếu dấu "/" và lỗi localhost
       const { data } = await axios.post(
-        'https://web-development-course-y23i.onrender.comapi/companies/upload-logo',
+        `${API_BASE}/api/companies/upload-logo`,
         formData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -146,15 +157,16 @@ export default function CompanyProfile() {
       formData.append('banner', file);
       const token = localStorage.getItem('token');
 
+      // Đã sửa: Dùng API_BASE để xóa lỗi thiếu dấu "/" và lỗi localhost
       const { data } = await axios.post(
-        'https://web-development-course-y23i.onrender.comapi/companies/upload-banner',
+        `${API_BASE}/api/companies/upload-banner`,
         formData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       if (data.success) {
-        const fullUrl = `http://127.0.0.1:5000${data.banner_url}`;
-        setBannerSrc(fullUrl);
+        // Đã sửa: Xóa lỗi hardcode template string bị sai grammar và sai domain localhost
+        setBannerSrc(data.banner_url);
         setCompanyInfo(prev => ({ ...prev, banner_url: data.banner_url }));
         showToast('success', 'Banner updated successfully!');
       }
