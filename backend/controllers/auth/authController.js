@@ -276,7 +276,7 @@ exports.login = async (req, res) => {
 
   try {
     const [users] = await db.execute(
-      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name FROM Users u LEFT JOIN Profiles p ON p.user_id = u.id WHERE u.email = ?`,
+      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name FROM users u LEFT JOIN profiles p ON p.user_id = u.id WHERE u.email = ?`,
       [email]
     );
     if (users.length === 0) return res.status(404).json({ success: false, message: "User does not exist!" });
@@ -321,7 +321,7 @@ exports.login = async (req, res) => {
 exports.getProfile = async (req, res) => {
   try {
     const [rows] = await db.execute(
-      `SELECT u.id, u.username, u.email, u.role, u.company_id, u.created_at, p.avatar_url, p.full_name, p.phone FROM Users u LEFT JOIN Profiles p ON u.id = p.user_id WHERE u.id = ?`,
+      `SELECT u.id, u.username, u.email, u.role, u.company_id, u.created_at, p.avatar_url, p.full_name, p.phone FROM users u LEFT JOIN profiles p ON u.id = p.user_id WHERE u.id = ?`,
       [req.user.id]
     );
     if (rows.length === 0) return res.status(404).json({ success: false, message: "User not found!" });
@@ -418,7 +418,7 @@ exports.googleLogin = async (req, res) => {
     const { email, name, picture } = googleResponse.data;
 
     const [users] = await db.execute(
-      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name FROM Users u LEFT JOIN Profiles p ON p.user_id = u.id WHERE u.email = ?`,
+      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name FROM users u LEFT JOIN profiles p ON p.user_id = u.id WHERE u.email = ?`,
       [email]
     );
     let user = users[0];
@@ -544,7 +544,7 @@ exports.verifyLoginOTP = async (req, res) => {
     }
 
     const [users] = await db.execute(
-      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name FROM Users u LEFT JOIN Profiles p ON u.id = p.user_id WHERE u.email = ?`,
+      `SELECT u.*, p.avatar_url AS profile_avatar, p.full_name FROM users u LEFT JOIN profiles p ON u.id = p.user_id WHERE u.email = ?`,
       [email]
     );
 
