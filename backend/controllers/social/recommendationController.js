@@ -6,15 +6,15 @@ exports.getRecommendedJobs = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Lấy criteria + profile title (bỏ user_skills và work_experiences)
+    // 1. SỬA CHỮ HOA: JobCriteria và Profiles
     const [[criteriaRows], [profileRows]] = await Promise.all([
-      db.execute(`SELECT * FROM jobcriteria WHERE user_id = ?`, [userId]),
-      db.execute(`SELECT title FROM profiles WHERE user_id = ? LIMIT 1`, [userId]),
+      db.execute(`SELECT * FROM JobCriteria WHERE user_id = ?`, [userId]),
+      db.execute(`SELECT title FROM Profiles WHERE user_id = ? LIMIT 1`, [userId]),
     ]);
 
     const c = criteriaRows[0] || null;
 
-    // Skills lấy từ jobcriteria.skills (chuỗi "React, TypeScript, Node.js")
+    // Skills lấy từ JobCriteria.skills (chuỗi "React, TypeScript, Node.js")
     const userSkills = c?.skills
       ? c.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
       : [];
@@ -24,7 +24,7 @@ exports.getRecommendedJobs = async (req, res) => {
       ? [profileRows[0].title.toLowerCase()]
       : [];
 
-    // Lấy 50 jobs mới nhất
+    // 2. SỬA CHỮ HOA: Jobs, Companies, Locations
     const [jobs] = await db.execute(`
       SELECT
         j.id,
@@ -39,9 +39,9 @@ exports.getRecommendedJobs = async (req, res) => {
         j.created_at,
         c.name      AS company_name,
         l.name      AS location_name
-      FROM jobs j
-      LEFT JOIN companies c ON j.company_id = c.id
-      LEFT JOIN locations  l ON j.location_id = l.id
+      FROM Jobs j
+      LEFT JOIN Companies c ON j.company_id = c.id
+      LEFT JOIN Locations l ON j.location_id = l.id
       WHERE j.status = 'approved'
         AND j.deleted_at IS NULL
       ORDER BY j.created_at DESC
@@ -83,7 +83,7 @@ exports.getRecommendedJobs = async (req, res) => {
         if (c.salary_min && job.salary_max >= c.salary_min) score += 5;
       }
 
-      // ── B. Skills từ jobcriteria.skills (30đ) ───────────────────
+      // ── B. Skills từ JobCriteria.skills (30đ) ───────────────────
       if (userSkills.length > 0) {
         const matchedSkills = userSkills.filter(skill =>
           reqLower.includes(skill) || titleLower.includes(skill)
