@@ -301,7 +301,7 @@ exports.getEmployerJobs = async (req, res) => {
         l.name AS location_name,
         COUNT(a.id) AS application_count
       FROM jobs j
-      LEFT JOIN Locations l ON j.location_id = l.id
+      LEFT JOIN locations l ON j.location_id = l.id
       LEFT JOIN Applications a ON j.id = a.job_id
       WHERE j.posted_by = ? AND j.deleted_at IS NULL
       GROUP BY j.id
