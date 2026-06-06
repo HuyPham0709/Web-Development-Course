@@ -119,7 +119,7 @@ export default function CompanyProfile() {
       const token = localStorage.getItem('token');
 
       const { data } = await axios.post(
-        'http://127.0.0.1:5000/api/companies/upload-logo',
+        'https://web-development-course-y23i.onrender.comapi/companies/upload-logo',
         formData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -147,7 +147,7 @@ export default function CompanyProfile() {
       const token = localStorage.getItem('token');
 
       const { data } = await axios.post(
-        'http://127.0.0.1:5000/api/companies/upload-banner',
+        'https://web-development-course-y23i.onrender.comapi/companies/upload-banner',
         formData,
         { headers: { Authorization: `Bearer ${token}` } }
       );

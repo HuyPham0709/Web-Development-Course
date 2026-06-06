@@ -36,7 +36,7 @@ export default function ApplyModal({
 
     try {
       const res = await axios.post(
-        "http://127.0.0.1:5000/api/applications/apply",
+        "https://web-development-course-y23i.onrender.comapi/applications/apply",
         {
           job_id: jobId,
           cover_letter: coverLetter,

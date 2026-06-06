@@ -248,7 +248,7 @@ export default function ProfileDashboard() {
       const formData = new FormData();
       formData.append('avatar', file);
       const token = localStorage.getItem('token');
-      const { data } = await axios.post('http://127.0.0.1:5000/api/profile/upload-avatar', formData, {
+      const { data } = await axios.post('https://web-development-course-y23i.onrender.comapi/profile/upload-avatar', formData, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -280,7 +280,7 @@ export default function ProfileDashboard() {
       const formData = new FormData();
       formData.append('cover', file);
       const token = localStorage.getItem('token');
-      const { data } = await axios.post('http://127.0.0.1:5000/api/profile/upload-cover', formData, {
+      const { data } = await axios.post('https://web-development-course-y23i.onrender.comapi/profile/upload-cover', formData, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

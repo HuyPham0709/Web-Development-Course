@@ -53,7 +53,7 @@ export default function MyApplications() {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch('http://127.0.0.1:5000/api/applications/my', {
+      const response = await fetch('https://web-development-course-y23i.onrender.comapi/applications/my', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -115,7 +115,7 @@ export default function MyApplications() {
     try {
       setWithdrawingId(applicationId);
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://127.0.0.1:5000/api/applications/withdraw/${applicationId}`, {
+      const response = await fetch(`https://web-development-course-y23i.onrender.comapi/applications/withdraw/${applicationId}`, {
         method: "DELETE",
         headers: { 'Authorization': `Bearer ${token}` },
       });

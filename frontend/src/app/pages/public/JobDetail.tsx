@@ -116,7 +116,7 @@ export default function JobDetail() {
         remote_comfort: formData.remoteComfort,
       };
 
-      await axios.post("http://127.0.0.1:5000/api/applications/apply", payload, {
+      await axios.post("https://web-development-course-y23i.onrender.comapi/applications/apply", payload, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -155,7 +155,7 @@ export default function JobDetail() {
         reason: finalReason
       };
 
-      await axios.post("http://127.0.0.1:5000/api/admin/reports", payload, {
+      await axios.post("https://web-development-course-y23i.onrender.comapi/admin/reports", payload, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -174,7 +174,7 @@ export default function JobDetail() {
     window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
     const fetchJob = async () => {
       try {
-        const res = await axios.get(`http://127.0.0.1:5000/api/jobs/${id}`);
+        const res = await axios.get(`https://web-development-course-y23i.onrender.comapi/jobs/${id}`);
         setJob(res.data.data);
       } catch (err) {
         console.error("API Error:", err);

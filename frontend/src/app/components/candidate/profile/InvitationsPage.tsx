@@ -25,7 +25,7 @@ export const InvitationsPage = () => {
     const fetchInvitations = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://127.0.0.1:5000/api/invitations/my-invitations', {
+        const response = await fetch('https://web-development-course-y23i.onrender.comapi/invitations/my-invitations', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'

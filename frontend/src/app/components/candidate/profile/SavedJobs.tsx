@@ -30,7 +30,7 @@ export default function SavedJobs() {
       const token = localStorage.getItem("token");
 
       const response = await axios.get(
-        "http://127.0.0.1:5000/api/favorites",
+        "https://web-development-course-y23i.onrender.comapi/favorites",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -61,7 +61,7 @@ export default function SavedJobs() {
       // BỎ LƯU
       if (isSaved) {
         await axios.delete(
-          `http://127.0.0.1:5000/api/favorites/${jobId}`,
+          `https://web-development-course-y23i.onrender.comapi/favorites/${jobId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
