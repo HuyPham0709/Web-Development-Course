@@ -100,7 +100,7 @@ export default function AuthPage() {
     setIsLoading(true);
     try {
       if (activeTab === "login") {
-        const response = await axios.post("https://web-development-course-y23i.onrender.com//api/auth/login", {
+        const response = await axios.post("https://web-development-course-y23i.onrender.com/api/auth/login", {
           email: formData.email, password: formData.password, role: role,
         });
 

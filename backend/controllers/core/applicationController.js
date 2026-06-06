@@ -1,7 +1,7 @@
 const db = require("../../config/db");
 const Notification = require("../../models/Notification");
 const socketUtils = require("../../utils/socket");
-const { sendMail } = require('../../config/mailer');
+const { sendMail } = require("../../config/mailer");
 
 // ======================================================
 // APPLY JOB
@@ -11,7 +11,10 @@ exports.applyJob = async (req, res) => {
   const candidate_id = req.user.id;
 
   try {
-    console.log("🚀 [Backend] Received application request for Job ID:", job_id);
+    console.log(
+      "🚀 [Backend] Received application request for Job ID:",
+      job_id,
+    );
 
     const [jobs] = await db.execute(
       "SELECT id, title, posted_by FROM Jobs WHERE id = ? AND deleted_at IS NULL",
@@ -20,12 +23,10 @@ exports.applyJob = async (req, res) => {
 
     if (jobs.length === 0) {
       console.log(`❌ Failure: Job ID ${job_id} not found in MySQL`);
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "This job post could not be found or has been deleted!",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "This job post could not be found or has been deleted!",
+      });
     }
 
     const job = jobs[0];
@@ -36,13 +37,13 @@ exports.applyJob = async (req, res) => {
     );
 
     if (existingApp.length > 0) {
-      console.log("⚠️ Warning: This candidate has already submitted a duplicate application.");
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "You have already applied for this position!",
-        });
+      console.log(
+        "⚠️ Warning: This candidate has already submitted a duplicate application.",
+      );
+      return res.status(400).json({
+        success: false,
+        message: "You have already applied for this position!",
+      });
     }
 
     await db.execute(
@@ -58,7 +59,11 @@ exports.applyJob = async (req, res) => {
       );
 
       const targetEmployerId = String(job.posted_by);
-      const candidateName = req.user.full_name || req.user.name || req.user.username || "Anonymous Candidate";
+      const candidateName =
+        req.user.full_name ||
+        req.user.name ||
+        req.user.username ||
+        "Anonymous Candidate";
 
       const newNotify = await Notification.create({
         user_id: targetEmployerId,
@@ -72,18 +77,17 @@ exports.applyJob = async (req, res) => {
 
       console.log("🍃 [MongoDB] Successfully saved new notification!");
       socketUtils.sendNotification(targetEmployerId, newNotify);
-
     } catch (mongoError) {
-      console.error("❌ ERROR WITHIN MONGODB/SOCKET THREAD (MySQL remains unaffected):");
+      console.error(
+        "❌ ERROR WITHIN MONGODB/SOCKET THREAD (MySQL remains unaffected):",
+      );
       console.error(mongoError.message);
     }
 
-    return res
-      .status(201)
-      .json({
-        success: true,
-        message: "Applied successfully and dispatching updates!",
-      });
+    return res.status(201).json({
+      success: true,
+      message: "Applied successfully and dispatching updates!",
+    });
   } catch (error) {
     console.error("====== CRITICAL APPLICATION PROCESS FLOW CRASH ======");
     console.error(error);
@@ -101,26 +105,26 @@ exports.getEmployerApplications = async (req, res) => {
     const [rows] = await db.execute(
       `
             SELECT
-                a.id AS application_id,
-                u.id AS candidate_id,
-                u.username AS candidate_name,
-                u.email AS candidate_email,
-                p.full_name,
-                p.phone,
-                p.cv_url,
-                p.avatar_url,
-                j.title AS job_title,
-                j.id AS job_id,
-                j.experience_level,
-                a.cover_letter,
-                a.status,
-                a.applied_at
-            FROM Applications a
-            JOIN Users u ON a.candidate_id = u.id
-            LEFT JOIN Profiles p ON u.id = p.user_id
-            JOIN Jobs j ON a.job_id = j.id
-            WHERE j.posted_by = ?
-            ORDER BY a.applied_at DESC
+    a.id AS application_id,
+    u.id AS candidate_id,
+    u.username AS candidate_name,
+    u.email AS candidate_email,
+    p.full_name,
+    p.phone,
+    p.cv_url,
+    p.avatar_url,
+    j.title AS job_title,
+    j.id AS job_id,
+    j.experience_level,
+    a.cover_letter,
+    a.status,
+    a.applied_at
+FROM applications a
+JOIN users u ON a.candidate_id = u.id
+LEFT JOIN profiles p ON u.id = p.user_id
+JOIN jobs j ON a.job_id = j.id
+WHERE j.posted_by = ?
+ORDER BY a.applied_at DESC
         `,
       [employer_id],
     );
@@ -186,7 +190,12 @@ exports.getApplicationById = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: { ...rows[0], work_experience: workExp, education, skills: skills.map(s => s.name) }
+      data: {
+        ...rows[0],
+        work_experience: workExp,
+        education,
+        skills: skills.map((s) => s.name),
+      },
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -262,7 +271,9 @@ exports.updateApplicationStatus = async (req, res) => {
         link_url: "/profile/applications",
         created_at: new Date(),
       });
-      console.log("🍃 [MongoDB] Successfully generated a target review evaluation notification.");
+      console.log(
+        "🍃 [MongoDB] Successfully generated a target review evaluation notification.",
+      );
       socketUtils.sendNotification(candidateId, newCandidateNotify);
     }
 
@@ -282,7 +293,8 @@ exports.updateApplicationStatus = async (req, res) => {
 exports.getEmployerJobs = async (req, res) => {
   const employer_id = req.user.id;
   try {
-    const [jobs] = await db.execute(`
+    const [jobs] = await db.execute(
+      `
       SELECT
         j.id, j.title, j.job_type, j.status, j.created_at,
         j.salary_min, j.salary_max, j.rejection_reason,
@@ -294,11 +306,13 @@ exports.getEmployerJobs = async (req, res) => {
       WHERE j.posted_by = ? AND j.deleted_at IS NULL
       GROUP BY j.id
       ORDER BY j.created_at DESC
-    `, [employer_id]);
+    `,
+      [employer_id],
+    );
 
     const total_jobs = jobs.length;
     const total_applications = jobs.reduce((sum, job) => {
-      return job.status === 'approved'
+      return job.status === "approved"
         ? sum + (parseInt(job.application_count) || 0)
         : sum;
     }, 0);
@@ -306,7 +320,7 @@ exports.getEmployerJobs = async (req, res) => {
     res.status(200).json({
       success: true,
       data: jobs,
-      stats: { total_jobs, total_applications }
+      stats: { total_jobs, total_applications },
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -371,7 +385,10 @@ exports.withdrawApplication = async (req, res) => {
     if (applications[0].status !== "pending") {
       return res
         .status(400)
-        .json({ success: false, message: "You can only withdraw applications that are pending" });
+        .json({
+          success: false,
+          message: "You can only withdraw applications that are pending",
+        });
     }
     await db.execute(`DELETE FROM Applications WHERE id = ?`, [application_id]);
     res.json({ success: true, message: "Application withdrawn successfully" });
@@ -453,10 +470,15 @@ exports.deleteNote = async (req, res) => {
     if (result.affectedRows === 0) {
       return res
         .status(403)
-        .json({ success: false, message: "You do not have permission to delete this note" });
+        .json({
+          success: false,
+          message: "You do not have permission to delete this note",
+        });
     }
 
-    res.status(200).json({ success: true, message: "Note deleted successfully" });
+    res
+      .status(200)
+      .json({ success: true, message: "Note deleted successfully" });
   } catch (error) {
     console.error("Error in deleteNote:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -486,17 +508,23 @@ exports.toggleJobStatus = async (req, res) => {
     if (currentStatus === "banned") {
       return res.status(403).json({
         success: false,
-        message: "This job has been banned by admin and cannot be reopened."
+        message: "This job has been banned by admin and cannot be reopened.",
       });
     }
 
     const newStatus = currentStatus === "closed" ? "approved" : "closed";
 
-    await db.execute("UPDATE Jobs SET status = ? WHERE id = ?", [newStatus, job_id]);
+    await db.execute("UPDATE Jobs SET status = ? WHERE id = ?", [
+      newStatus,
+      job_id,
+    ]);
 
     res.status(200).json({
       success: true,
-      message: newStatus === "closed" ? "Job post has been closed" : "Job post has been reopened",
+      message:
+        newStatus === "closed"
+          ? "Job post has been closed"
+          : "Job post has been reopened",
       new_status: newStatus,
     });
   } catch (error) {
@@ -511,7 +539,8 @@ exports.inviteInterview = async (req, res, next) => {
   try {
     const { application_id, location, time, message } = req.body;
 
-    const [rows] = await db.execute(`
+    const [rows] = await db.execute(
+      `
       SELECT 
         a.candidate_id AS candidate_user_id,
         u.email AS candidate_email,
@@ -524,17 +553,29 @@ exports.inviteInterview = async (req, res, next) => {
       JOIN Jobs j ON a.job_id = j.id
       LEFT JOIN Companies c ON j.company_id = c.id
       WHERE a.id = ?
-    `, [application_id]);
+    `,
+      [application_id],
+    );
 
     if (rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Application profile information not found!' });
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "Application profile information not found!",
+        });
     }
 
     const application = rows[0];
 
-    await db.execute("UPDATE Applications SET status = 'reviewed' WHERE id = ?", [application_id]);
+    await db.execute(
+      "UPDATE Applications SET status = 'reviewed' WHERE id = ?",
+      [application_id],
+    );
 
-    const baseUrl = process.env.BACKEND_URL || 'https://web-development-course-y23i.onrender.com/';
+    const baseUrl =
+      process.env.BACKEND_URL ||
+      "https://web-development-course-y23i.onrender.com/";
 
     // NÂNG CẤP GIAO DIỆN EMAIL THEO THIẾT KẾ PREMIUM GRADIENT
     const htmlEmailContent = `
@@ -587,7 +628,7 @@ exports.inviteInterview = async (req, res, next) => {
                           </tr>
                           <tr>
                             <td valign="top" style="font-size: 12px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; padding-left: 0;">Time</td>
-                            <td valign="top" style="font-size: 15px; font-weight: 600; color: #0052FF; padding-right: 0;">${new Date(time).toLocaleString('en-US')}</td>
+                            <td valign="top" style="font-size: 15px; font-weight: 600; color: #0052FF; padding-right: 0;">${new Date(time).toLocaleString("en-US")}</td>
                           </tr>
                           <tr>
                             <td valign="top" style="font-size: 12px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; padding-left: 0;">Location</td>
@@ -598,14 +639,18 @@ exports.inviteInterview = async (req, res, next) => {
                     </tr>
                   </table>
 
-                  ${message ? `
+                  ${
+                    message
+                      ? `
                   <div style="background-color: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 14px; padding: 18px; margin-bottom: 36px;">
                     <p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px;">Message from Employer:</p>
                     <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #334155; font-style: italic;">
                       "${message}"
                     </p>
                   </div>
-                  ` : ''}
+                  `
+                      : ""
+                  }
 
                   <p style="margin: 0 0 24px 0; font-size: 14px; font-weight: 600; color: #475569; text-align: center;">
                     Please confirm your availability by choosing an option below:
@@ -654,7 +699,7 @@ exports.inviteInterview = async (req, res, next) => {
     await sendMail({
       to: application.candidate_email,
       subject: `[${application.company_name}] Interview Invitation for ${application.job_title} position`,
-      html: htmlEmailContent
+      html: htmlEmailContent,
     });
 
     const targetCandidateId = String(application.candidate_user_id);
@@ -665,17 +710,22 @@ exports.inviteInterview = async (req, res, next) => {
       is_read: false,
       type: "system",
       link_url: "/profile/applications",
-      created_at: new Date()
+      created_at: new Date(),
     });
 
-    socketUtils.emitToUser(targetCandidateId, 'applicationStatusChanged', {
+    socketUtils.emitToUser(targetCandidateId, "applicationStatusChanged", {
       application_id: Number(application_id),
-      newStatus: 'reviewed'
+      newStatus: "reviewed",
     });
 
     socketUtils.sendNotification(targetCandidateId, newNotify);
 
-    return res.status(200).json({ success: true, message: 'Invitation sent and status updated successfully!' });
+    return res
+      .status(200)
+      .json({
+        success: true,
+        message: "Invitation sent and status updated successfully!",
+      });
   } catch (error) {
     next(error);
   }
@@ -688,7 +738,8 @@ exports.acceptInterview = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const [rows] = await db.execute(`
+    const [rows] = await db.execute(
+      `
       SELECT 
         j.posted_by AS employer_user_id,
         COALESCE(p.full_name, u.username) AS candidate_name,
@@ -698,7 +749,9 @@ exports.acceptInterview = async (req, res, next) => {
       LEFT JOIN Profiles p ON u.id = p.user_id
       JOIN Jobs j ON a.job_id = j.id
       WHERE a.id = ?
-    `, [id]);
+    `,
+      [id],
+    );
 
     if (rows.length === 0) {
       return res.send(`
@@ -712,7 +765,10 @@ exports.acceptInterview = async (req, res, next) => {
 
     const application = rows[0];
 
-    await db.execute("UPDATE Applications SET status = 'interviewing' WHERE id = ?", [id]);
+    await db.execute(
+      "UPDATE Applications SET status = 'interviewing' WHERE id = ?",
+      [id],
+    );
 
     const targetEmployerId = String(application.employer_user_id);
     const newNotify = await Notification.create({
@@ -722,12 +778,12 @@ exports.acceptInterview = async (req, res, next) => {
       is_read: false,
       type: "system",
       link_url: "/employer/candidates",
-      created_at: new Date()
+      created_at: new Date(),
     });
 
-    socketUtils.emitToUser(targetEmployerId, 'applicationStatusChanged', {
+    socketUtils.emitToUser(targetEmployerId, "applicationStatusChanged", {
       application_id: Number(id),
-      newStatus: 'interviewing'
+      newStatus: "interviewing",
     });
 
     socketUtils.sendNotification(targetEmployerId, newNotify);
@@ -761,7 +817,8 @@ exports.declineInterview = async (req, res, next) => {
     const { id } = req.params;
     const { reason } = req.body;
 
-    const [rows] = await db.execute(`
+    const [rows] = await db.execute(
+      `
       SELECT 
         j.posted_by AS employer_user_id,
         COALESCE(p.full_name, u.username) AS candidate_name,
@@ -771,7 +828,9 @@ exports.declineInterview = async (req, res, next) => {
       LEFT JOIN Profiles p ON u.id = p.user_id
       JOIN Jobs j ON a.job_id = j.id
       WHERE a.id = ?
-    `, [id]);
+    `,
+      [id],
+    );
 
     if (rows.length === 0) {
       return res.send(`
@@ -785,7 +844,10 @@ exports.declineInterview = async (req, res, next) => {
 
     const application = rows[0];
 
-    await db.execute("UPDATE Applications SET status = 'rejected' WHERE id = ?", [id]);
+    await db.execute(
+      "UPDATE Applications SET status = 'rejected' WHERE id = ?",
+      [id],
+    );
 
     const targetEmployerId = String(application.employer_user_id);
     const textReason = reason ? reason.trim() : "No specific reason provided";
@@ -797,12 +859,12 @@ exports.declineInterview = async (req, res, next) => {
       is_read: false,
       type: "system",
       link_url: "/employer/candidates",
-      created_at: new Date()
+      created_at: new Date(),
     });
 
-    socketUtils.emitToUser(targetEmployerId, 'applicationStatusChanged', {
+    socketUtils.emitToUser(targetEmployerId, "applicationStatusChanged", {
       application_id: Number(id),
-      newStatus: 'rejected'
+      newStatus: "rejected",
     });
 
     socketUtils.sendNotification(targetEmployerId, newNotify);
@@ -829,7 +891,7 @@ exports.declineInterview = async (req, res, next) => {
 };
 
 // ======================================================
-// GET DECLINE FORM 
+// GET DECLINE FORM
 // ======================================================
 exports.getDeclineForm = (req, res) => {
   const { id } = req.params;
