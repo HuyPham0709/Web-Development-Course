@@ -2,7 +2,7 @@ const db = require('../../config/db');
 
 exports.getAllSkills = async (req, res) => {
     try {
-        const query = "SELECT name FROM Skills";
+        const query = "SELECT name FROM skills";
         const [rows] = await db.execute(query);
         
         // Chuyển đổi mảng đối tượng [{name: 'React'}, {name: 'Node'}] thành mảng chuỗi ['React', 'Node']
