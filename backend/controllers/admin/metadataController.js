@@ -123,7 +123,7 @@ exports.createLocation = async (req, res) => {
             'INSERT INTO Locations (name, slug) VALUES (?, ?)',
             [name.trim(), autoSlug]
         );
-        const [newRow] = await db.execute('SELECT * FROM Locations WHERE id = ?', [result.insertId]);
+        const [newRow] = await db.execute('SELECT * FROM locations WHERE id = ?', [result.insertId]);
         res.status(201).json({ success: true, data: newRow[0] });
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') {
@@ -147,7 +147,7 @@ exports.updateLocation = async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Không tìm thấy địa điểm' });
         }
-        const [updated] = await db.execute('SELECT * FROM Locations WHERE id = ?', [id]);
+        const [updated] = await db.execute('SELECT * FROM locations WHERE id = ?', [id]);
         res.status(200).json({ success: true, data: updated[0] });
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') {
