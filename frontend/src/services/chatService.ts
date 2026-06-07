@@ -60,3 +60,4 @@ export const chatService = {
     return response.data;
   },
 };
+export default chatService;
