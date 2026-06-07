@@ -15,7 +15,7 @@ import { ProfileToast } from '../../components/candidate/profile/ProfileToast';
 import { EditModal } from '../../components/candidate/profile/EditModal';
 import { Field, inputCls } from '../../components/candidate/profile/Field';
 import { profilesidebar } from '../../components/candidate/profile/profilesidebar';
-import Myapplications from './Myapplications';
+import Myapplications from './MyApplications';
 import JobCriteria from '../../components/candidate/profile/JobCriteria';
 import axios from 'axios';
 import Savedjobs from '../../components/candidate/profile/Savedjobs';
