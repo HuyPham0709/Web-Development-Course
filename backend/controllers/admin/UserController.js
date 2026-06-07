@@ -53,7 +53,7 @@ exports.getUsers = async (req, res) => {
                 c.name AS company_name,
                 c.is_verified AS company_verified
             FROM users u
-            LEFT JOIN Companies c ON u.company_id = c.id
+            LEFT JOIN companies c ON u.company_id = c.id
             LEFT JOIN Profiles p ON u.id = p.user_id /* Phải JOIN thêm bảng Profiles */
             ${whereClause}
             ORDER BY u.created_at DESC
@@ -64,7 +64,7 @@ exports.getUsers = async (req, res) => {
         const [countResult] = await db.execute(`
             SELECT COUNT(*) AS total
             FROM users u
-            LEFT JOIN Companies c ON u.company_id = c.id
+            LEFT JOIN companies c ON u.company_id = c.id
             LEFT JOIN Profiles p ON u.id = p.user_id 
             ${whereClause}
         `, params);
@@ -83,7 +83,7 @@ exports.getUsers = async (req, res) => {
         const [pendingCount] = await db.execute(`
             SELECT COUNT(*) AS total_pending
             FROM users u
-            LEFT JOIN Companies c ON u.company_id = c.id
+            LEFT JOIN companies c ON u.company_id = c.id
             WHERE u.role = 'employer' AND c.is_verified = 0
               AND u.is_active = 1 AND u.deleted_at IS NULL
         `);
@@ -194,7 +194,7 @@ exports.verifyCompany = async (req, res) => {
 
     try {
         const [users] = await db.execute(
-            "SELECT u.id, u.username, u.company_id, c.name AS company_name, c.is_verified FROM users u LEFT JOIN Companies c ON u.company_id = c.id WHERE u.id = ?",
+            "SELECT u.id, u.username, u.company_id, c.name AS company_name, c.is_verified FROM users u LEFT JOIN companies c ON u.company_id = c.id WHERE u.id = ?",
             [user_id]
         );
 
@@ -212,7 +212,7 @@ exports.verifyCompany = async (req, res) => {
             return res.status(400).json({ success: false, message: "This company is already verified!" });
         }
 
-        await db.execute("UPDATE Companies SET is_verified = 1 WHERE id = ?", [user.company_id]);
+        await db.execute("UPDATE companies SET is_verified = 1 WHERE id = ?", [user.company_id]);
 
         console.log(`[ADMIN] Company "${user.company_name}" (ID: ${user.company_id}) verified`);
 
@@ -239,7 +239,7 @@ exports.getUserDetail = async (req, res) => {
                 c.is_verified AS company_verified, c.website, c.address,
                 p.full_name, p.avatar_url, p.phone, p.bio
             FROM users u
-            LEFT JOIN Companies c ON u.company_id = c.id
+            LEFT JOIN companies c ON u.company_id = c.id
             LEFT JOIN Profiles p ON u.id = p.user_id
             WHERE u.id = ?
         `, [user_id]);

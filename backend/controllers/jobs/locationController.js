@@ -1,6 +1,6 @@
 const db = require('../../config/db');
 
-exports.getAllLocations = async (req, res) => {
+exports.getAlllocations = async (req, res) => {
     try {
         const [rows] = await db.execute('SELECT * FROM locations');
         res.status(200).json({ success: true, data: rows });

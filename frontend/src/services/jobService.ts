@@ -28,14 +28,14 @@ export const getCategories = async () => {
   return res.data.data || res.data;
 };
 
-// 4. Lấy danh sách địa điểm (Locations)
-export const getLocations = async () => {
+// 4. Lấy danh sách địa điểm (locations)
+export const getlocations = async () => {
   const res = await api.get("/api/locations");
   return res.data.data || res.data;
 };
 
 // 5. Lấy danh sách công ty uy tín hàng đầu (Mock data dựa trên seed.sql để tránh lỗi 404)
-export const getTopCompanies = async () => {
+export const getTopcompanies = async () => {
   const res = await api.get("/api/companies/top");
   return res.data; // Trả về dữ liệu thật chạy từ câu lệnh SQL ở Backend
 };

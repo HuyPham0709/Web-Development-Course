@@ -198,7 +198,7 @@ exports.sendMessage = async (req, res, next) => {
 // ======================================================================
 // [GET] Lấy tin nhắn chi tiết
 // ======================================================================
-exports.getMessages = async (req, res, next) => {
+exports.getmessages = async (req, res, next) => {
     try {
         const { conversationId } = req.params;
         const messages = await Message.find({ conversationId }).sort({ createdAt: 1 });

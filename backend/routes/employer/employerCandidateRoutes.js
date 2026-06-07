@@ -184,7 +184,7 @@ router.get(
             v.viewed_at
          FROM employer_profile_views v
          JOIN users u ON v.employer_id = u.id
-         LEFT JOIN Companies c ON u.company_id = c.id
+         LEFT JOIN companies c ON u.company_id = c.id
          WHERE v.candidate_id = ?
          ORDER BY v.viewed_at DESC
          LIMIT 5`,

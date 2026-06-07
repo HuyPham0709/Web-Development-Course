@@ -16,8 +16,8 @@ INSERT INTO Categories (id, name, slug) VALUES
 (9, 'IT Sales & Account Management', 'it-sales'),
 (10, 'Digital Marketing', 'digital-marketing');
 
--- INSERT INTO Locations
-INSERT INTO Locations (id, name, slug) VALUES
+-- INSERT INTO locations
+INSERT INTO locations (id, name, slug) VALUES
 (1, 'Hà Nội', 'ha-noi'),
 (2, 'TP. Hồ Chí Minh', 'tp-ho-chi-minh'),
 (3, 'Đà Nẵng', 'da-nang'),
@@ -36,11 +36,11 @@ INSERT INTO Skills (id, name) VALUES
 (11, 'Kubernetes'), (12, 'Golang'), (13, 'C++'), (14, 'PHP'), (15, 'Cybersecurity');
 
 -- ==========================================================
--- 2. MAIN ENTITIES (Companies & Users)
+-- 2. MAIN ENTITIES (companies & Users)
 -- ==========================================================
 
--- INSERT INTO Companies (>= 10 records, thực tế Việt Nam)
-INSERT INTO Companies (id, name, slug, website, description, is_verified) VALUES
+-- INSERT INTO companies (>= 10 records, thực tế Việt Nam)
+INSERT INTO companies (id, name, slug, website, description, is_verified) VALUES
 (1, 'FPT Software', 'fpt-software', 'https://fptsoftware.com', 'Tập đoàn công nghệ hàng đầu Việt Nam.', 1),
 (2, 'Viettel Group', 'viettel-group', 'https://viettel.com.vn', 'Tập đoàn Công nghiệp - Viễn thông Quân đội.', 1),
 (3, 'VNG Corporation', 'vng-corporation', 'https://vng.com.vn', 'Kỳ lân công nghệ đầu tiên của Việt Nam.', 1),

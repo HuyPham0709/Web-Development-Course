@@ -120,7 +120,7 @@ exports.getCandidateInvitations = async (req, res) => {
              JOIN jobs j ON ji.job_id = j.id
              JOIN Users u ON ji.employer_id = u.id
              LEFT JOIN Profiles ep ON ep.user_id = u.id
-             LEFT JOIN Companies c ON u.company_id = c.id
+             LEFT JOIN companies c ON u.company_id = c.id
              WHERE ji.candidate_id = ?
              ORDER BY ji.created_at DESC`,
       [candidateId],
@@ -158,7 +158,7 @@ exports.getInvitationDetail = async (req, res) => {
              JOIN jobs j ON ji.job_id = j.id
              JOIN Users u ON ji.employer_id = u.id
              LEFT JOIN Profiles ep ON ep.user_id = u.id
-             LEFT JOIN Companies c ON u.company_id = c.id
+             LEFT JOIN companies c ON u.company_id = c.id
              WHERE ji.id = ? AND ji.candidate_id = ?`,
       [id, candidateId],
     );

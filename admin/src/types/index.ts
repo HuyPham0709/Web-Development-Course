@@ -138,7 +138,7 @@ export interface MetaFormState {
 // ==================== DASHBOARD ====================
 export interface DashboardStats {
     totalCandidates: number;
-    verifiedCompanies: number;
+    verifiedcompanies: number;
     pendingJobs: number;
     activeReports: number;
 }

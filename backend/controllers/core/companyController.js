@@ -70,7 +70,7 @@ exports.updateCompanyProfile = async (req, res) => {
     }
 
     const updateQuery = `
-            UPDATE Companies 
+            UPDATE companies 
             SET name = ?, website = ?, description = ?, address = ?
             WHERE id = ? AND deleted_at IS NULL
         `;
@@ -139,9 +139,9 @@ exports.uploadLogo = async (req, res) => {
     const result = await uploadToCloudinary(req.file.buffer, "company_logos");
     const logoUrl = result.secure_url;
 
-    // Lưu đường dẫn ảnh mới vào bảng Companies
+    // Lưu đường dẫn ảnh mới vào bảng companies
     await db.query(
-      `UPDATE Companies SET logo_url = ? WHERE id = ? AND deleted_at IS NULL`,
+      `UPDATE companies SET logo_url = ? WHERE id = ? AND deleted_at IS NULL`,
       [logoUrl, companyId],
     );
 
@@ -193,9 +193,9 @@ exports.uploadBanner = async (req, res) => {
     const result = await uploadToCloudinary(req.file.buffer, "company_banners");
     const bannerUrl = result.secure_url;
 
-    // Lưu đường dẫn ảnh mới vào bảng Companies
+    // Lưu đường dẫn ảnh mới vào bảng companies
     await db.query(
-      `UPDATE Companies SET banner_url = ? WHERE id = ? AND deleted_at IS NULL`,
+      `UPDATE companies SET banner_url = ? WHERE id = ? AND deleted_at IS NULL`,
       [bannerUrl, companyId],
     );
 
@@ -218,7 +218,7 @@ exports.uploadBanner = async (req, res) => {
 
 // ─── 5. GET /api/companies/top ────────────────────────────────────────────────
 // Lấy danh sách Top 3 công ty nổi bật kèm Tech Stack động
-exports.getTopCompanies = async (req, res) => {
+exports.getTopcompanies = async (req, res) => {
   try {
     const query = `
             SELECT 

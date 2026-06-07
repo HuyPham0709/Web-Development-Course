@@ -34,7 +34,7 @@ const Chat = () => {
 
   const [conversations, setConversations] = useState<IConversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<IConversation | null>(null);
-  const [messages, setMessages] = useState<IMessage[]>([]);
+  const [messages, setmessages] = useState<IMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
 
@@ -185,7 +185,7 @@ const Chat = () => {
 
       if (isThisChatActive && isCurrentTabActive) {
         msg.isRead = true;
-        setMessages((prev) => {
+        setmessages((prev) => {
           // BẢO VỆ CHỐNG TRÙNG LẶP (Tránh lỗi undefined vs undefined)
           const newId = getCleanId(msg);
           if (newId && prev.some((m) => getCleanId(m) === newId)) return prev;
@@ -239,7 +239,7 @@ const Chat = () => {
     if (!activeConversation || !user?.id) return;
 
     if (activeConversation._id === "new_chat") {
-      setMessages([]);
+      setmessages([]);
       return;
     }
 
@@ -251,13 +251,13 @@ const Chat = () => {
     }
 
     chatService
-      .getMessages(activeConversation._id)
+      .getmessages(activeConversation._id)
       .then((res: any) => {
         const data = res?.data || res || [];
         
         // KIỂM SOÁT RACE CONDITION: Merge data từ Server với dữ liệu Local hiện tại
         // Đề phòng trường hợp API trả về chậm hơn tốc độ gửi tin nhắn và xóa trắng UI
-        setMessages((prev) => {
+        setmessages((prev) => {
           const apiIds = new Set(data.map((m: any) => getCleanId(m)));
           const localOnly = prev.filter(
             (m) => !apiIds.has(getCleanId(m)) && m.conversationId === activeConversation._id
@@ -327,7 +327,7 @@ const Chat = () => {
       });
 
       // BẢO VỆ CHỐNG GHI ĐÈ BẰNG HÀM getCleanId()
-      setMessages((prev) => {
+      setmessages((prev) => {
         const msgId = getCleanId(savedMsg);
         if (msgId && prev.some((m) => getCleanId(m) === msgId)) return prev;
         return [...prev, savedMsg];
@@ -358,7 +358,7 @@ const Chat = () => {
 
       if (activeConversation?._id === conversationId) {
         setActiveConversation(null);
-        setMessages([]);
+        setmessages([]);
       }
 
       fetchLatestConversations();

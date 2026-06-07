@@ -9,8 +9,8 @@ router.post('/categories', verifyToken, authorizeRole(['admin']), ctrl.createCat
 router.put('/categories/:id', verifyToken, authorizeRole(['admin']), ctrl.updateCategory);
 router.delete('/categories/:id', verifyToken, authorizeRole(['admin']), ctrl.deleteCategory);
 
-// Locations
-router.get('/locations', verifyToken, authorizeRole(['admin']), ctrl.getAllLocations);
+// locations
+router.get('/locations', verifyToken, authorizeRole(['admin']), ctrl.getAlllocations);
 router.post('/locations', verifyToken, authorizeRole(['admin']), ctrl.createLocation);
 router.put('/locations/:id', verifyToken, authorizeRole(['admin']), ctrl.updateLocation);
 router.delete('/locations/:id', verifyToken, authorizeRole(['admin']), ctrl.deleteLocation);

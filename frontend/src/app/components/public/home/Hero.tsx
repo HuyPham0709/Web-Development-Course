@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, MapPin, Briefcase, Zap, Layers, ChevronDown, DollarSign } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { getCategories, getLocations, getJobSuggestions } from "../../../../services/jobService";
+import { getCategories, getlocations, getJobSuggestions } from "../../../../services/jobService";
 // Nhúng file Autocomplete đã được tối ưu hóa tự trị ở trên
 import { SearchAutocomplete } from "../../shared/SearchAutocomplete";
 
@@ -28,7 +28,7 @@ export function Hero({ initialTitle, initialLocation, initialCategoryId, initial
 
   // State chứa danh sách tùy chọn lấy từ API
   const [categories, setCategories] = useState<any[]>([]);
-  const [locations, setLocations] = useState<any[]>([]);
+  const [locations, setlocations] = useState<any[]>([]);
 
   // Danh sách khoảng lương (USD)
   const salaryOptions = [
@@ -48,9 +48,9 @@ export function Hero({ initialTitle, initialLocation, initialCategoryId, initial
   useEffect(() => {
     const fetchSelectData = async () => {
       try {
-        const [catData, locData] = await Promise.all([getCategories(), getLocations()]);
+        const [catData, locData] = await Promise.all([getCategories(), getlocations()]);
         setCategories(catData);
-        setLocations(locData);
+        setlocations(locData);
       } catch (error) {
         console.error("Lỗi nạp danh mục/địa điểm của Hero:", error);
       }

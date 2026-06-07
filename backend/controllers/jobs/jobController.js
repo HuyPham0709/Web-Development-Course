@@ -267,7 +267,7 @@ exports.getJobDetail = async (req, res) => {
                    cat.name as category_name,
                    GROUP_CONCAT(s.name SEPARATOR ',') as skills -- <--- THÊM: Gộp tên kĩ năng thành chuỗi
             FROM jobs j
-            LEFT JOIN Companies c ON j.company_id = c.id
+            LEFT JOIN companies c ON j.company_id = c.id
             LEFT JOIN locations l ON j.location_id = l.id
             LEFT JOIN Categories cat ON j.category_id = cat.id
             LEFT JOIN Job_Skills js ON j.id = js.job_id        -- <--- THÊM: Kết hợp bảng trung gian
@@ -495,7 +495,7 @@ exports.getSuggestions = async (req, res, next) => {
                 j.title AS label, 
                 c.name AS description
             FROM jobs j
-            LEFT JOIN Companies c ON j.company_id = c.id
+            LEFT JOIN companies c ON j.company_id = c.id
             WHERE j.status = 'approved' 
               AND j.deleted_at IS NULL 
               AND j.title LIKE ?

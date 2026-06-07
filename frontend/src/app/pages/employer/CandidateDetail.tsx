@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   Mail, Phone, Linkedin, Github, Globe, Download, Printer, ChevronRight, 
-  Briefcase, FileText, Send, Loader2, X, Calendar, MapPin, Clock, MessageSquare 
+  Briefcase, FileText, Send, Loader2, X, Calendar, MapPin, Clock, messagesquare 
 } from 'lucide-react';
 import { applicationService } from '../../../services/applicationService';
 import { ApplicationDetail, ApplicationNote } from '../../../types/application';
@@ -443,7 +443,7 @@ export default function CandidateDetail() {
                   </label>
                   <div className="relative group">
                     <div className="absolute top-3 left-3.5 pointer-events-none text-slate-400 group-focus-within:text-[#0052FF] transition-colors">
-                      <MessageSquare className="w-4 h-4" />
+                      <messagesquare className="w-4 h-4" />
                     </div>
                     <textarea 
                       rows={4} 

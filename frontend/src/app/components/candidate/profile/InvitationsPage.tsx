@@ -1,7 +1,7 @@
 // InvitationsPage.tsx
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Building2, Calendar, MessageSquare, ArrowUpRight, Loader2, Inbox } from 'lucide-react';
+import { Mail, Building2, Calendar, messagesquare, ArrowUpRight, Loader2, Inbox } from 'lucide-react';
 
 // Thêm cấu hình API_BASE thống nhất
 const API_BASE = import.meta.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'https://web-development-course-y23i.onrender.com/';
@@ -143,7 +143,7 @@ export const InvitationsPage = () => {
 
               <div className="mt-5 bg-gray-50 dark:bg-black/20 rounded-2xl p-4 border border-gray-100 dark:border-white/5 relative">
                 <div className="flex gap-3">
-                  <MessageSquare className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <messagesquare className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed italic">
                     "{invite.message}"
                   </p>

@@ -24,7 +24,7 @@ exports.getRecommendedJobs = async (req, res) => {
       ? [profileRows[0].title.toLowerCase()]
       : [];
 
-    // 2. SỬA CHỮ HOA: Jobs, Companies, Locations
+    // 2. SỬA CHỮ HOA: Jobs, companies, locations
     const [jobs] = await db.execute(`
       SELECT
         j.id,
@@ -40,7 +40,7 @@ exports.getRecommendedJobs = async (req, res) => {
         c.name      AS company_name,
         l.name      AS location_name
       FROM jobs j
-      LEFT JOIN Companies c ON j.company_id = c.id
+      LEFT JOIN companies c ON j.company_id = c.id
       LEFT JOIN locations l ON j.location_id = l.id
       WHERE j.status = 'approved'
         AND j.deleted_at IS NULL

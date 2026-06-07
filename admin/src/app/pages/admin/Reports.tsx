@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
-import { AlertOctagon, MessageSquare, Trash2, MailWarning, CheckSquare, Search, Loader2, RefreshCw, Clock, CheckCircle2, XCircle, Ban } from "lucide-react"
+import { AlertOctagon, messagesquare, Trash2, MailWarning, CheckSquare, Search, Loader2, RefreshCw, Clock, CheckCircle2, XCircle, Ban } from "lucide-react"
 import { Card } from "../../components/ui/card"
 import { Button } from "../../components/ui/button"
 import { Badge } from "../../components/ui/badge"
@@ -342,7 +342,7 @@ export function Reports() {
                 {/* Notes */}
                 <div>
                   <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3 flex items-center transition-colors duration-200">
-                    <MessageSquare className="w-4 h-4 mr-2 text-slate-400 dark:text-slate-500 transition-colors duration-200" />
+                    <messagesquare className="w-4 h-4 mr-2 text-slate-400 dark:text-slate-500 transition-colors duration-200" />
                     Investigation Notes
                   </h3>
                   <textarea

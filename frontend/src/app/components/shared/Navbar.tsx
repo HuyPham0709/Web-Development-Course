@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Briefcase,
   Bell,
-  MessageSquare,
+  messagesquare,
   LogOut,
   Settings,
   ChevronDown,
@@ -440,9 +440,9 @@ export const Navbar = () => {
                   ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
                   : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10"
               }`}
-              title="Messages"
+              title="messages"
             >
-              <MessageSquare size={20} />
+              <messagesquare size={20} />
               {chatUnreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white dark:ring-[#0B0F19]">
                   {chatUnreadCount > 99 ? "99+" : chatUnreadCount}
@@ -638,7 +638,7 @@ export const Navbar = () => {
                   : "text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5"
               }`}
             >
-              Messages
+              messages
             </Link>
           )}
 

@@ -40,7 +40,7 @@ exports.chatWithBot = async (req, res, next) => {
         let matchedCategory = categories.find(c => cleanText.includes(c.name.toLowerCase()));
 
         // Chuẩn bị sẵn một vài cái tên có thật trong DB để làm gợi ý cho User (Đã xóa bỏ dấu markdown)
-        const sampleCompanies = companies.slice(0, 3).map(c => c.name).join(", ");
+        const samplecompanies = companies.slice(0, 3).map(c => c.name).join(", ");
         const sampleCategories = categories.slice(0, 3).map(c => c.name).join(", ");
 
         let reply = "";
@@ -69,7 +69,7 @@ exports.chatWithBot = async (req, res, next) => {
         // Hỏi địa chỉ nhưng không nói rõ công ty nào
         if (intent.address > 0 && !matchedCompany) {
             reply = `🔍 Tôi hiểu bạn đang cần tìm địa chỉ văn phòng, nhưng bạn chưa nhập tên công ty cụ thể.\n\n` +
-                    `Bạn muốn tra cứu địa chỉ của doanh nghiệp nào trong số này: ${sampleCompanies || "các công ty trên hệ thống"}?\n\n` +
+                    `Bạn muốn tra cứu địa chỉ của doanh nghiệp nào trong số này: ${samplecompanies || "các công ty trên hệ thống"}?\n\n` +
                     `👉 Mẹo nhỏ: Hãy nhập đầy đủ câu, ví dụ: Địa chỉ của công ty ${companies[0]?.name || 'FPT'}`;
             return res.status(200).json({ success: true, reply });
         }
@@ -109,7 +109,7 @@ exports.chatWithBot = async (req, res, next) => {
         else if (intent.job > 0 && matchedCategory) {
             const [jobs] = await db.query(
                 `SELECT j.title, c.name as company_name FROM jobs j 
-                 JOIN Companies c ON j.company_id = c.id 
+                 JOIN companies c ON j.company_id = c.id 
                  WHERE j.category_id = ? AND j.status = 'approved' LIMIT 5`, 
                 [matchedCategory.id]
             );

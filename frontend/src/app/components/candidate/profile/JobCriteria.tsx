@@ -227,7 +227,7 @@ export default function JobCriteria() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Preferred Companies</label>
+                <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">Preferred companies</label>
                 <input type="text" name="preferred_companies" value={formData.preferred_companies || ''} onChange={handleChange}
                   placeholder="VNG, FPT, Google, Meta..." className="w-full bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-white/10 rounded-2xl px-5 py-3.5 focus:outline-none focus:ring-2 focus:ring-purple-500" />
               </div>

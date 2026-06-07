@@ -28,7 +28,7 @@ const renderActiveShape = (props: any) => {
 export function Dashboard() {
   const [stats, setStats] = useState({
     totalCandidates: 0,
-    verifiedCompanies: 0,
+    verifiedcompanies: 0,
     pendingJobs: 0,
     activeReports: 0
   });
@@ -139,8 +139,8 @@ export function Dashboard() {
           subColor="text-emerald-600 dark:text-emerald-400 transition-colors duration-200"
         />
         <StatCard
-          title="Verified Companies"
-          value={stats.verifiedCompanies}
+          title="Verified companies"
+          value={stats.verifiedcompanies}
           icon={<Building2 className="w-4 h-4 text-slate-400 dark:text-slate-500 transition-colors duration-200" />}
           subText="Active partners"
           subColor="text-emerald-600 dark:text-emerald-400 transition-colors duration-200"

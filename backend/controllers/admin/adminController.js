@@ -50,7 +50,7 @@ exports.getDashboardStats = async (req, res) => {
             data: {
                 stats: {
                     totalCandidates: candidates[0].total,
-                    verifiedCompanies: companies[0].total,
+                    verifiedcompanies: companies[0].total,
                     pendingJobs: pendingJobs[0].total,
                     activeReports: activeReports[0].total,
                 },

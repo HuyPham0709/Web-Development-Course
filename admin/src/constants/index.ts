@@ -23,6 +23,6 @@ export const QUICK_REASONS = [
 
 export const METADATA_VIEWS = [
     { key: 'categories' as const, label: 'Job Categories', apiPath: 'categories' },
-    { key: 'locations' as const, label: 'Locations (SEO)', apiPath: 'locations' },
+    { key: 'locations' as const, label: 'locations (SEO)', apiPath: 'locations' },
     { key: 'skills' as const, label: 'Skill Tags', apiPath: 'skills' },
 ];

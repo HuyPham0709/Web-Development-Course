@@ -200,7 +200,7 @@ exports.verifyEmail = async (req, res) => {
     let companyId = null;
 
     if (tempData.role === "employer") {
-      const [companyResult] = await db.execute("INSERT INTO Companies (name) VALUES (?)", [`Company of ${tempData.full_name}`]);
+      const [companyResult] = await db.execute("INSERT INTO companies (name) VALUES (?)", [`Company of ${tempData.full_name}`]);
       companyId = companyResult.insertId;
       await db.execute("UPDATE users SET company_id = ? WHERE id = ?", [companyId, userId]);
     }

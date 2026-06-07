@@ -26,7 +26,7 @@ const SUGGESTIONS = [
 
 export default function ChatbotFloating() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setmessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
@@ -35,7 +35,7 @@ export default function ChatbotFloating() {
   // Khởi tạo câu chào ngẫu nhiên khi component mount
   useEffect(() => {
     const randomGreeting = GREETING_POOL[Math.floor(Math.random() * GREETING_POOL.length)];
-    setMessages([
+    setmessages([
       {
         id: 1,
         text: `${randomGreeting}\n\nBạn có thể chat tự nhiên hoặc chọn nhanh các gợi ý phía dưới nhé:`,
@@ -54,12 +54,12 @@ export default function ChatbotFloating() {
 
   // Hàm xử lý gửi tin nhắn chung
   const handleProcessSend = async (textToSend: string) => {
-    setMessages((prev) => [...prev, { id: Date.now(), text: textToSend, sender: "user" }]);
+    setmessages((prev) => [...prev, { id: Date.now(), text: textToSend, sender: "user" }]);
     setIsLoading(true);
 
     try {
       const response = await sendMessageToBot(textToSend);
-      setMessages((prev) => [
+      setmessages((prev) => [
         ...prev,
         {
           id: Date.now() + 1,
@@ -69,7 +69,7 @@ export default function ChatbotFloating() {
       ]);
     } catch (error) {
       console.error("Lỗi khi kết nối với chatbot:", error);
-      setMessages((prev) => [
+      setmessages((prev) => [
         ...prev,
         {
           id: Date.now() + 1,

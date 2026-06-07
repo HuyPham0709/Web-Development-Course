@@ -90,14 +90,14 @@ exports.deleteCategory = async (req, res) => {
     }
 };
 
-// ==================== LOCATIONS ====================
+// ==================== locations ====================
 
-exports.getAllLocations = async (req, res) => {
+exports.getAlllocations = async (req, res) => {
     try {
         const [rows] = await db.execute(`
             SELECT l.id, l.name, l.slug, l.created_at,
                 COUNT(j.id) AS job_count
-            FROM Locations l
+            FROM locations l
             LEFT JOIN jobs j ON j.location_id = l.id AND j.deleted_at IS NULL
             GROUP BY l.id
             ORDER BY l.name ASC
@@ -120,7 +120,7 @@ exports.createLocation = async (req, res) => {
             .replace(/[^a-z0-9-]/g, '');
 
         const [result] = await db.execute(
-            'INSERT INTO Locations (name, slug) VALUES (?, ?)',
+            'INSERT INTO locations (name, slug) VALUES (?, ?)',
             [name.trim(), autoSlug]
         );
         const [newRow] = await db.execute('SELECT * FROM locations WHERE id = ?', [result.insertId]);
@@ -141,7 +141,7 @@ exports.updateLocation = async (req, res) => {
     }
     try {
         const [result] = await db.execute(
-            'UPDATE Locations SET name = ?, slug = ? WHERE id = ?',
+            'UPDATE locations SET name = ?, slug = ? WHERE id = ?',
             [name.trim(), slug || null, id]
         );
         if (result.affectedRows === 0) {
@@ -170,7 +170,7 @@ exports.deleteLocation = async (req, res) => {
                 message: `Không thể xóa: có ${jobs[0].count} tin tuyển dụng đang dùng địa điểm này`
             });
         }
-        const [result] = await db.execute('DELETE FROM Locations WHERE id = ?', [id]);
+        const [result] = await db.execute('DELETE FROM locations WHERE id = ?', [id]);
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Không tìm thấy địa điểm' });
         }

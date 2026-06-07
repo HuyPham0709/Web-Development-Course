@@ -32,6 +32,6 @@ router.post('/send', messageController.sendMessage);
 router.delete('/conversations/:conversationId', messageController.deleteConversation);
 
 // Lấy chi tiết tin nhắn theo ID cuộc hội thoại (Đặt ở CUỐI CÙNG để tránh tranh chấp route dạng /:id)
-router.get('/:conversationId', messageController.getMessages);
+router.get('/:conversationId', messageController.getmessages);
 
 module.exports = router;

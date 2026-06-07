@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS Categories (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS Locations (
+CREATE TABLE IF NOT EXISTS locations (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL UNIQUE,
     slug VARCHAR(100) UNIQUE,
@@ -29,10 +29,10 @@ CREATE TABLE IF NOT EXISTS Skills (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ==========================================================
--- 2. MAIN ENTITIES (Companies & Users)
+-- 2. MAIN ENTITIES (companies & Users)
 -- ==========================================================
 
-CREATE TABLE IF NOT EXISTS Companies (
+CREATE TABLE IF NOT EXISTS companies (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     logo_url VARCHAR(512) NULL,
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS Users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL DEFAULT NULL,
-    FOREIGN KEY (company_id) REFERENCES Companies(id) ON DELETE SET NULL
+    FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ==========================================================
@@ -139,10 +139,10 @@ CREATE TABLE IF NOT EXISTS Jobs (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL DEFAULT NULL,
-    FOREIGN KEY (company_id) REFERENCES Companies(id) ON DELETE CASCADE,
+    FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
     FOREIGN KEY (posted_by) REFERENCES Users(id) ON DELETE RESTRICT,
     FOREIGN KEY (category_id) REFERENCES Categories(id) ON DELETE RESTRICT,
-    FOREIGN KEY (location_id) REFERENCES Locations(id) ON DELETE RESTRICT,
+    FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE RESTRICT,
     INDEX idx_job_status (status),
     INDEX idx_job_type (job_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ShieldCheck, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
 import { useNavigate } from "react-router-dom"; // Hook điều hướng trang
-import { getTopCompanies } from "../../../../services/jobService";
+import { getTopcompanies } from "../../../../services/jobService";
 
 // Dải màu nền Banner ngẫu nhiên xoay vòng cho các công ty nếu DB không có banner_url
 const bannerGradients = [
@@ -18,7 +18,7 @@ export function TopEmployers() {
   useEffect(() => {
     const fetchEmployersData = async () => {
       try {
-        const data = await getTopCompanies();
+        const data = await getTopcompanies();
         setEmployers(data.slice(0, 3)); // Lấy top 3 nhà tuyển dụng xuất sắc nhất
       } catch (error) {
         console.error("Lỗi nạp danh sách Top Employers:", error);

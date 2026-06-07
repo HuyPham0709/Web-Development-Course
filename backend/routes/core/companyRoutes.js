@@ -13,7 +13,7 @@ const upload = require('../../middlewares/uploadMiddleware'); // Giả định b
 // ─────────────────────────────────────────────────────────────
 
 // 1. Lấy danh sách Top công ty (Phải đặt TRÊN tuyến đường chứa tham số :id)
-router.get('/top', companyController.getTopCompanies);
+router.get('/top', companyController.getTopcompanies);
 
 // 2. Lấy thông tin chi tiết một công ty theo ID hoặc Slug
 router.get('/:id', companyController.getCompanyProfile);

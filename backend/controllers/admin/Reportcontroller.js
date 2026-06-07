@@ -86,7 +86,7 @@ exports.getReports = async (req, res) => {
                 u.email AS reporter_email
             FROM Reports r
             INNER JOIN jobs j ON r.job_id = j.id
-            INNER JOIN Companies c ON j.company_id = c.id
+            INNER JOIN companies c ON j.company_id = c.id
             INNER JOIN Users u ON r.reporter_id = u.id
             WHERE 1=1
         `;

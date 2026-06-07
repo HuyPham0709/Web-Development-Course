@@ -15,7 +15,7 @@ export const chatService = {
     return response.data.data;
   },
 
-  getMessages: async (conversationId: string) => {
+  getmessages: async (conversationId: string) => {
     const token = localStorage.getItem("token");
     if (!token) return [];
 

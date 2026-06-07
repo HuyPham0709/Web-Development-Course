@@ -551,7 +551,7 @@ exports.inviteInterview = async (req, res, next) => {
       JOIN Users u ON a.candidate_id = u.id
       LEFT JOIN Profiles p ON u.id = p.user_id
       JOIN jobs j ON a.job_id = j.id
-      LEFT JOIN Companies c ON j.company_id = c.id
+      LEFT JOIN companies c ON j.company_id = c.id
       WHERE a.id = ?
     `,
       [application_id],

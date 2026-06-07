@@ -141,7 +141,7 @@ export function JobForm() {
   const [form, setForm] = useState<FormState>(defaultForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [categories, setCategories] = useState<Category[]>([]);
-  const [locations, setLocations] = useState<Location[]>([]);
+  const [locations, setlocations] = useState<Location[]>([]);
   const [availableSkills, setAvailableSkills] = useState<string[]>([]); // <-- Chứa danh sách skill string[] từ API
   const [loadingMeta, setLoadingMeta] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -157,7 +157,7 @@ export function JobForm() {
     ])
       .then(([catData, locData, skillData]) => {
         setCategories(catData.data || []);
-        setLocations(locData.data || []);
+        setlocations(locData.data || []);
         setAvailableSkills(skillData.data || []); // <-- skillData.data hiện là ['React', 'NodeJS', ...]
       })
       .catch(console.error)

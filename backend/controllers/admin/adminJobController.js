@@ -40,8 +40,8 @@ exports.getAllJobs = async (req, res) => {
                 l.name AS location_name,
                 cat.name AS category_name
             FROM jobs j
-            JOIN Companies  c   ON j.company_id  = c.id
-            JOIN Locations  l   ON j.location_id = l.id
+            JOIN companies  c   ON j.company_id  = c.id
+            JOIN locations  l   ON j.location_id = l.id
             JOIN Categories cat ON j.category_id = cat.id
             ${whereClause}
             ORDER BY j.created_at DESC
@@ -51,7 +51,7 @@ exports.getAllJobs = async (req, res) => {
         const [countResult] = await db.execute(`
             SELECT COUNT(*) AS total
             FROM jobs j
-            JOIN Companies c ON j.company_id = c.id
+            JOIN companies c ON j.company_id = c.id
             ${whereClause}
         `, params);
 
@@ -117,8 +117,8 @@ exports.getPendingJobs = async (req, res) => {
                 u.username AS posted_by_username,
                 u.email    AS posted_by_email
             FROM jobs j
-            JOIN Companies  c   ON j.company_id   = c.id
-            JOIN Locations  l   ON j.location_id  = l.id
+            JOIN companies  c   ON j.company_id   = c.id
+            JOIN locations  l   ON j.location_id  = l.id
             JOIN Categories cat ON j.category_id  = cat.id
             JOIN Users      u   ON j.posted_by    = u.id
             WHERE j.status = 'pending' AND j.deleted_at IS NULL
@@ -279,8 +279,8 @@ exports.exportJobsCSV = async (req, res) => {
             SELECT j.id, j.title, j.job_type, j.experience_level, j.salary_min, j.salary_max, j.status,
                    c.name AS company_name, l.name AS location_name, cat.name AS category_name, j.created_at
             FROM jobs j
-            JOIN Companies c ON j.company_id = c.id
-            JOIN Locations l ON j.location_id = l.id
+            JOIN companies c ON j.company_id = c.id
+            JOIN locations l ON j.location_id = l.id
             JOIN Categories cat ON j.category_id = cat.id
             ${whereClause} ORDER BY j.created_at DESC
         `, params);
@@ -311,8 +311,8 @@ exports.getJobById = async (req, res) => {
                    l.name AS location_name, 
                    cat.name AS category_name
             FROM jobs j
-            JOIN Companies c ON j.company_id = c.id
-            JOIN Locations l ON j.location_id = l.id
+            JOIN companies c ON j.company_id = c.id
+            JOIN locations l ON j.location_id = l.id
             JOIN Categories cat ON j.category_id = cat.id
             WHERE j.id = ? AND j.deleted_at IS NULL
         `, [job_id]);

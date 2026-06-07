@@ -151,7 +151,7 @@ export function CVSearch() {
                   onChange={(e) => setLocation(e.target.value)}
                   className="w-full appearance-none bg-white dark:bg-[#0E1422] border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 py-2.5 pl-4 pr-10 rounded-xl font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500/50 shadow-sm transition-colors cursor-pointer"
                 >
-                  <option value="">All Locations</option>
+                  <option value="">All locations</option>
                   <option value="Ho Chi Minh">Ho Chi Minh City</option>
                   <option value="Ha Noi">Ha Noi</option>
                   <option value="Da Nang">Da Nang</option>

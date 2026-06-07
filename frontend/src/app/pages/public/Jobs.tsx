@@ -19,7 +19,7 @@ import {
 
 import { IJob, IJobFilters } from "../../../types/job";
 // 1. Đã thêm getJobSuggestions vào đây
-import { getJobs, getLocations, getCategories, getJobSuggestions } from "../../../services/jobService";
+import { getJobs, getlocations, getCategories, getJobSuggestions } from "../../../services/jobService";
 import { getRecommendations } from "../../../services/recommendationService";
 import { JobCard } from "../../components/public/home/JobCard";
 import { RecommendedJobsAside } from "../../components/candidate/profile/RecommendedJobsAside";
@@ -60,7 +60,7 @@ export const Jobs: React.FC = () => {
   // Data States
   const [jobs, setJobs] = useState<IJob[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
-  const [locations, setLocations] = useState<any[]>([]);
+  const [locations, setlocations] = useState<any[]>([]);
   const [aiRecommendations, setAiRecommendations] = useState<any[]>([]); 
   
   // UI States
@@ -153,9 +153,9 @@ export const Jobs: React.FC = () => {
   useEffect(() => {
     const initData = async () => {
       try {
-        const [catData, locData] = await Promise.all([getCategories(), getLocations()]);
+        const [catData, locData] = await Promise.all([getCategories(), getlocations()]);
         setCategories(catData);
-        setLocations(locData);
+        setlocations(locData);
 
         const token = localStorage.getItem("token");
         if (token) {
@@ -321,7 +321,7 @@ const handleOpenModal = (
                 onClick={() => setActiveDropdown(activeDropdown === "location" ? null : "location")}
                 className="w-full flex items-center justify-between bg-transparent py-3 pl-9 pr-2 text-sm text-gray-700 outline-none cursor-pointer dark:text-gray-300 text-left"
               >
-                <span className="truncate">{filters.location || "All Locations"}</span>
+                <span className="truncate">{filters.location || "All locations"}</span>
                 <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${activeDropdown === "location" ? "rotate-180" : ""}`} />
               </button>
 
@@ -336,7 +336,7 @@ const handleOpenModal = (
                       }}
                       className={`w-full text-left px-3 py-2 text-sm rounded-xl transition-colors ${!filters.location ? "bg-blue-50 text-blue-600 font-semibold dark:bg-blue-500/20 dark:text-blue-400" : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5"}`}
                     >
-                      All Locations
+                      All locations
                     </button>
                   </li>
                   {locations.map((loc: any) => (

@@ -32,7 +32,7 @@ interface FormState {
 
 const VIEWS: { key: ViewType; label: string; icon: any; apiPath: string }[] = [
   { key: 'categories', label: 'Job Categories', icon: FolderTree, apiPath: 'categories' },
-  { key: 'locations', label: 'Locations (SEO)', icon: MapPin, apiPath: 'locations' },
+  { key: 'locations', label: 'locations (SEO)', icon: MapPin, apiPath: 'locations' },
   { key: 'skills', label: 'Skill Tags', icon: Tag, apiPath: 'skills' },
 ]
 
