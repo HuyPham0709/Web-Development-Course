@@ -105,8 +105,5 @@ export const applicationService = {
     axios.delete(`${API_URL}/jobs/${job_id}`, { headers: getHeaders() }),
 };
 
-// Tạo một alias tên viết thường để tương thích ngược nếu có file nào khác đang import { applicationService }
-export const applicationService = applicationService;
-
 // EXPORT DEFAULT để file CandidateManagement.tsx có thể nhận dạng đúng cấu trúc
 export default applicationService;
