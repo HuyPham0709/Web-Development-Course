@@ -103,6 +103,18 @@ export default function AuthPage() {
         const response = await axios.post("https://web-development-course-y23i.onrender.com/api/auth/login", {
           email: formData.email, password: formData.password, role: role,
         });
+        const token = response.data.token || response.data.data?.token;
+        const userData = response.data.user || response.data.data?.user;
+
+        if (token) {
+          localStorage.setItem("token", token);
+          localStorage.setItem("user", JSON.stringify(userData || {}));
+          await Swal.fire({ title: "Success!", text: "Welcome back!", icon: "success", timer: 1500, showConfirmButton: false });
+          navigate("/");
+          window.location.reload();
+        } else {
+          setError("Đăng nhập thành công nhưng Backend không trả về Token!");
+        }
 
         if (response.data.token) {
           localStorage.setItem("token", response.data.token);
@@ -193,6 +205,27 @@ export default function AuthPage() {
         const response = await axios.post("https://web-development-course-y23i.onrender.com/api/auth/google", {
           accessToken: tokenResponse.access_token, role: role,
         });
+        const token = response.data.token || response.data.data?.token;
+        const userData = response.data.user || response.data.data?.user;
+
+        if (response.data.requireOtp) {
+          setFormData({ ...formData, email: response.data.email }); 
+          setShowOTP(true); 
+          Swal.fire({
+            title: "Security Verification",
+            text: response.data.message,
+            icon: "info"
+          });
+        } else if (token) {
+          localStorage.setItem("token", token);
+          localStorage.setItem("user", JSON.stringify(userData || {}));
+
+          await Swal.fire({ title: "Success!", text: "Google login successful!", icon: "success", timer: 1500, showConfirmButton: false });
+          navigate("/");
+          window.location.reload();
+        } else {
+          setError("Google Login thành công nhưng không nhận được Token!");
+        }
 
         // ✨ MỚI: Xử lý luồng OTP cho tài khoản Google mới
         if (response.data.requireOtp) {
