@@ -9,7 +9,7 @@ import { Button } from "../../components/ui/button"
 import { Badge } from "../../components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/Dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog"
 import { UserItem, UserStats, Pagination } from '../../../types'
 
 const API_URL = 'https://web-development-course-y23i.onrender.com/api/admin';
