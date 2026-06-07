@@ -21,8 +21,8 @@ exports.getFavorites = async (req, res) => {
         fj.created_at AS saved_at
       FROM Favorite_Jobs fj
       JOIN jobs j ON fj.job_id = j.id
-      JOIN Companies c ON j.company_id = c.id
-      JOIN Locations l ON j.location_id = l.id
+      JOIN companies c ON j.company_id = c.id   -- Đã sửa thành chữ 'c' thường
+      JOIN locations l ON j.location_id = l.id  -- Đã sửa thành chữ 'l' thường
       WHERE fj.user_id = ? 
       AND j.deleted_at IS NULL
       ORDER BY fj.created_at DESC
