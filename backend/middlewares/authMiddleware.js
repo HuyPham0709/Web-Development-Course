@@ -15,7 +15,7 @@ exports.verifyToken = async (req, res, next) => {
 
         // 2. Truy vấn Database kiểm tra trạng thái tài khoản
         const [users] = await db.execute(
-            "SELECT is_active, ban_reason FROM Users WHERE id = ? AND deleted_at IS NULL",
+            "SELECT is_active, ban_reason FROM users WHERE id = ? AND deleted_at IS NULL",
             [decoded.id]
         );
 
