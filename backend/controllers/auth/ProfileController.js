@@ -24,7 +24,7 @@ const getCloudinaryPublicId = (url) => {
 exports.getMyProfile = async (req, res) => {
     const userId = req.user.id;
     try {
-        // ✅ ĐÃ SỬA: Lấy thêm trường avatar_url trực tiếp từ bảng profiles
+        // Lấy thêm trường avatar_url trực tiếp từ bảng profiles
         const [profiles] = await db.query(
             `SELECT id, full_name, avatar_url, title, location, bio, cv_url FROM profiles WHERE user_id = ?`,
             [userId]
@@ -42,12 +42,12 @@ exports.getMyProfile = async (req, res) => {
         const profile = profiles[0];
 
         const [experience] = await db.query(
-            `SELECT company_name AS company, position AS role, description, start_date, end_date FROM Work_Experience WHERE profile_id = ?`,
+            `SELECT company_name AS company, position AS role, description, start_date, end_date FROM work_experience WHERE profile_id = ?`,
             [profile.id]
         );
 
         const [skillsRows] = await db.query(
-            `SELECT s.name FROM User_Skills us JOIN Skills s ON us.skill_id = s.id WHERE us.profile_id = ?`,
+            `SELECT s.name FROM user_skills us JOIN skills s ON us.skill_id = s.id WHERE us.profile_id = ?`,
             [profile.id]
         );
 
@@ -77,11 +77,9 @@ exports.getProfile = async (req, res) => {
 
         const profileId = profiles[0].id;
 
-        // ✅ ĐÃ XÓA: Bỏ hoàn toàn câu SELECT bảng Users để check cấu hình cũ phức tạp
-
-        const [experiences] = await db.query(`SELECT * FROM Work_Experience WHERE profile_id = ? ORDER BY start_date DESC`, [profileId]);
-        const [education] = await db.query(`SELECT * FROM Education WHERE profile_id = ? ORDER BY start_date DESC`, [profileId]);
-        const [skills] = await db.query(`SELECT s.id, s.name FROM Skills s JOIN User_Skills us ON s.id = us.skill_id WHERE us.profile_id = ?`, [profileId]);
+        const [experiences] = await db.query(`SELECT * FROM work_experience WHERE profile_id = ? ORDER BY start_date DESC`, [profileId]);
+        const [education] = await db.query(`SELECT * FROM education WHERE profile_id = ? ORDER BY start_date DESC`, [profileId]);
+        const [skills] = await db.query(`SELECT s.id, s.name FROM skills s JOIN user_skills us ON s.id = us.skill_id WHERE us.profile_id = ?`, [profileId]);
 
         const personalInfo = profiles[0];
         if (typeof personalInfo.social_links === 'string') {
@@ -89,7 +87,6 @@ exports.getProfile = async (req, res) => {
             catch { personalInfo.social_links = {}; }
         }
 
-        // ✅ ĐÃ SỬA: Trả thẳng dữ liệu từ bảng profiles về, không cần tính toán toggle chọn 1 trong 2 nữa
         res.status(200).json({
             success: true,
             personalInfo: {
@@ -147,23 +144,23 @@ exports.updateMyProfile = async (req, res) => {
             );
         }
 
-        await connection.query("DELETE FROM Work_Experience WHERE profile_id = ?", [profileId]);
+        await connection.query("DELETE FROM work_experience WHERE profile_id = ?", [profileId]);
         if (Array.isArray(experience)) {
             for (const exp of experience) {
                 await connection.query(
-                    `INSERT INTO Work_Experience (profile_id, company_name, position, description, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?)`,
+                    `INSERT INTO work_experience (profile_id, company_name, position, description, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?)`,
                     [profileId, exp.company, exp.role, exp.description || "", formatDate(exp.start_date), formatDate(exp.end_date)]
                 );
             }
         }
 
-        await connection.query("DELETE FROM User_Skills WHERE profile_id = ?", [profileId]);
+        await connection.query("DELETE FROM user_skills WHERE profile_id = ?", [profileId]);
         if (Array.isArray(skills)) {
             for (const skillName of skills) {
                 if (!skillName) continue;
-                let [skillRows] = await connection.query("SELECT * FROM Skills WHERE name = ?", [skillName]);
-                let skillId = skillRows.length === 0 ? (await connection.query("INSERT INTO Skills (name) VALUES (?)", [skillName]))[0].insertId : skillRows[0].id;
-                await connection.query("INSERT INTO User_Skills (profile_id, skill_id) VALUES (?, ?)", [profileId, skillId]);
+                let [skillRows] = await connection.query("SELECT * FROM skills WHERE name = ?", [skillName]);
+                let skillId = skillRows.length === 0 ? (await connection.query("INSERT INTO skills (name) VALUES (?)", [skillName]))[0].insertId : skillRows[0].id;
+                await connection.query("INSERT INTO user_skills (profile_id, skill_id) VALUES (?, ?)", [profileId, skillId]);
             }
         }
 
@@ -187,9 +184,6 @@ exports.updateProfile = async (req, res) => {
         connection = await db.getConnection();
         await connection.beginTransaction();
 
-        // ✅ ĐÃ XÓA: Bỏ câu lệnh UPDATE bảng Users (bỏ hoàn toàn custom_name, use_custom_name...)
-
-        // ✅ ĐÃ SỬA: Ghi đè thẳng thông tin full_name và avatar_url mới vào bảng profiles
         await connection.query(
             `UPDATE profiles 
              SET full_name = ?, title = ?, bio = ?, cv_url = ?, avatar_url = ?, cover_url = ?, 
@@ -216,34 +210,34 @@ exports.updateProfile = async (req, res) => {
         const profileId = profileRows[0].id;
 
         // Cập nhật Kinh nghiệm làm việc
-        await connection.query(`DELETE FROM Work_Experience WHERE profile_id = ?`, [profileId]);
+        await connection.query(`DELETE FROM work_experience WHERE profile_id = ?`, [profileId]);
         if (experiences && experiences.length > 0) {
             for (const exp of experiences) {
                 await connection.query(
-                    `INSERT INTO Work_Experience (profile_id, company_name, position, description, start_date, end_date, period_text) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    `INSERT INTO work_experience (profile_id, company_name, position, description, start_date, end_date, period_text) VALUES (?, ?, ?, ?, ?, ?, ?)`,
                     [profileId, exp.company_name, exp.position, exp.description || null, formatDate(exp.start_date), formatDate(exp.end_date), `${formatDate(exp.start_date) || ''} - ${formatDate(exp.end_date) || 'Present'}`]
                 );
             }
         }
 
         // Cập nhật Học vấn
-        await connection.query(`DELETE FROM Education WHERE profile_id = ?`, [profileId]);
+        await connection.query(`DELETE FROM education WHERE profile_id = ?`, [profileId]);
         if (education && education.length > 0) {
             for (const edu of education) {
                 await connection.query(
-                    `INSERT INTO Education (profile_id, school_name, major, gpa, start_date, end_date, description, period_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    `INSERT INTO education (profile_id, school_name, major, gpa, start_date, end_date, description, period_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
                     [profileId, edu.school_name, edu.major, edu.gpa || null, formatDate(edu.start_date), formatDate(edu.end_date), edu.description || null, `${formatDate(edu.start_date) || ''} - ${formatDate(edu.end_date) || 'Present'}`]
                 );
             }
         }
 
         // Cập nhật Kỹ năng
-        await connection.query(`DELETE FROM User_Skills WHERE profile_id = ?`, [profileId]);
+        await connection.query(`DELETE FROM user_skills WHERE profile_id = ?`, [profileId]);
         if (skills && skills.length > 0) {
             for (const skillName of skills) {
-                let [skillRows] = await connection.query(`SELECT id FROM Skills WHERE name = ?`, [skillName]);
-                let skillId = skillRows.length === 0 ? (await connection.query(`INSERT INTO Skills (name) VALUES (?)`, [skillName]))[0].insertId : skillRows[0].id;
-                await connection.query(`INSERT INTO User_Skills (profile_id, skill_id) VALUES (?, ?)`, [profileId, skillId]);
+                let [skillRows] = await connection.query(`SELECT id FROM skills WHERE name = ?`, [skillName]);
+                let skillId = skillRows.length === 0 ? (await connection.query(`INSERT INTO skills (name) VALUES (?)`, [skillName]))[0].insertId : skillRows[0].id;
+                await connection.query(`INSERT INTO user_skills (profile_id, skill_id) VALUES (?, ?)`, [profileId, skillId]);
             }
         }
 
@@ -311,7 +305,6 @@ exports.uploadAvatar = async (req, res) => {
         const result = await uploadToCloudinary(req.file.buffer, 'job_finder/avatars');
         const secureUrl = result.secure_url;
 
-        // ✅ ĐÃ SỬA: Chỉ cần UPDATE duy nhất trường avatar_url ở bảng profiles là xong, bỏ hoàn toàn update bên Users
         await db.query(`UPDATE profiles SET avatar_url = ? WHERE user_id = ?`, [secureUrl, userId]);
 
         res.json({ success: true, avatar_url: secureUrl, message: 'Avatar updated successfully!' });
@@ -343,7 +336,7 @@ exports.uploadCover = async (req, res) => {
 exports.searchCandidates = async (req, res) => {
     try {
         const { keyword, location, skills, exp_min, exp_max } = req.query;
-        const employerId = req.user.id; // Lấy ID của nhà tuyển dụng từ token
+        const employerId = req.user.id; 
 
         let query = `
     SELECT 
@@ -356,14 +349,13 @@ exports.searchCandidates = async (req, res) => {
         p.phone,
         p.gender,
         p.dob,   
-        (SELECT GROUP_CONCAT(s.name) FROM User_Skills us JOIN Skills s ON us.skill_id = s.id WHERE us.profile_id = p.id) AS skills,
-        (SELECT COALESCE(SUM(TIMESTAMPDIFF(YEAR, start_date, IFNULL(end_date, CURRENT_DATE))), 0) FROM Work_Experience we WHERE we.profile_id = p.id) AS years_of_exp
+        (SELECT GROUP_CONCAT(s.name) FROM user_skills us JOIN skills s ON us.skill_id = s.id WHERE us.profile_id = p.id) AS skills,
+        (SELECT COALESCE(SUM(TIMESTAMPDIFF(YEAR, start_date, IFNULL(end_date, CURRENT_DATE))), 0) FROM work_experience we WHERE we.profile_id = p.id) AS years_of_exp
     FROM profiles p 
-    JOIN Users u ON p.user_id = u.id 
+    JOIN users u ON p.user_id = u.id 
     WHERE u.role = 'candidate' 
       AND u.is_active = 1 
       AND p.allow_employer_search = 1
-      -- CHỖ MỚI THÊM: Không lấy ứng viên đã bị nhà tuyển dụng này ignore
       AND NOT EXISTS (
           SELECT 1 FROM employer_profile_views v 
           WHERE v.candidate_id = u.id 
@@ -371,7 +363,6 @@ exports.searchCandidates = async (req, res) => {
           AND v.status = 'ignored'
       )
 `;
-        // Thêm employerId vào đầu danh sách tham số
         const queryParams = [employerId];
 
         if (keyword) { 
@@ -385,7 +376,7 @@ exports.searchCandidates = async (req, res) => {
         if (skills) {
             const skillList = skills.split(',').map(s => s.trim());
             for (let i = 0; i < skillList.length; i++) {
-                query += ` AND EXISTS (SELECT 1 FROM User_Skills us JOIN Skills s ON us.skill_id = s.id WHERE us.profile_id = p.id AND s.name = ?)`;
+                query += ` AND EXISTS (SELECT 1 FROM user_skills us JOIN skills s ON us.skill_id = s.id WHERE us.profile_id = p.id AND s.name = ?)`;
                 queryParams.push(skillList[i]);
             }
         }
