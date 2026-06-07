@@ -7,16 +7,23 @@ export const api = axios.create({
   baseURL: API,
 });
 
-// Request interceptor - đính kèm token vào header bảo mật và chuẩn hóa định dạng
+// 🛡️ Request interceptor - Bản nâng cấp tự bóc tách và sửa lỗi định dạng chuỗi token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
+    let token = localStorage.getItem("token");
     
-    // Kiểm tra token hợp lệ, tránh truyền chuỗi rỗng hoặc từ khóa "undefined"/"null" do lỗi bộ nhớ lưu trữ
-    if (token && token !== "undefined" && token !== "null" && token.trim() !== "") {
-      // Tự động kiểm tra: Nếu token đã có sẵn chữ "Bearer " thì giữ nguyên, chưa có thì mới thêm vào
-      const authorizationHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
-      config.headers.Authorization = authorizationHeader;
+    if (token) {
+      // BẪY TỰ ĐỘNG: Nếu token bị bọc trong dấu ngoặc kép "" do lỗi lưu trữ, tự cắt bỏ nó luôn!
+      if (token.startsWith('"') && token.endsWith('"')) {
+        token = token.slice(1, -1);
+      }
+      
+      // Kiểm tra token hợp lệ, tránh truyền chuỗi rỗng hoặc từ khóa "undefined"/"null"
+      if (token !== "undefined" && token !== "null" && token.trim() !== "") {
+        // Tự động kiểm tra: Nếu token đã có sẵn chữ "Bearer " thì giữ nguyên, chưa có thì mới thêm vào
+        const authorizationHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+        config.headers.Authorization = authorizationHeader;
+      }
     }
     
     return config;
@@ -26,7 +33,7 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor - Xử lý tập trung các lỗi Auth & Banned (Đã được gia cố an toàn)
+// 🛑 Response interceptor - Xử lý tập trung các lỗi Auth & Banned
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -37,7 +44,7 @@ api.interceptors.response.use(
     // 🔍 NHẬT KÝ KIỂM TRA: In lỗi ra Console F12 để bạn biết chính xác API nào đang bị lỗi 401/403
     console.warn(`[Axios Interceptor] Phát hiện lỗi API: URL="${url}" | Status=${status} | Message="${message}"`);
 
-    // 🛑 PHANH AN TOÀN CHỐNG VĂNG: Nếu người dùng đang ở trang Auth (/auth) thì KHÔNG kích hoạt ép văng, tránh xung đột luồng login
+    // PHANH AN TOÀN CHỐNG VĂNG: Nếu người dùng đang ở trang Auth (/auth) thì KHÔNG kích hoạt ép văng
     if (window.location.pathname.includes("/auth")) {
       return Promise.reject(error);
     }
@@ -57,7 +64,6 @@ api.interceptors.response.use(
 
     // XỬ LÝ LOGIC ÉP ĐĂNG XUẤT KHI THỰC SỰ HẾT HẠN PHIÊN
     if (isTokenExpired) {
-      // Chỉ thực hiện xóa khi trong bộ nhớ thực sự đang có token cũ lỗi
       if (localStorage.getItem("token")) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
