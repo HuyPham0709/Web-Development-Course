@@ -20,7 +20,7 @@ export const InviteDetail = () => {
   useEffect(() => {
     const fetchDetail = async () => {
       try {
-        const response = await fetch(`https://web-development-course-y23i.onrender.com//api/invitations/${id}`, {
+        const response = await fetch(`https://web-development-course-y23i.onrender.com/api/invitations/${id}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
           }
@@ -40,7 +40,7 @@ export const InviteDetail = () => {
 
   const handleUpdateStatus = async (status: 'accepted' | 'rejected') => {
     try {
-      const response = await fetch(`https://web-development-course-y23i.onrender.com//api/invitations/status/${id}`, {
+      const response = await fetch(`https://web-development-course-y23i.onrender.com/api/invitations/status/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

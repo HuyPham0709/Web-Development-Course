@@ -5,7 +5,7 @@ import { Button } from "../../components/ui/button"
 import { Badge } from "../../components/ui/badge"
 import { toast } from "sonner"
 
-const API_URL = 'https://web-development-course-y23i.onrender.com//api/admin'
+const API_URL = 'https://web-development-course-y23i.onrender.com/api/admin'
 
 function getHeaders() {
   const token = localStorage.getItem('admin_token')
