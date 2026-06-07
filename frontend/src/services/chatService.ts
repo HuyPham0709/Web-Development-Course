@@ -15,7 +15,7 @@ export const getconversations = async (): Promise<IConversation[]> => {
   return response.data.data;
 };
 
-export const getMessages = async (conversationId: string): Promise<IMessage[]> => {
+export const getmessages = async (conversationId: string): Promise<IMessage[]> => {
   const token = localStorage.getItem("token");
   if (!token) return [];
 
@@ -62,7 +62,7 @@ export const deleteConversation = async (conversationId: string) => {
 // 2. Gom cụm lại thành object và Export Default để tương thích với các file import kiểu cũ
 const chatService = {
   getconversations,
-  getMessages,
+  getmessages,
   sendMessage,
   deleteConversation,
 };
