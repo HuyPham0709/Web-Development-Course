@@ -269,9 +269,9 @@ exports.getJobDetail = async (req, res) => {
             FROM jobs j
             LEFT JOIN companies c ON j.company_id = c.id
             LEFT JOIN locations l ON j.location_id = l.id
-            LEFT JOIN Categories cat ON j.category_id = cat.id
-            LEFT JOIN Job_Skills js ON j.id = js.job_id        -- <--- THÊM: Kết hợp bảng trung gian
-            LEFT JOIN Skills s ON js.skill_id = s.id           -- <--- THÊM: Kết hợp bảng kĩ năng
+            LEFT JOIN categories cat ON j.category_id = cat.id
+            LEFT JOIN job_skills js ON j.id = js.job_id        -- <--- THÊM: Kết hợp bảng trung gian
+            LEFT JOIN skills s ON js.skill_id = s.id           -- <--- THÊM: Kết hợp bảng kĩ năng
             WHERE j.id = ?
             GROUP BY j.id                                      -- <--- THÊM: Group by ID để gom nhóm GROUP_CONCAT
         `,
