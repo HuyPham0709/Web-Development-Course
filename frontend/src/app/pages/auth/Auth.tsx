@@ -110,20 +110,13 @@ export default function AuthPage() {
           localStorage.setItem("token", token);
           localStorage.setItem("user", JSON.stringify(userData || {}));
           await Swal.fire({ title: "Success!", text: "Welcome back!", icon: "success", timer: 1500, showConfirmButton: false });
-          navigate("/");
-          window.location.reload();
+          
+          // Sửa đổi ở đây: Ép nạp lại trang chủ để cập nhật Axios Interceptor ngay lập tức
+          window.location.href = "/";
         } else {
           setError("Đăng nhập thành công nhưng Backend không trả về Token!");
         }
-
-        if (response.data.token) {
-          localStorage.setItem("token", response.data.token);
-          localStorage.setItem("user", JSON.stringify(response.data.user));
-          await Swal.fire({ title: "Success!", text: "Welcome back!", icon: "success", timer: 1500, showConfirmButton: false });
-          navigate("/");
-          window.location.reload();
-        }
-      } else {
+      } : {
         const response = await axios.post("https://web-development-course-y23i.onrender.com//api/auth/register", {
           username: formData.fullName, name: formData.fullName, email: formData.email, phone: formData.phone, password: formData.password, role: role,
         });
@@ -154,16 +147,15 @@ export default function AuthPage() {
       });
 
       if (response.data.success) {
-        // ✨ MỚI: Backend đã trả về token trực tiếp, lưu vào local và chuyển hướng
         if (response.data.token) {
           localStorage.setItem("token", response.data.token);
           localStorage.setItem("user", JSON.stringify(response.data.user));
           
           await Swal.fire({ title: "Success!", text: "Verification and login successful!", icon: "success", timer: 1500, showConfirmButton: false });
-          navigate("/");
-          window.location.reload();
+          
+          // Sửa đổi ở đây: Đồng bộ tải lại trang chủ để tránh lỗi token bất đồng bộ
+          window.location.href = "/";
         } else {
-          // Fallback an toàn
           await Swal.fire({ title: "Verification successful!", text: "Please login now!", icon: "success" });
           setOtpCode("");
           setShowOTP(false);
@@ -188,7 +180,7 @@ export default function AuthPage() {
 
       if (response.data.success) {
         Swal.fire({ title: "Resent!", text: "The new OTP code has been sent to your email.", icon: "success", toast: true, position: "top-end", showConfirmButton: false, timer: 3000 });
-        setResendCooldown(300); // 300 giây = 5 phút
+        setResendCooldown(300);
         setOtpCode("");
       }
     } catch (err: any) {
@@ -221,29 +213,11 @@ export default function AuthPage() {
           localStorage.setItem("user", JSON.stringify(userData || {}));
 
           await Swal.fire({ title: "Success!", text: "Google login successful!", icon: "success", timer: 1500, showConfirmButton: false });
-          navigate("/");
-          window.location.reload();
+          
+          // Sửa đổi ở đây: Điều hướng trực tiếp đồng bộ để tránh nạp API lậu không mang Token
+          window.location.href = "/";
         } else {
           setError("Google Login thành công nhưng không nhận được Token!");
-        }
-
-        // ✨ MỚI: Xử lý luồng OTP cho tài khoản Google mới
-        if (response.data.requireOtp) {
-          setFormData({ ...formData, email: response.data.email }); // Lưu lại email để dùng cho API verify
-          setShowOTP(true); // Bật giao diện nhập OTP
-          Swal.fire({
-            title: "Security Verification",
-            text: response.data.message,
-            icon: "info"
-          });
-        } else if (response.data.token) {
-          // Luồng bình thường: Đã có sẵn tài khoản
-          localStorage.setItem("token", response.data.token);
-          localStorage.setItem("user", JSON.stringify(response.data.user));
-
-          await Swal.fire({ title: "Success!", text: "Google login successful!", icon: "success", timer: 1500, showConfirmButton: false });
-          navigate("/");
-          window.location.reload();
         }
       } catch (err: any) {
         setError(err.response?.data?.message || "Error logging in with Google!");
