@@ -8,15 +8,15 @@ const { verifyToken, authorizeRole } = require("../../middlewares/authMiddleware
 // CANDIDATE (ỨNG VIÊN)
 // ======================================================
 router.post("/apply", verifyToken, authorizeRole(["candidate"]), applicationController.applyJob);
-router.get("/my", verifyToken, authorizeRole(["candidate"]), applicationController.getMyApplications);
+router.get("/my", verifyToken, authorizeRole(["candidate"]), applicationController.getMyapplications);
 router.delete("/withdraw/:id", verifyToken, authorizeRole(["candidate"]), applicationController.withdrawApplication);
 
 // ======================================================
 // EMPLOYER (NHÀ TUYỂN DỤNG)
 // ======================================================
-router.get("/employer/list", verifyToken, authorizeRole(["employer"]), applicationController.getEmployerApplications);
+router.get("/employer/list", verifyToken, authorizeRole(["employer"]), applicationController.getEmployerapplications);
 router.get("/employer/detail/:id", verifyToken, authorizeRole(["employer"]), applicationController.getApplicationById);
-router.put("/update-status", verifyToken, authorizeRole(["employer"]), applicationController.updateApplicationStatus);
+router.put("/update-status", verifyToken, authorizeRole(["employer"]), applicationController.updateapplicationstatus);
 router.get("/employer/jobs", verifyToken, authorizeRole(["employer"]), applicationController.getEmployerJobs);
 
 // Bảo mật API gửi lời mời phỏng vấn (Chỉ Employer được gọi)

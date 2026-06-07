@@ -184,7 +184,7 @@ export function Hero({ initialTitle, initialLocation, initialCategoryId, initial
               className="absolute -bottom-6 left-1/2 w-64 -translate-x-1/2 rounded-2xl border border-gray-100 bg-white p-4 shadow-lg dark:border-white/10 dark:bg-white/10 dark:backdrop-blur-md"
             >
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Live Applications</span>
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Live applications</span>
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75"></span>
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>

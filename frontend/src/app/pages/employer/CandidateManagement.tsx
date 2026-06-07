@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { LayoutGrid, List, MoreVertical, Calendar, Briefcase, ChevronDown, Loader2, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { applicationService } from '../../../services/applicationService';
+import { applicationservice } from '../../../services/applicationservice';
 import { Candidate } from '../../../types/application';
 import { STATUSES, STATUS_LABEL, STATUS_COLORS } from '../../../constants/status';
 import { getInitials, formatDateVN } from '../../../utils/format';
@@ -41,7 +41,7 @@ export default function CandidateManagement() {
 
   // Initial fetch of candidates
   useEffect(() => {
-    applicationService.getEmployerApplications()
+    applicationservice.getEmployerapplications()
       .then(res => setCandidates(res.data.data))
       .catch(err => setError(err.response?.data?.message || 'An error occurred while loading candidates.'))
       .finally(() => setLoading(false));
@@ -90,7 +90,7 @@ export default function CandidateManagement() {
 
     setUpdatingId(application_id);
     try {
-      await applicationService.updateStatus(application_id, newStatus);
+      await applicationservice.updateStatus(application_id, newStatus);
       setCandidates(prev => prev.map(c =>
         c.application_id === application_id ? { ...c, status: newStatus } : c
       ));

@@ -421,7 +421,7 @@ export function Users() {
                   <>
                     <div><p className="text-slate-500 dark:text-slate-400 transition-colors duration-200">Full Name</p><p className="font-medium text-slate-900 dark:text-slate-200 transition-colors duration-200">{detailData.full_name || '—'}</p></div>
                     <div><p className="text-slate-500 dark:text-slate-400 transition-colors duration-200">Phone</p><p className="font-medium text-slate-900 dark:text-slate-200 transition-colors duration-200">{detailData.phone || '—'}</p></div>
-                    <div><p className="text-slate-500 dark:text-slate-400 transition-colors duration-200">Applications</p><p className="font-medium text-slate-900 dark:text-slate-200 transition-colors duration-200">{detailData.total_applications}</p></div>
+                    <div><p className="text-slate-500 dark:text-slate-400 transition-colors duration-200">applications</p><p className="font-medium text-slate-900 dark:text-slate-200 transition-colors duration-200">{detailData.total_applications}</p></div>
                   </>
                 )}
                 {detailData.role === 'employer' && (

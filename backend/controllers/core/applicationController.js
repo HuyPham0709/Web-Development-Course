@@ -32,7 +32,7 @@ exports.applyJob = async (req, res) => {
     const job = jobs[0];
 
     const [existingApp] = await db.execute(
-      "SELECT id FROM Applications WHERE job_id = ? AND candidate_id = ?",
+      "SELECT id FROM applications WHERE job_id = ? AND candidate_id = ?",
       [job_id, candidate_id],
     );
 
@@ -47,7 +47,7 @@ exports.applyJob = async (req, res) => {
     }
 
     await db.execute(
-      "INSERT INTO Applications (job_id, candidate_id, cover_letter, status, applied_at) VALUES (?, ?, ?, 'pending', NOW())",
+      "INSERT INTO applications (job_id, candidate_id, cover_letter, status, applied_at) VALUES (?, ?, ?, 'pending', NOW())",
       [job_id, candidate_id, cover_letter || null],
     );
     console.log("⚙️ [MySQL] Successfully saved new job application record!");
@@ -97,9 +97,9 @@ exports.applyJob = async (req, res) => {
 };
 
 // ======================================================
-// GET EMPLOYER APPLICATIONS
+// GET EMPLOYER applications
 // ======================================================
-exports.getEmployerApplications = async (req, res) => {
+exports.getEmployerapplications = async (req, res) => {
   const employer_id = req.user.id;
   try {
     const [rows] = await db.execute(
@@ -160,8 +160,8 @@ exports.getApplicationById = async (req, res) => {
                 a.cover_letter,
                 a.status,
                 a.applied_at
-            FROM Applications a
-            JOIN Users u ON a.candidate_id = u.id
+            FROM applications a
+            JOIN users u ON a.candidate_id = u.id
             LEFT JOIN profiles p ON u.id = p.user_id
             JOIN jobs j ON a.job_id = j.id
             WHERE a.id = ? AND j.posted_by = ?
@@ -205,7 +205,7 @@ exports.getApplicationById = async (req, res) => {
 // ======================================================
 // UPDATE APPLICATION STATUS
 // ======================================================
-exports.updateApplicationStatus = async (req, res) => {
+exports.updateapplicationstatus = async (req, res) => {
   const { application_id, status } = req.body;
   const employer_id = req.user.id;
 
@@ -225,7 +225,7 @@ exports.updateApplicationStatus = async (req, res) => {
   try {
     const [applications] = await db.execute(
       `SELECT a.candidate_id, j.title as job_title 
-       FROM Applications a 
+       FROM applications a 
        JOIN jobs j ON a.job_id = j.id 
        WHERE a.id = ?`,
       [application_id],
@@ -236,7 +236,7 @@ exports.updateApplicationStatus = async (req, res) => {
         .json({ success: false, message: "Application not found!" });
     }
 
-    await db.execute("UPDATE Applications SET status = ? WHERE id = ?", [
+    await db.execute("UPDATE applications SET status = ? WHERE id = ?", [
       status,
       application_id,
     ]);
@@ -330,9 +330,9 @@ exports.getEmployerJobs = async (req, res) => {
 };
 
 // ======================================================
-// MY APPLICATIONS
+// MY applications
 // ======================================================
-exports.getMyApplications = async (req, res) => {
+exports.getMyapplications = async (req, res) => {
   try {
     const userId = req.user.id;
 
@@ -376,7 +376,7 @@ exports.withdrawApplication = async (req, res) => {
   const application_id = req.params.id;
   try {
     const [applications] = await db.execute(
-      `SELECT id, status FROM Applications WHERE id = ? AND candidate_id = ?`,
+      `SELECT id, status FROM applications WHERE id = ? AND candidate_id = ?`,
       [application_id, candidate_id],
     );
     if (applications.length === 0) {
@@ -392,7 +392,7 @@ exports.withdrawApplication = async (req, res) => {
           message: "You can only withdraw applications that are pending",
         });
     }
-    await db.execute(`DELETE FROM Applications WHERE id = ?`, [application_id]);
+    await db.execute(`DELETE FROM applications WHERE id = ?`, [application_id]);
     res.json({ success: true, message: "Application withdrawn successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -549,8 +549,8 @@ exports.inviteInterview = async (req, res, next) => {
         COALESCE(p.full_name, u.username) AS candidate_name,
         j.title AS job_title,
         c.name AS company_name
-      FROM Applications a
-      JOIN Users u ON a.candidate_id = u.id
+      FROM applications a
+      JOIN users u ON a.candidate_id = u.id
       LEFT JOIN profiles p ON u.id = p.user_id
       JOIN jobs j ON a.job_id = j.id
       LEFT JOIN companies c ON j.company_id = c.id
@@ -571,7 +571,7 @@ exports.inviteInterview = async (req, res, next) => {
     const application = rows[0];
 
     await db.execute(
-      "UPDATE Applications SET status = 'reviewed' WHERE id = ?",
+      "UPDATE applications SET status = 'reviewed' WHERE id = ?",
       [application_id],
     );
 
@@ -715,7 +715,7 @@ exports.inviteInterview = async (req, res, next) => {
       created_at: new Date(),
     });
 
-    socketUtils.emitToUser(targetCandidateId, "applicationStatusChanged", {
+    socketUtils.emitToUser(targetCandidateId, "applicationstatusChanged", {
       application_id: Number(application_id),
       newStatus: "reviewed",
     });
@@ -746,8 +746,8 @@ exports.acceptInterview = async (req, res, next) => {
         j.posted_by AS employer_user_id,
         COALESCE(p.full_name, u.username) AS candidate_name,
         j.title AS job_title
-      FROM Applications a
-      JOIN Users u ON a.candidate_id = u.id
+      FROM applications a
+      JOIN users u ON a.candidate_id = u.id
       LEFT JOIN profiles p ON u.id = p.user_id
       JOIN jobs j ON a.job_id = j.id
       WHERE a.id = ?
@@ -768,7 +768,7 @@ exports.acceptInterview = async (req, res, next) => {
     const application = rows[0];
 
     await db.execute(
-      "UPDATE Applications SET status = 'interviewing' WHERE id = ?",
+      "UPDATE applications SET status = 'interviewing' WHERE id = ?",
       [id],
     );
 
@@ -783,7 +783,7 @@ exports.acceptInterview = async (req, res, next) => {
       created_at: new Date(),
     });
 
-    socketUtils.emitToUser(targetEmployerId, "applicationStatusChanged", {
+    socketUtils.emitToUser(targetEmployerId, "applicationstatusChanged", {
       application_id: Number(id),
       newStatus: "interviewing",
     });
@@ -825,7 +825,7 @@ exports.declineInterview = async (req, res, next) => {
         j.posted_by AS employer_user_id,
         COALESCE(p.full_name, u.username) AS candidate_name,
         j.title AS job_title
-      FROM Applications a
+      FROM applications a
       JOIN Users u ON a.candidate_id = u.id
       LEFT JOIN profiles p ON u.id = p.user_id
       JOIN jobs j ON a.job_id = j.id
@@ -847,7 +847,7 @@ exports.declineInterview = async (req, res, next) => {
     const application = rows[0];
 
     await db.execute(
-      "UPDATE Applications SET status = 'rejected' WHERE id = ?",
+      "UPDATE applications SET status = 'rejected' WHERE id = ?",
       [id],
     );
 
@@ -864,7 +864,7 @@ exports.declineInterview = async (req, res, next) => {
       created_at: new Date(),
     });
 
-    socketUtils.emitToUser(targetEmployerId, "applicationStatusChanged", {
+    socketUtils.emitToUser(targetEmployerId, "applicationstatusChanged", {
       application_id: Number(id),
       newStatus: "rejected",
     });

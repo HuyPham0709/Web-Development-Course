@@ -58,7 +58,7 @@ exports.chatWithBot = async (req, res, next) => {
         if (intent.history > 0) {
             return res.status(200).json({
                 success: true,
-                reply: "📂 Hướng dẫn xem Lịch sử ứng tuyển: Bạn hãy bấm vào Ảnh đại diện của mình ở góc phải màn hình ➡️ chọn Dashboard ➡️ truy cập mục 'Lịch sử ứng tuyển' (My Applications). Tại đây bạn sẽ thấy toàn bộ danh sách các công việc mình đã nộp đơn và trạng thái phản hồi thực tế từ Nhà tuyển dụng."
+                reply: "📂 Hướng dẫn xem Lịch sử ứng tuyển: Bạn hãy bấm vào Ảnh đại diện của mình ở góc phải màn hình ➡️ chọn Dashboard ➡️ truy cập mục 'Lịch sử ứng tuyển' (My applications). Tại đây bạn sẽ thấy toàn bộ danh sách các công việc mình đã nộp đơn và trạng thái phản hồi thực tế từ Nhà tuyển dụng."
             });
         }
 

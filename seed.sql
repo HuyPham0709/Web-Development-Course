@@ -228,8 +228,8 @@ INSERT INTO JobCriteria (user_id, desired_position, salary_min, preferred_locati
 -- 5. CONNECTION & INTERACTION OPERATIONS (>= 30 records)
 -- ==========================================================
 
--- INSERT INTO Applications (Ứng viên ứng tuyển công việc - 30 records)
-INSERT INTO Applications (candidate_id, job_id, cover_letter, status) VALUES
+-- INSERT INTO applications (Ứng viên ứng tuyển công việc - 30 records)
+INSERT INTO applications (candidate_id, job_id, cover_letter, status) VALUES
 (17, 1, 'Tôi có 5 năm kinh nghiệm Java.', 'pending'),
 (17, 23, 'Tôi làm được cả Backend Java và Frontend React.', 'reviewed'),
 (18, 3, 'Chuyên gia phân tích dữ liệu AI.', 'interviewing'),

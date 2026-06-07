@@ -251,7 +251,7 @@ exports.getUserDetail = async (req, res) => {
         let extra = {};
         if (users[0].role === 'candidate') {
             const [appCount] = await db.execute(
-                "SELECT COUNT(*) AS total FROM Applications WHERE candidate_id = ?",
+                "SELECT COUNT(*) AS total FROM applications WHERE candidate_id = ?",
                 [user_id]
             );
             extra.total_applications = appCount[0].total;

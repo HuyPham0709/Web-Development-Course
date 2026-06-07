@@ -167,7 +167,7 @@ CREATE TABLE IF NOT EXISTS Job_Skills (
 -- 5. CONNECTION & INTERACTION OPERATIONS
 -- ==========================================================
 
-CREATE TABLE IF NOT EXISTS Applications (
+CREATE TABLE IF NOT EXISTS applications (
     id INT PRIMARY KEY AUTO_INCREMENT,
     candidate_id INT NOT NULL,
     job_id INT NOT NULL,
@@ -231,7 +231,7 @@ CREATE TABLE IF NOT EXISTS Application_Notes (
     content TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (application_id) REFERENCES Applications(id) ON DELETE CASCADE,
+    FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE,
     FOREIGN KEY (author_id) REFERENCES Users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

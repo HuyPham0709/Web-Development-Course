@@ -8,12 +8,12 @@ function getHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export const applicationService = {
+export const applicationservice = {
   // =========================
   // EMPLOYER
   // =========================
 
-  getEmployerApplications: () =>
+  getEmployerapplications: () =>
     axios.get(`${API_URL}/applications/employer/list`, {
       headers: getHeaders(),
     }),
@@ -55,7 +55,7 @@ export const applicationService = {
       { headers: getHeaders() }
     ),
 
-  getMyApplications: () =>
+  getMyapplications: () =>
   axios.get(`${API_URL}/applications/my`, {
     headers: getHeaders(),
   }),

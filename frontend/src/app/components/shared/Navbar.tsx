@@ -104,7 +104,7 @@ export const Navbar = () => {
       return [
         { name: "Home", path: "/" },
         { name: "jobs", path: "/jobs" },
-        { name: "My Applications", path: "/applications" },
+        { name: "My applications", path: "/applications" },
       ];
     }
 

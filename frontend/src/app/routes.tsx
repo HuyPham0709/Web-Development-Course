@@ -12,7 +12,7 @@ import { jobs } from "./pages/public/jobs";
 
 // CANDIDATE PAGES
 import ProfileDashboard from "./pages/candidate/ProfileDashboard";
-import MyApplications from "./pages/candidate/MyApplications";
+import Myapplications from "./pages/candidate/Myapplications";
 import { InviteDetail } from "./pages/candidate/InviteDetail"; // ĐÃ IMPORT COMPONENT MỚI
 // EMPLOYER PAGES
 import EmployerDashboard from "./pages/employer/EmployerDashboard";
@@ -124,8 +124,8 @@ export const router = createBrowserRouter([
         element: <ProtectedRoute allowedRole="candidate" />,
         children: [
           { path: "profile", element: <ProfileDashboard /> },
-          { path: "applications", element: <MyApplications /> },
-          { path: "profile/applications", element: <MyApplications /> },
+          { path: "applications", element: <Myapplications /> },
+          { path: "profile/applications", element: <Myapplications /> },
           { path: "profile/viewed-by-employer", element: <ViewedByEmployers /> },
           { path: "invite-detail/:id", element: <InviteDetail /> }, // <-- THÊM ROUTE Ở ĐÂY
         ],

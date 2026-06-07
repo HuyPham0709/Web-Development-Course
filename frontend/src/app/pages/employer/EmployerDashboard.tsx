@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Briefcase, Users, MessageSquare, Eye, Plus, MoreVertical, MapPin, Clock, Loader2, Pencil, Trash2, XCircle, RefreshCw, AlertCircle, DollarSign } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { applicationService } from '../../../services/applicationService';
+import { applicationservice } from '../../../services/applicationservice';
 import { Job, Stats } from '../../../types/application';
 import { timeAgo, formatSalary } from '../../../utils/format';
 
@@ -52,7 +52,7 @@ export default function EmployerDashboard() {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    applicationService.getEmployerJobs()
+    applicationservice.getEmployerJobs()
       .then(res => {
         setjobs(res.data.data || []);
         setStats(res.data.stats || { total_jobs: 0, total_applications: 0 });
@@ -82,7 +82,7 @@ export default function EmployerDashboard() {
     setTogglingId(job_id);
     setOpenMenuId(null);
     try {
-      const res = await applicationService.togglejobstatus(job_id);
+      const res = await applicationservice.togglejobstatus(job_id);
       setjobs(prev => prev.map(j => j.id === job_id ? { ...j, status: res.data.new_status } : j));
     } catch (err: any) {
       alert(err.response?.data?.message || 'Error updating status');
@@ -95,7 +95,7 @@ export default function EmployerDashboard() {
     if (!window.confirm('Are you sure you want to delete this job posting?')) return;
     setOpenMenuId(null);
     try {
-      await applicationService.deleteJob(job_id);
+      await applicationservice.deleteJob(job_id);
       setjobs(prev => prev.filter(j => j.id !== job_id));
       setStats(prev => ({ ...prev, total_jobs: prev.total_jobs - 1 }));
     } catch (err: any) {
@@ -182,7 +182,7 @@ export default function EmployerDashboard() {
 
   const STATS_DISPLAY = [
     { id: 1, label: 'Total jobs', value: String(stats.total_jobs), icon: Briefcase, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/40' },
-    { id: 2, label: 'Active Applications', value: String(stats.total_applications), icon: Users, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-950/40' },
+    { id: 2, label: 'Active applications', value: String(stats.total_applications), icon: Users, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-950/40' },
     { id: 3, label: 'New messages', value: '0', icon: MessageSquare, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-950/40' },
     { id: 4, label: 'Total Views', value: '—', icon: Eye, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/40' },
   ];
@@ -255,7 +255,7 @@ export default function EmployerDashboard() {
                     <th className="px-6 py-4 font-semibold">Job Title</th>
                     <th className="px-6 py-4 font-semibold">Salary</th>
                     <th className="px-6 py-4 font-semibold">Status</th>
-                    <th className="px-6 py-4 font-semibold">Applications</th>
+                    <th className="px-6 py-4 font-semibold">applications</th>
                     <th className="px-6 py-4 font-semibold">Posted</th>
                     <th className="px-6 py-4 font-semibold text-right">Actions</th>
                   </tr>

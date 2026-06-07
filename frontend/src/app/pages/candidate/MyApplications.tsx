@@ -16,8 +16,8 @@ import { RecommendedjobsAside } from '../../components/candidate/profile/Recomme
 import { getRecommendations } from '../../../services/recommendationService';
 import { useSharedProfile } from '../../../hooks/useSharedProfile';
 
-// Import applicationService để chuẩn hóa các lượt gọi API
-import { applicationService } from '../../../services/applicationService'; // <-- Bạn nhớ kiểm tra lại đường dẫn này xem đã đúng thư mục chưa nhé
+// Import applicationservice để chuẩn hóa các lượt gọi API
+import { applicationservice } from '../../../services/applicationservice'; // <-- Bạn nhớ kiểm tra lại đường dẫn này xem đã đúng thư mục chưa nhé
 
 // Giữ lại API_BASE phục vụ cho việc hiển thị ảnh Logo (nếu cần xử lý fallback URL)
 const API_BASE = import.meta.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'https://web-development-course-y23i.onrender.com';
@@ -35,8 +35,8 @@ interface Application {
   logoUrl: string;
 }
 
-export default function MyApplications() {
-  const [applications, setApplications] = useState<Application[]>([]);
+export default function Myapplications() {
+  const [applications, setapplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [withdrawingId, setWithdrawingId] = useState<number | null>(null);
   const { userData } = useSharedProfile();
@@ -52,16 +52,16 @@ export default function MyApplications() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
-    fetchApplications();
+    fetchapplications();
     fetchRecommendedjobs();
   }, []);
 
-  const fetchApplications = async () => {
+  const fetchapplications = async () => {
     try {
       setLoading(true);
       
-      // ✅ ĐÃ SỬA: Dùng applicationService.getMyApplications() thay cho fetch thuần mang đường dẫn /api/v1 cũ
-      const response = await applicationService.getMyApplications();
+      // ✅ ĐÃ SỬA: Dùng applicationservice.getMyapplications() thay cho fetch thuần mang đường dẫn /api/v1 cũ
+      const response = await applicationservice.getMyapplications();
       const result = response.data;
 
       if (result.success && Array.isArray(result.data)) {
@@ -82,13 +82,13 @@ export default function MyApplications() {
               : `${CLEAN_API_BASE}${item.logo_url.startsWith('/') ? '' : '/'}${item.logo_url}`
             : `https://ui-avatars.com/api/?name=${encodeURIComponent(item.company_name || 'Co')}&background=random`
         }));
-        setApplications(formattedData);
+        setapplications(formattedData);
       } else {
-        setApplications([]);
+        setapplications([]);
       }
     } catch (error) {
       console.error("Lỗi fetch đơn ứng tuyển:", error);
-      setApplications([]);
+      setapplications([]);
     } finally {
       setLoading(false);
     }
@@ -124,7 +124,7 @@ export default function MyApplications() {
 
       const result = await response.json();
       if (result.success) {
-        setApplications((prev) => prev.filter((app) => app.id !== applicationId));
+        setapplications((prev) => prev.filter((app) => app.id !== applicationId));
       } else {
         alert(result.message || "Cannot withdraw application");
       }
@@ -136,7 +136,7 @@ export default function MyApplications() {
   };
 
   // Logic lọc kết hợp (Search + Status)
-  const filteredApplications = applications.filter((app) => {
+  const filteredapplications = applications.filter((app) => {
     const matchesSearch = 
       app.title.toLowerCase().includes(search.toLowerCase()) ||
       app.company.toLowerCase().includes(search.toLowerCase());
@@ -183,7 +183,7 @@ export default function MyApplications() {
         {/* HEADER */}
         <div className="mb-10 text-center md:text-left">
           <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl dark:text-white">
-            My <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Applications</span>
+            My <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">applications</span>
           </h1>
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
             Track and manage your job search progress in one place.
@@ -244,15 +244,15 @@ export default function MyApplications() {
         {/* LAYOUT GRID CHIA CỘT */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
           
-          {/* CỘT TRÁI: LIST OF APPLICATIONS */}
+          {/* CỘT TRÁI: LIST OF applications */}
           <div className="lg:col-span-3 space-y-5 min-h-[500px]">
             {loading ? (
               <div className="flex h-64 w-full flex-col items-center justify-center gap-3 rounded-3xl border border-gray-200 bg-white dark:border-white/5 dark:bg-[#0B0F19]">
                 <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600 dark:border-gray-700 dark:border-t-blue-500"></div>
                 <p className="text-sm font-medium text-gray-400">Loading your applications...</p>
               </div>
-            ) : filteredApplications.length > 0 ? (
-              filteredApplications.map((app, idx) => (
+            ) : filteredapplications.length > 0 ? (
+              filteredapplications.map((app, idx) => (
                 <div 
                   key={app.id} 
                   className="animate-fade-in-up group flex flex-col sm:flex-row sm:items-center gap-5 p-5 bg-white dark:bg-[#0B0F19] rounded-3xl border border-gray-200 dark:border-white/5 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 transform hover:-translate-y-1"

@@ -111,7 +111,7 @@ router.post(
     try {
       // Cập nhật đơn ứng tuyển sang từ chối
       await db.query(
-        `UPDATE Applications 
+        `UPDATE applications 
          SET status = 'rejected' 
          WHERE candidate_id = ? AND status IN ('pending', 'reviewed', 'interviewing')`,
         [candidateId]

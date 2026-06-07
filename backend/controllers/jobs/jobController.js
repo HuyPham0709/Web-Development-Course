@@ -451,7 +451,7 @@ exports.getjobsByEmployer = async (req, res) => {
             FROM jobs j
             LEFT JOIN locations l ON j.location_id = l.id
             LEFT JOIN Categories cat ON j.category_id = cat.id
-            LEFT JOIN Applications a ON j.id = a.job_id
+            LEFT JOIN applications a ON j.id = a.job_id
             WHERE j.company_id = ? AND j.deleted_at IS NULL
             GROUP BY j.id
             ORDER BY j.created_at DESC
