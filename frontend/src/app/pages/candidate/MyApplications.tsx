@@ -12,7 +12,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 
 // Import thêm Component và Service cho mục Recommended
-import { RecommendedjobsAside } from '../../components/candidate/profile/RecommendedjobsAside';
+import { RecommendedJobsAside } from '../../components/candidate/profile/RecommendedJobsAside';
 import { getRecommendations } from '../../../services/recommendationService';
 import { useSharedProfile } from '../../../hooks/useSharedProfile';
 
@@ -331,7 +331,7 @@ export default function Myapplications() {
 
           {/* CỘT PHẢI: SIDEBAR RECOMMENDED jobs */}
           <aside className="sticky top-24 hidden lg:flex lg:flex-col gap-6 lg:col-span-1 overflow-x-hidden">
-            <RecommendedjobsAside
+            <RecommendedJobsAside
               recommendedjobs={recommendedjobs}
               userData={userData}
               openModal={(type) => {

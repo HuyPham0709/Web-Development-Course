@@ -18,7 +18,7 @@ import {
 import { Link, useParams, useNavigate } from "react-router-dom"; 
 
 // 1. Import Component và Service
-import { RecommendedjobsAside } from "../../components/candidate/profile/RecommendedJobsAside";
+import { RecommendedJobsAside } from "../../components/candidate/profile/RecommendedJobsAside";
 import { getRecommendations } from "../../../services/recommendationService";
 import { useSharedProfile } from "../../../hooks/useSharedProfile";
 
@@ -404,7 +404,7 @@ export default function JobDetail() {
             </div>
             {/* 3. THÊM RECOMMENDED jobs VÀO ĐÂY */}
             <div className="sticky top-24">
-              <RecommendedjobsAside 
+              <RecommendedJobsAside 
                             recommendedjobs={aiRecommendations}
                             userData={userData}
                             

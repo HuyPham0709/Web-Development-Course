@@ -22,7 +22,7 @@ import Savedjobs from '../../components/candidate/profile/Savedjobs';
 import { getRecommendations } from '../../../services/recommendationService';
 import Settings from '../../components/candidate/profile/Settings';
 import { CvLibraryTab } from '../../components/candidate/profile/CvLibraryTab';
-import { RecommendedjobsAside } from '../../components/candidate/profile/RecommendedjobsAside';
+import { RecommendedJobsAside } from '../../components/candidate/profile/RecommendedJobsAside';
 import { ProfileTab } from '../../components/candidate/profile/ProfileTab';
 import { profileskeleton } from '../../components/candidate/profile/profileskeleton';
 import { invalidateProfileCache } from '../../../hooks/useSharedProfile';
@@ -422,7 +422,7 @@ export default function ProfileDashboard() {
 
         {activeTab !== 'cv-builder' && (
           <aside className="hidden 2xl:block w-[360px] flex-shrink-0 p-4 md:p-8 xl:pl-0 xl:h-full xl:overflow-y-auto no-scrollbar">
-            <RecommendedjobsAside
+            <RecommendedJobsAside
               recommendedjobs={recommendedjobs}
               userData={personalInfo}
               openModal={openModal}

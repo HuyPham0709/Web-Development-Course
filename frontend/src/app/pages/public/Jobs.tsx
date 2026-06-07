@@ -22,7 +22,7 @@ import { IJob, IJobFilters } from "../../../types/job";
 import { getjobs, getlocations, getCategories, getjobsuggestions } from "../../../services/jobService";
 import { getRecommendations } from "../../../services/recommendationService";
 import { JobCard } from "../../components/public/home/JobCard";
-import { RecommendedjobsAside } from "../../components/candidate/profile/RecommendedjobsAside";
+import { RecommendedJobsAside } from "../../components/candidate/profile/RecommendedJobsAside";
 import { Link } from "react-router-dom";
 import { api } from "../../../services/api";
 // 2. Import SearchAutocomplete theo đúng cấu trúc thư mục của jobs.tsx
@@ -548,7 +548,7 @@ const handleOpenModal = (
               </div>
             </div>
 
-            <RecommendedjobsAside 
+            <RecommendedJobsAside 
               recommendedjobs={aiRecommendations}
               userData={userData}
               

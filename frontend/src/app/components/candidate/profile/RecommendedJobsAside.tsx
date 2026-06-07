@@ -23,7 +23,7 @@ interface RecommendedJob {
   match_score: number;
 }
 
-interface RecommendedjobsAsideProps {
+interface RecommendedJobsAsideProps {
   recommendedjobs?: RecommendedJob[];
   userData?: any;
   openModal: (
@@ -32,12 +32,12 @@ interface RecommendedjobsAsideProps {
   className?: string;
 }
 
-export function RecommendedjobsAside({
+export function RecommendedJobsAside({
   recommendedjobs = [],
   userData,
   openModal,
   className = '',
-}: RecommendedjobsAsideProps) {
+}: RecommendedJobsAsideProps) {
 
   const profilescore = useMemo(() => {
     if (!userData) return 0;
