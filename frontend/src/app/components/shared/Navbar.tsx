@@ -139,7 +139,9 @@ export const Navbar = () => {
   }, []);
 
   const checkUnreadChat = useCallback(async () => {
-    if (!isLoggedIn || !user.id) return;
+    // ✅ ĐÃ THÊM CHỐT CHẶN TOKEN Ở ĐÂY
+    const token = localStorage.getItem("token");
+    if (!token || !isLoggedIn || !user.id) return;
 
     if (window.location.pathname === "/chat") {
       setChatUnreadCount(0);
