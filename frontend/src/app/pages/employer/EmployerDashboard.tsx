@@ -154,7 +154,7 @@ export default function EmployerDashboard() {
           {
             label: 'View ban reason',
             icon: <AlertCircle className="w-4 h-4 text-red-500" />,
-            onClick: () => { setOpenMenuId(null); setRejectionModal('Your job was banned due to violation reports from users.'); }
+            onClick: () => { setOpenMenuId(null); setRejectionModal('Your job was banned due to violation reports FROM users.'); }
           },
           {
             label: 'Delete job',

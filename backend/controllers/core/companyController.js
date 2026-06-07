@@ -116,7 +116,7 @@ exports.uploadLogo = async (req, res) => {
 
     // Lấy company_id thực tế từ Database dựa trên userId
     const [users] = await db.query(
-      `SELECT company_id FROM Users WHERE id = ?`,
+      `SELECT company_id FROM users WHERE id = ?`,
       [userId],
     );
 
@@ -170,7 +170,7 @@ exports.uploadBanner = async (req, res) => {
 
     // Lấy company_id thực tế từ Database dựa trên userId
     const [users] = await db.query(
-      `SELECT company_id FROM Users WHERE id = ?`,
+      `SELECT company_id FROM users WHERE id = ?`,
       [userId],
     );
 

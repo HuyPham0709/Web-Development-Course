@@ -52,7 +52,7 @@ exports.getUsers = async (req, res) => {
                 c.id AS company_id,
                 c.name AS company_name,
                 c.is_verified AS company_verified
-            FROM Users u
+            FROM users u
             LEFT JOIN Companies c ON u.company_id = c.id
             LEFT JOIN Profiles p ON u.id = p.user_id /* Phải JOIN thêm bảng Profiles */
             ${whereClause}
@@ -63,7 +63,7 @@ exports.getUsers = async (req, res) => {
         // 🎯 FIX LỖI: Query đếm tổng cũng bắt buộc phải JOIN Profiles nếu có search theo tên
         const [countResult] = await db.execute(`
             SELECT COUNT(*) AS total
-            FROM Users u
+            FROM users u
             LEFT JOIN Companies c ON u.company_id = c.id
             LEFT JOIN Profiles p ON u.id = p.user_id 
             ${whereClause}
@@ -76,13 +76,13 @@ exports.getUsers = async (req, res) => {
                 SUM(CASE WHEN role = 'candidate' THEN 1 ELSE 0 END) AS total_candidates,
                 SUM(CASE WHEN role = 'employer' THEN 1 ELSE 0 END) AS total_employers,
                 SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) AS total_banned
-            FROM Users
+            FROM users
             WHERE deleted_at IS NULL AND role != 'admin'
         `);
 
         const [pendingCount] = await db.execute(`
             SELECT COUNT(*) AS total_pending
-            FROM Users u
+            FROM users u
             LEFT JOIN Companies c ON u.company_id = c.id
             WHERE u.role = 'employer' AND c.is_verified = 0
               AND u.is_active = 1 AND u.deleted_at IS NULL
@@ -115,7 +115,7 @@ exports.toggleBanUser = async (req, res) => {
 
     try {
         const [users] = await db.execute(
-            "SELECT id, username, email, is_active, role FROM Users WHERE id = ? AND deleted_at IS NULL",
+            "SELECT id, username, email, is_active, role FROM users WHERE id = ? AND deleted_at IS NULL",
             [user_id]
         );
 
@@ -131,13 +131,13 @@ exports.toggleBanUser = async (req, res) => {
         if (newStatus === 0) {
             const banReason = reason?.trim() || "Violation of the terms of service.";
             await db.execute(
-                "UPDATE Users SET is_active = ?, ban_reason = ? WHERE id = ?",
+                "UPDATE users SET is_active = ?, ban_reason = ? WHERE id = ?",
                 [newStatus, banReason, user_id]
             );
         } else {
             // Khi unban thì xóa lý do ban
             await db.execute(
-                "UPDATE Users SET is_active = ?, ban_reason = NULL WHERE id = ?",
+                "UPDATE users SET is_active = ?, ban_reason = NULL WHERE id = ?",
                 [newStatus, user_id]
             );
         }
@@ -194,7 +194,7 @@ exports.verifyCompany = async (req, res) => {
 
     try {
         const [users] = await db.execute(
-            "SELECT u.id, u.username, u.company_id, c.name AS company_name, c.is_verified FROM Users u LEFT JOIN Companies c ON u.company_id = c.id WHERE u.id = ?",
+            "SELECT u.id, u.username, u.company_id, c.name AS company_name, c.is_verified FROM users u LEFT JOIN Companies c ON u.company_id = c.id WHERE u.id = ?",
             [user_id]
         );
 
@@ -238,7 +238,7 @@ exports.getUserDetail = async (req, res) => {
                 c.id AS company_id, c.name AS company_name,
                 c.is_verified AS company_verified, c.website, c.address,
                 p.full_name, p.avatar_url, p.phone, p.bio
-            FROM Users u
+            FROM users u
             LEFT JOIN Companies c ON u.company_id = c.id
             LEFT JOIN Profiles p ON u.id = p.user_id
             WHERE u.id = ?

@@ -49,7 +49,7 @@ router.get('/profile/:id', verifyToken, async (req, res) => {
             `SELECT u.id as user_id, u.email,
                     p.id as profile_id, p.full_name, p.title, p.location, 
                     p.phone, p.gender, p.dob, p.bio, p.avatar_url
-             FROM Users u
+             FROM users u
              LEFT JOIN Profiles p ON u.id = p.user_id
              WHERE u.id = ? AND u.role = 'candidate'`,
             [userId]

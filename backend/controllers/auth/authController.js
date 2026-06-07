@@ -118,7 +118,7 @@ exports.register = async (req, res) => {
 
   try {
     const [rows] = await db.execute(
-      "SELECT email, username FROM Users WHERE email = ? OR username = ?",
+      "SELECT email, username FROM users WHERE email = ? OR username = ?",
       [email, finalName]
     );
 
@@ -202,7 +202,7 @@ exports.verifyEmail = async (req, res) => {
     if (tempData.role === "employer") {
       const [companyResult] = await db.execute("INSERT INTO Companies (name) VALUES (?)", [`Company of ${tempData.full_name}`]);
       companyId = companyResult.insertId;
-      await db.execute("UPDATE Users SET company_id = ? WHERE id = ?", [companyId, userId]);
+      await db.execute("UPDATE users SET company_id = ? WHERE id = ?", [companyId, userId]);
     }
 
     await db.execute(
@@ -343,7 +343,7 @@ exports.forgotPassword = async (req, res) => {
   }
 
   try {
-    const [users] = await db.execute("SELECT * FROM Users WHERE email = ?", [email]);
+    const [users] = await db.execute("SELECT * FROM users WHERE email = ?", [email]);
     if (users.length === 0) return res.status(404).json({ success: false, message: "Email address does not exist!" });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -391,14 +391,14 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: "OTP code has expired!" });
     }
 
-    const [users] = await db.execute("SELECT password FROM Users WHERE email = ?", [email]);
+    const [users] = await db.execute("SELECT password FROM users WHERE email = ?", [email]);
     if (users.length === 0) return res.status(404).json({ success: false, message: "User not found!" });
 
     const isSamePassword = await bcrypt.compare(newPassword, users[0].password);
     if (isSamePassword) return res.status(400).json({ success: false, message: "New password cannot be identical to the old password!" });
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await db.execute("UPDATE Users SET password = ? WHERE email = ?", [hashedPassword, email]);
+    await db.execute("UPDATE users SET password = ? WHERE email = ?", [hashedPassword, email]);
 
     otpStorage.delete(email);
 
@@ -425,7 +425,7 @@ exports.googleLogin = async (req, res) => {
 
     if (!user) {
       let autoUsername = email.split("@")[0];
-      const [checkUser] = await db.execute("SELECT id FROM Users WHERE username = ?", [autoUsername]);
+      const [checkUser] = await db.execute("SELECT id FROM users WHERE username = ?", [autoUsername]);
       if (checkUser.length > 0) autoUsername += `_${Math.floor(1000 + Math.random() * 9000)}`;
 
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -491,7 +491,7 @@ exports.adminLogin = async (req, res) => {
   if (!email || !password) return res.status(400).json({ success: false, message: "Please fill in all fields!" });
 
   try {
-    const [users] = await db.execute("SELECT * FROM Users WHERE email = ?", [email]);
+    const [users] = await db.execute("SELECT * FROM users WHERE email = ?", [email]);
     if (users.length === 0) return res.status(404).json({ success: false, message: "User does not exist!" });
 
     const user = users[0];

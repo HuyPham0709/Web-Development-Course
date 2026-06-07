@@ -11,7 +11,7 @@ exports.getDashboardStats = async (req, res) => {
             [categories],
             [trends] // Lấy dữ liệu danh sách rows của câu query trends
         ] = await Promise.all([
-            db.query("SELECT COUNT(*) as total FROM Users WHERE role = 'candidate'"),
+            db.query("SELECT COUNT(*) as total FROM users WHERE role = 'candidate'"),
             db.query("SELECT COUNT(*) as total FROM companies WHERE is_verified = 1"),
             db.query("SELECT COUNT(*) as total FROM jobs WHERE status = 'pending'"),
             db.query("SELECT COUNT(*) as total FROM Reports WHERE status = 'pending'"),

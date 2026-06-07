@@ -5,7 +5,7 @@ const socketModule = require('../../utils/socket');
 
 // Hàm Helper lấy thông tin vai trò và công ty của User từ MySQL
 const getUserContext = async (userId) => {
-    const [rows] = await db.query('SELECT role, company_id FROM Users WHERE id = ?', [userId]);
+    const [rows] = await db.query('SELECT role, company_id FROM users WHERE id = ?', [userId]);
     return rows.length > 0 ? rows[0] : null;
 };
 
@@ -74,7 +74,7 @@ exports.getConversations = async (req, res, next) => {
                     if (currentCandidateId) {
                         const [candidateRows] = await db.query(
                             `SELECT u.id, p.full_name, p.avatar_url, u.username 
-                             FROM Users u 
+                             FROM users u 
                              LEFT JOIN Profiles p ON u.id = p.user_id 
                              WHERE u.id = ?`, 
                             [currentCandidateId]
@@ -172,7 +172,7 @@ exports.sendMessage = async (req, res, next) => {
         try {
             if (userContext.role === 'candidate') {
                 const [employers] = await db.query(
-                    'SELECT id FROM Users WHERE company_id = ? AND role = "employer"', 
+                    'SELECT id FROM users WHERE company_id = ? AND role = "employer"', 
                     [companyId]
                 );
                 employers.forEach(emp => {
