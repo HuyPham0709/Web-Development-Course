@@ -7,8 +7,8 @@ const { verifyToken, authorizeRole } = require('../../middlewares/authMiddleware
 // GET: Lấy trạng thái hiển thị của ứng viên (Phiên bản tự động nhận diện tên cột)
 router.get('/visibility', verifyToken, authorizeRole(['candidate']), async (req, res) => {
   try {
-    // 1. Kiểm tra cấu trúc các cột đang có trong bảng Profiles của bạn
-    const [columns] = await promisePool.query(`SHOW COLUMNS FROM Profiles`);
+    // 1. Kiểm tra cấu trúc các cột đang có trong bảng profiles của bạn
+    const [columns] = await promisePool.query(`SHOW COLUMNS FROM profiles`);
     const columnNames = columns.map(c => c.Field);
 
     // 2. Tìm xem bạn đang dùng tên cột nào trong các tên phổ biến dưới đây
@@ -18,7 +18,7 @@ router.get('/visibility', verifyToken, authorizeRole(['candidate']), async (req,
     // 3. Nếu tìm thấy cột phù hợp trong DB, tiến hành lấy dữ liệu
     if (activeField) {
       const [rows] = await promisePool.query(
-        `SELECT ${activeField} FROM Profiles WHERE user_id = ?`,
+        `SELECT ${activeField} FROM profiles WHERE user_id = ?`,
         [req.user.id]
       );
       
@@ -28,7 +28,7 @@ router.get('/visibility', verifyToken, authorizeRole(['candidate']), async (req,
       });
     }
 
-    // 4. Phương án dự phòng: Nếu bảng Profiles của bạn chưa có cột cấu hình nào, 
+    // 4. Phương án dự phòng: Nếu bảng profiles của bạn chưa có cột cấu hình nào, 
     // mặc định trả về true để Frontend không bị lỗi 500
     res.json({ 
       success: true,
@@ -49,14 +49,14 @@ router.put('/visibility', verifyToken, authorizeRole(['candidate']), async (req,
       return res.status(400).json({ success: false, error: 'Invalid value' });
     }
 
-    const [columns] = await promisePool.query(`SHOW COLUMNS FROM Profiles`);
+    const [columns] = await promisePool.query(`SHOW COLUMNS FROM profiles`);
     const columnNames = columns.map(c => c.Field);
     const possibleFields = ['allow_employer_search', 'is_visible', 'status', 'public', 'searchable'];
     const activeField = possibleFields.find(field => columnNames.includes(field));
 
     if (activeField) {
       await promisePool.query(
-        `UPDATE Profiles SET ${activeField} = ? WHERE user_id = ?`,
+        `UPDATE profiles SET ${activeField} = ? WHERE user_id = ?`,
         [allow_employer_search ? 1 : 0, req.user.id]
       );
     }

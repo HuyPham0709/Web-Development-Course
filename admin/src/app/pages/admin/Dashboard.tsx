@@ -29,7 +29,7 @@ export function Dashboard() {
   const [stats, setStats] = useState({
     totalCandidates: 0,
     verifiedcompanies: 0,
-    pendingJobs: 0,
+    pendingjobs: 0,
     activeReports: 0
   });
   const [categoryData, setCategoryData] = useState<any[]>([]);
@@ -146,8 +146,8 @@ export function Dashboard() {
           subColor="text-emerald-600 dark:text-emerald-400 transition-colors duration-200"
         />
         <StatCard
-          title="Pending Jobs"
-          value={stats.pendingJobs}
+          title="Pending jobs"
+          value={stats.pendingjobs}
           icon={<BriefcaseBusiness className="w-4 h-4 text-amber-500 dark:text-amber-400 transition-colors duration-200" />}
           subText="Requires moderation"
           subColor="text-amber-600 dark:text-amber-400 transition-colors duration-200"

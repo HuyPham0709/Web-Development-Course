@@ -66,10 +66,10 @@ CREATE TABLE IF NOT EXISTS Users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ==========================================================
--- 3. DETAILED PROFILES (Profiles, Education, Work_Experience)
+-- 3. DETAILED profiles (profiles, Education, Work_Experience)
 -- ==========================================================
 
-CREATE TABLE IF NOT EXISTS Profiles (
+CREATE TABLE IF NOT EXISTS profiles (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT UNIQUE NOT NULL,
     full_name VARCHAR(100) NULL,
@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS Education (
     end_date DATE NULL,
     description TEXT NULL,
     period_text VARCHAR(100) NULL,
-    FOREIGN KEY (profile_id) REFERENCES Profiles(id) ON DELETE CASCADE
+    FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS Work_Experience (
@@ -111,14 +111,14 @@ CREATE TABLE IF NOT EXISTS Work_Experience (
     end_date DATE NULL,
     description TEXT NULL,
     period_text VARCHAR(100) NULL,
-    FOREIGN KEY (profile_id) REFERENCES Profiles(id) ON DELETE CASCADE
+    FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ==========================================================
--- 4. JOB MANAGEMENT (Jobs & Skill Mapping Tables)
+-- 4. JOB MANAGEMENT (jobs & Skill Mapping Tables)
 -- ==========================================================
 
-CREATE TABLE IF NOT EXISTS Jobs (
+CREATE TABLE IF NOT EXISTS jobs (
     id INT PRIMARY KEY AUTO_INCREMENT,
     company_id INT NOT NULL,
     posted_by INT NOT NULL,
@@ -151,7 +151,7 @@ CREATE TABLE IF NOT EXISTS User_Skills (
     profile_id INT NOT NULL,
     skill_id INT NOT NULL,
     PRIMARY KEY (profile_id, skill_id),
-    FOREIGN KEY (profile_id) REFERENCES Profiles(id) ON DELETE CASCADE,
+    FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
     FOREIGN KEY (skill_id) REFERENCES Skills(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -159,7 +159,7 @@ CREATE TABLE IF NOT EXISTS Job_Skills (
     job_id INT NOT NULL,
     skill_id INT NOT NULL,
     PRIMARY KEY (job_id, skill_id),
-    FOREIGN KEY (job_id) REFERENCES Jobs(id) ON DELETE CASCADE,
+    FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE,
     FOREIGN KEY (skill_id) REFERENCES Skills(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -176,17 +176,17 @@ CREATE TABLE IF NOT EXISTS Applications (
     status ENUM('pending', 'reviewed', 'accepted', 'rejected', 'interviewing') DEFAULT 'pending',
     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (candidate_id) REFERENCES Users(id) ON DELETE CASCADE,
-    FOREIGN KEY (job_id) REFERENCES Jobs(id) ON DELETE CASCADE,
+    FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE,
     INDEX idx_application_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS Favorite_Jobs (
+CREATE TABLE IF NOT EXISTS Favorite_jobs (
     user_id INT NOT NULL,
     job_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, job_id),
     FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
-    FOREIGN KEY (job_id) REFERENCES Jobs(id) ON DELETE CASCADE
+    FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ==========================================================
@@ -261,7 +261,7 @@ CREATE TABLE IF NOT EXISTS Job_Invitations (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (employer_id) REFERENCES Users(id) ON DELETE CASCADE,
     FOREIGN KEY (candidate_id) REFERENCES Users(id) ON DELETE CASCADE,
-    FOREIGN KEY (job_id) REFERENCES Jobs(id) ON DELETE CASCADE,
+    FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE,
     INDEX idx_invitation_candidate (candidate_id),
     INDEX idx_invitation_employer (employer_id),
     INDEX idx_invitation_status (status)

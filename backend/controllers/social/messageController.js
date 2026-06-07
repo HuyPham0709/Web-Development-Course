@@ -12,7 +12,7 @@ const getUserContext = async (userId) => {
 // ======================================================================
 // [GET] Lấy danh sách hội thoại (ĐÃ FIX LỖI ẨN CHAT EMPLOYER)
 // ======================================================================
-exports.getConversations = async (req, res, next) => {
+exports.getconversations = async (req, res, next) => {
     try {
         const userId = Number(req.user.id); 
         const userContext = await getUserContext(userId);
@@ -46,7 +46,7 @@ exports.getConversations = async (req, res, next) => {
             .sort({ updatedAt: -1 })
             .lean(); 
 
-        const enrichedConversations = await Promise.all(
+        const enrichedconversations = await Promise.all(
             conversations.map(async (conv) => {
                 let targetUser = { id: "", name: "Anonymous", avatar_url: "" };
                 
@@ -75,7 +75,7 @@ exports.getConversations = async (req, res, next) => {
                         const [candidateRows] = await db.query(
                             `SELECT u.id, p.full_name, p.avatar_url, u.username 
                              FROM users u 
-                             LEFT JOIN Profiles p ON u.id = p.user_id 
+                             LEFT JOIN profiles p ON u.id = p.user_id 
                              WHERE u.id = ?`, 
                             [currentCandidateId]
                         );
@@ -105,7 +105,7 @@ exports.getConversations = async (req, res, next) => {
             })
         );
 
-        res.status(200).json({ success: true, data: enrichedConversations });
+        res.status(200).json({ success: true, data: enrichedconversations });
     } catch (error) {
         next(error);
     }

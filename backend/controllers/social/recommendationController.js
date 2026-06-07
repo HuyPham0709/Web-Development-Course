@@ -2,14 +2,14 @@
 
 const db = require('../../config/db');
 
-exports.getRecommendedJobs = async (req, res) => {
+exports.getRecommendedjobs = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // 1. SỬA CHỮ HOA: JobCriteria và Profiles
+    // 1. SỬA CHỮ HOA: JobCriteria và profiles
     const [[criteriaRows], [profileRows]] = await Promise.all([
       db.execute(`SELECT * FROM JobCriteria WHERE user_id = ?`, [userId]),
-      db.execute(`SELECT title FROM Profiles WHERE user_id = ? LIMIT 1`, [userId]),
+      db.execute(`SELECT title FROM profiles WHERE user_id = ? LIMIT 1`, [userId]),
     ]);
 
     const c = criteriaRows[0] || null;
@@ -24,7 +24,7 @@ exports.getRecommendedJobs = async (req, res) => {
       ? [profileRows[0].title.toLowerCase()]
       : [];
 
-    // 2. SỬA CHỮ HOA: Jobs, companies, locations
+    // 2. SỬA CHỮ HOA: jobs, companies, locations
     const [jobs] = await db.execute(`
       SELECT
         j.id,

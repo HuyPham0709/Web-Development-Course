@@ -86,7 +86,7 @@ export const Navbar = () => {
     if (!isLoggedIn) {
       return [
         { name: "Home", path: "/" },
-        { name: "Jobs", path: "/jobs" },
+        { name: "jobs", path: "/jobs" },
       ];
     }
     
@@ -103,14 +103,14 @@ export const Navbar = () => {
     if (userRole === "candidate") {
       return [
         { name: "Home", path: "/" },
-        { name: "Jobs", path: "/jobs" },
+        { name: "jobs", path: "/jobs" },
         { name: "My Applications", path: "/applications" },
       ];
     }
 
     return [
       { name: "Home", path: "/" },
-      { name: "Jobs", path: "/jobs" },
+      { name: "jobs", path: "/jobs" },
     ];
   };
 
@@ -149,7 +149,7 @@ export const Navbar = () => {
     }
     
     try {
-      const response = await chatService.getConversations();
+      const response = await chatService.getconversations();
       const dataList = Array.isArray(response) ? response : response?.data || [];
 
       if (dataList && dataList.length > 0) {

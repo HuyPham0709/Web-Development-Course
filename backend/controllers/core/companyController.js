@@ -228,7 +228,7 @@ exports.getTopcompanies = async (req, res) => {
                 c.banner_url,
                 c.description,
                 c.is_verified,
-                -- Gom nhóm toàn bộ tên kỹ năng từ các Jobs đang kích hoạt thành chuỗi phân tách bằng dấu phẩy
+                -- Gom nhóm toàn bộ tên kỹ năng từ các jobs đang kích hoạt thành chuỗi phân tách bằng dấu phẩy
                 GROUP_CONCAT(DISTINCT s.name SEPARATOR ',') AS tech_stack
             FROM companies c
 LEFT JOIN jobs j ON c.id = j.company_id AND j.status = 'approved' AND j.deleted_at IS NULL

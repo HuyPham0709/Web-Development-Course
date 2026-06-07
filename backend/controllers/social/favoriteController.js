@@ -19,7 +19,7 @@ exports.getFavorites = async (req, res) => {
         c.logo_url,
         l.name AS location_name,
         fj.created_at AS saved_at
-      FROM Favorite_Jobs fj
+      FROM Favorite_jobs fj
       JOIN jobs j ON fj.job_id = j.id
       JOIN companies c ON j.company_id = c.id   -- Đã sửa thành chữ 'c' thường
       JOIN locations l ON j.location_id = l.id  -- Đã sửa thành chữ 'l' thường
@@ -48,7 +48,7 @@ exports.addFavorite = async (req, res) => {
     const { jobId } = req.params;
 
     await db.query(
-      'INSERT IGNORE INTO Favorite_Jobs (user_id, job_id) VALUES (?, ?)',
+      'INSERT IGNORE INTO Favorite_jobs (user_id, job_id) VALUES (?, ?)',
       [userId, jobId]
     );
 
@@ -72,7 +72,7 @@ exports.removeFavorite = async (req, res) => {
     const { jobId } = req.params;
 
     await db.query(
-      'DELETE FROM Favorite_Jobs WHERE user_id = ? AND job_id = ?',
+      'DELETE FROM Favorite_jobs WHERE user_id = ? AND job_id = ?',
       [userId, jobId]
     );
 
@@ -96,7 +96,7 @@ exports.checkFavorite = async (req, res) => {
     const { jobId } = req.params;
 
     const [rows] = await db.query(
-      'SELECT 1 FROM Favorite_Jobs WHERE user_id = ? AND job_id = ?',
+      'SELECT 1 FROM Favorite_jobs WHERE user_id = ? AND job_id = ?',
       [userId, jobId]
     );
 

@@ -174,7 +174,7 @@ export function JobForm() {
             const job = resData.data;
 
             // Backend đang trả về GROUP_CONCAT dạng chuỗi, VD: "React,NodeJS"
-            const jobSkillsArray = job.skills ? job.skills.split(',').filter(Boolean) : [];
+            const jobskillsArray = job.skills ? job.skills.split(',').filter(Boolean) : [];
 
             setForm({
               title: job.title || "",
@@ -188,7 +188,7 @@ export function JobForm() {
               description: job.description || "",
               requirements: job.requirements || "",
               benefits: job.benefits || "",
-              skills: jobSkillsArray, // <-- Gán mảng chuỗi kỹ năng
+              skills: jobskillsArray, // <-- Gán mảng chuỗi kỹ năng
             });
           } else {
             showToast("error", "Job posting data not found!");

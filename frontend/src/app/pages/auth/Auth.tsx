@@ -334,7 +334,7 @@ export default function AuthPage() {
               <Briefcase size={20} />
             </div>
             <span className="text-xl font-bold tracking-tight text-gray-900 dark:text-white transition-colors duration-300">
-              JobSpot
+              jobspot
             </span>
           </Link>
 

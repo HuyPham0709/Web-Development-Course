@@ -1,4 +1,4 @@
-// ==================== JOBS ====================
+// ==================== jobs ====================
 export interface PendingJob {
     id: number;
     title: string;
@@ -21,7 +21,7 @@ export interface PendingJob {
 }
 
 // Đổi tên để tránh trùng
-export interface JobStats {
+export interface jobstats {
     total: number
     total_approved: number
     total_pending: number
@@ -139,7 +139,7 @@ export interface MetaFormState {
 export interface DashboardStats {
     totalCandidates: number;
     verifiedcompanies: number;
-    pendingJobs: number;
+    pendingjobs: number;
     activeReports: number;
 }
 

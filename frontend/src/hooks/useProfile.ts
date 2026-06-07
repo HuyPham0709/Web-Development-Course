@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getProfile, saveProfile, uploadCV, deleteCV, PersonalInfo, WorkExperience, Education } from '../services/profileService';
+import { getProfile, saveProfile, uploadCV, deleteCV, PersonalInfo, WorkExperience, Education } from '../services/profileservice';
 
 export function useProfile(userId: string) {
   const [personalInfo, setPersonalInfo] = useState<PersonalInfo>({

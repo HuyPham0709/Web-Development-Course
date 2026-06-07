@@ -47,11 +47,11 @@ export const InviteModal = ({
   onClose,
   candidate,
 }: InviteModalProps) => {
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobs, setjobs] = useState<Job[]>([]);
   const [selectedJobId, setSelectedJobId] = useState<string>("");
   const [message, setMessage] = useState("");
 
-  const [isLoadingJobs, setIsLoadingJobs] = useState(false);
+  const [isLoadingjobs, setIsLoadingjobs] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -67,8 +67,8 @@ export const InviteModal = ({
   // 1. Fetch jobs when modal opens
   useEffect(() => {
     if (isOpen) {
-      const fetchJobs = async () => {
-        setIsLoadingJobs(true);
+      const fetchjobs = async () => {
+        setIsLoadingjobs(true);
         setError(null);
         try {
           const response = await fetch(
@@ -88,15 +88,15 @@ export const InviteModal = ({
           }
 
           if (result.success) {
-            setJobs(result.data);
+            setjobs(result.data);
           }
         } catch (err: any) {
           setError(err.message || "Unable to connect to the server");
         } finally {
-          setIsLoadingJobs(false);
+          setIsLoadingjobs(false);
         }
       };
-      fetchJobs();
+      fetchjobs();
     }
   }, [isOpen]);
 
@@ -164,7 +164,7 @@ export const InviteModal = ({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Jobs Fetch Error */}
+        {/* jobs Fetch Error */}
         {error && (
           <div className="flex items-center gap-2 p-3 text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg">
             <AlertCircle className="h-4 w-4" /> {error}
@@ -200,7 +200,7 @@ export const InviteModal = ({
               <SelectTrigger className="bg-slate-950 border-slate-800">
                 <SelectValue
                   placeholder={
-                    isLoadingJobs
+                    isLoadingjobs
                       ? "Loading..."
                       : "Select a job position..."
                   }

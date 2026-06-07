@@ -5,7 +5,7 @@ const headers = () => ({
   'Content-Type': 'application/json'
 });
 
-export const getFavoriteJobs = async () => {
+export const getFavoritejobs = async () => {
   const res = await fetch(`${API}/api/favorites`, { headers: headers() });
   return res.json();
 };

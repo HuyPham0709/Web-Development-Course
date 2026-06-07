@@ -23,7 +23,7 @@ router.post('/bot', chatbotController.chatWithBot);
 router.use(verifyToken); 
 router.get('/unread', messageController.getUnreadCount);
 // Lấy danh sách các cuộc hội thoại công việc/cá nhân
-router.get('/conversations', messageController.getConversations);
+router.get('/conversations', messageController.getconversations);
 
 // Gửi tin nhắn mới trong đoạn chat
 router.post('/send', messageController.sendMessage);

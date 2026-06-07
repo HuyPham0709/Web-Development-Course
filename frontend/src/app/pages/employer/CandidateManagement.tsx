@@ -175,7 +175,7 @@ export default function CandidateManagement() {
           <div className="relative">
             <select value={filterJob} onChange={e => setFilterJob(e.target.value)}
               className="appearance-none bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 py-2.5 pl-4 pr-10 rounded-xl font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500/50 shadow-sm transition-colors">
-              {jobOptions.map(job => <option key={job} value={job} className="dark:bg-[#0E1422]">{job === 'All' ? 'All Jobs' : job}</option>)}
+              {jobOptions.map(job => <option key={job} value={job} className="dark:bg-[#0E1422]">{job === 'All' ? 'All jobs' : job}</option>)}
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
           </div>

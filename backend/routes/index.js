@@ -17,7 +17,7 @@ const authRoutes = require("./auth/authRoutes");
 const profileRoutes = require("./auth/profileRoutes");
 
 // ─────────────────────────────────────────────────────────────
-// 3. Nhóm Jobs & Cấu hình liên quan
+// 3. Nhóm jobs & Cấu hình liên quan
 // ─────────────────────────────────────────────────────────────
 const jobRoutes = require("./jobs/jobRoutes");
 const categoryRoutes = require("./jobs/categoryRoutes");
@@ -75,7 +75,7 @@ safeRegisterRoute("/admin/reports", adminReportRoutes, "adminReportRoutes");
 safeRegisterRoute("/auth", authRoutes, "authRoutes");
 safeRegisterRoute("/profile", profileRoutes, "profileRoutes");
 
-// Phân hệ Jobs
+// Phân hệ jobs
 safeRegisterRoute("/jobs", jobRoutes, "jobRoutes");
 safeRegisterRoute("/categories", categoryRoutes, "categoryRoutes");
 safeRegisterRoute("/locations", locationRoutes, "locationRoutes");

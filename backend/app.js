@@ -35,7 +35,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 const authRoutes = require("./routes/auth/authRoutes");
 const profileRoutes = require("./routes/auth/profileRoutes");
 
-// Phân hệ Jobs
+// Phân hệ jobs
 const jobRoutes = require("./routes/jobs/jobRoutes");
 const categoryRoutes = require("./routes/jobs/categoryRoutes");
 const locationRoutes = require("./routes/jobs/locationRoutes");

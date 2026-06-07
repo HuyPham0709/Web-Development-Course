@@ -30,7 +30,7 @@ export const applicationService = {
       { headers: getHeaders() }
     ),
 
-  getEmployerJobs: () =>
+  getEmployerjobs: () =>
     axios.get(`${API_URL}/jobs/my-jobs`, {
       headers: getHeaders(),
     }),
@@ -73,7 +73,7 @@ export const applicationService = {
     axios.delete(`${API_URL}/applications/notes/${note_id}`, { headers: getHeaders() }),
 
   // Toggle job status
-  toggleJobStatus: (job_id: number | string) =>
+  togglejobstatus: (job_id: number | string) =>
     axios.put(`${API_URL}/applications/jobs/toggle-status`, { job_id }, { headers: getHeaders() }),
 
   deleteJob: (job_id: number | string) =>

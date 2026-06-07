@@ -38,9 +38,9 @@ exports.createJob = async (req, res) => {
   }
 
   try {
-    // 1. Chèn dữ liệu vào bảng Jobs như cũ
+    // 1. Chèn dữ liệu vào bảng jobs như cũ
     const [result] = await db.execute(
-      `INSERT INTO Jobs 
+      `INSERT INTO jobs 
             (title, category_id, location_id, company_id, posted_by,
              job_type, salary_min, salary_max, experience_level,
              description, requirements, status) 
@@ -114,7 +114,7 @@ exports.createJob = async (req, res) => {
 };
 
 // 2. API Lấy tất cả tin (cho Trang chủ & Trang tìm kiếm - Fix lỗi phân trang)
-exports.getAllJobs = async (req, res) => {
+exports.getAlljobs = async (req, res) => {
   try {
     const {
       title,
@@ -248,7 +248,7 @@ LEFT JOIN skills s ON js.skill_id = s.id
       },
     });
   } catch (error) {
-    console.error("Detailed error information at getAllJobs:", error);
+    console.error("Detailed error information at getAlljobs:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -323,9 +323,9 @@ exports.updateJob = async (req, res) => {
         });
     }
 
-    // 1. Cập nhật thông tin bảng Jobs
+    // 1. Cập nhật thông tin bảng jobs
     await db.execute(
-      `UPDATE Jobs SET
+      `UPDATE jobs SET
                 title = ?, category_id = ?, location_id = ?,
                 job_type = ?, salary_min = ?, salary_max = ?,
                 experience_level = ?, description = ?, requirements = ?,
@@ -424,7 +424,7 @@ exports.deleteJob = async (req, res) => {
         });
     }
 
-    await db.execute("UPDATE Jobs SET deleted_at = NOW() WHERE id = ?", [
+    await db.execute("UPDATE jobs SET deleted_at = NOW() WHERE id = ?", [
       jobId,
     ]);
     res
@@ -436,7 +436,7 @@ exports.deleteJob = async (req, res) => {
   }
 };
 
-exports.getJobsByEmployer = async (req, res) => {
+exports.getjobsByEmployer = async (req, res) => {
   try {
     const company_id = req.user.company_id;
 
@@ -475,7 +475,7 @@ exports.getJobsByEmployer = async (req, res) => {
       stats: { total_jobs, total_applications },
     });
   } catch (error) {
-    console.error("Lỗi getJobsByEmployer:", error);
+    console.error("Lỗi getjobsByEmployer:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

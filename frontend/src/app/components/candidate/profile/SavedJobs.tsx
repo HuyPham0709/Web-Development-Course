@@ -13,19 +13,19 @@ interface SavedJob {
   job_type: string;
 }
 
-export default function SavedJobs() {
-  const [jobs, setJobs] = useState<SavedJob[]>([]);
-  const [savedJobs, setSavedJobs] = useState<number[]>([]);
+export default function Savedjobs() {
+  const [jobs, setjobs] = useState<SavedJob[]>([]);
+  const [savedjobs, setSavedjobs] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
 
   // SEARCH
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    fetchSavedJobs();
+    fetchSavedjobs();
   }, []);
 
-  const fetchSavedJobs = async () => {
+  const fetchSavedjobs = async () => {
     try {
       const token = localStorage.getItem("token");
 
@@ -40,10 +40,10 @@ export default function SavedJobs() {
 
       const jobData = response.data.data;
 
-      setJobs(jobData);
+      setjobs(jobData);
 
       // lưu id các job đã save
-      setSavedJobs(jobData.map((job: SavedJob) => job.id));
+      setSavedjobs(jobData.map((job: SavedJob) => job.id));
 
     } catch (error) {
       console.error("Fetch saved jobs error:", error);
@@ -56,7 +56,7 @@ export default function SavedJobs() {
     try {
       const token = localStorage.getItem("token");
 
-      const isSaved = savedJobs.includes(jobId);
+      const isSaved = savedjobs.includes(jobId);
 
       // BỎ LƯU
       if (isSaved) {
@@ -70,10 +70,10 @@ export default function SavedJobs() {
         );
 
         // update UI
-        setSavedJobs((prev) => prev.filter((id) => id !== jobId));
+        setSavedjobs((prev) => prev.filter((id) => id !== jobId));
 
         // xoá khỏi list
-        setJobs((prev) => prev.filter((job) => job.id !== jobId));
+        setjobs((prev) => prev.filter((job) => job.id !== jobId));
       }
 
     } catch (error) {
@@ -82,7 +82,7 @@ export default function SavedJobs() {
   };
 
   // FILTER SEARCH
-  const filteredJobs = jobs.filter((job) =>
+  const filteredjobs = jobs.filter((job) =>
     job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     job.location_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -131,7 +131,7 @@ export default function SavedJobs() {
       {/* HEADER */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Interested Jobs
+          Interested jobs
         </h1>
 
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -159,13 +159,13 @@ export default function SavedJobs() {
       </div>
 
       {/* EMPTY SEARCH */}
-      {filteredJobs.length === 0 ? (
+      {filteredjobs.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-gray-300 py-16 text-center text-gray-400 dark:border-white/10">
           Không tìm thấy công việc phù hợp.
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredJobs.map((job) => (
+          {filteredjobs.map((job) => (
             <div
               key={job.id}
               className="relative bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-700 rounded-2xl p-4 min-h-[140px]"
@@ -180,7 +180,7 @@ export default function SavedJobs() {
                   size={18}
                   className={`transition-colors
                     ${
-                      savedJobs.includes(job.id)
+                      savedjobs.includes(job.id)
                         ? "text-rose-500 fill-rose-500"
                         : "text-gray-400 fill-none"
                     }

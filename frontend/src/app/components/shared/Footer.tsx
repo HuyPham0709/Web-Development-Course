@@ -37,7 +37,7 @@ export function Footer() {
           <div>
             <h4 className="mb-6 text-sm font-bold text-gray-900 uppercase tracking-wider dark:text-white/90">Candidates</h4>
             <ul className="space-y-4 text-sm text-gray-600 dark:text-gray-400">
-              <li><a href="#" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Explore Jobs</a></li>
+              <li><a href="#" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Explore jobs</a></li>
               <li><a href="#" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">AI Skill Matcher</a></li>
               <li><a href="#" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Salary Insights</a></li>
               <li><a href="#" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Career Resources</a></li>

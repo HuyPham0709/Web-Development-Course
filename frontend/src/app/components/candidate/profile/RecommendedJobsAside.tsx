@@ -23,8 +23,8 @@ interface RecommendedJob {
   match_score: number;
 }
 
-interface RecommendedJobsAsideProps {
-  recommendedJobs?: RecommendedJob[];
+interface RecommendedjobsAsideProps {
+  recommendedjobs?: RecommendedJob[];
   userData?: any;
   openModal: (
     type: 'personalInfo' | 'experience' | 'education' | 'skills' | null
@@ -32,14 +32,14 @@ interface RecommendedJobsAsideProps {
   className?: string;
 }
 
-export function RecommendedJobsAside({
-  recommendedJobs = [],
+export function RecommendedjobsAside({
+  recommendedjobs = [],
   userData,
   openModal,
   className = '',
-}: RecommendedJobsAsideProps) {
+}: RecommendedjobsAsideProps) {
 
-  const profileScore = useMemo(() => {
+  const profilescore = useMemo(() => {
     if (!userData) return 0;
 
     const fieldsToCheck = [
@@ -69,7 +69,7 @@ export function RecommendedJobsAside({
   }, [userData]);
 
   // Top 3 jobs theo match score
-  const topRecommendedJobs = [...recommendedJobs]
+  const topRecommendedjobs = [...recommendedjobs]
     .sort((a, b) => (b.match_score || 0) - (a.match_score || 0))
     .slice(0, 3);
 
@@ -102,10 +102,10 @@ export function RecommendedJobsAside({
           </div>
         </div>
 
-        {/* Jobs List */}
+        {/* jobs List */}
         <div className="relative p-3 max-h-[580px] overflow-y-auto custom-scrollbar space-y-2">
 
-          {topRecommendedJobs.length === 0 ? (
+          {topRecommendedjobs.length === 0 ? (
             <div className="py-12 text-center">
               <Briefcase className="w-8 h-8 mx-auto text-gray-300 mb-3" />
 
@@ -118,7 +118,7 @@ export function RecommendedJobsAside({
               </p>
             </div>
           ) : (
-            topRecommendedJobs.map((job, idx) => (
+            topRecommendedjobs.map((job, idx) => (
               <Link
                 key={job.id || idx}
                 to={`/job/${job.id}`}
@@ -199,7 +199,7 @@ export function RecommendedJobsAside({
       </div>
 
       {/* PROFILE BOOST */}
-      {profileScore < 100 && (
+      {profilescore < 100 && (
         <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-indigo-600 to-blue-700 p-5 text-white shadow-lg">
 
           <div className="relative z-10">
@@ -220,7 +220,7 @@ export function RecommendedJobsAside({
 
               <div className="flex justify-between text-[10px] font-bold mb-1.5">
                 <span>Strength</span>
-                <span>{profileScore}%</span>
+                <span>{profilescore}%</span>
               </div>
 
               <div className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
@@ -228,7 +228,7 @@ export function RecommendedJobsAside({
                 <div
                   className="h-full bg-gradient-to-r from-cyan-400 to-white transition-all duration-700"
                   style={{
-                    width: `${profileScore}%`,
+                    width: `${profilescore}%`,
                   }}
                 />
               </div>

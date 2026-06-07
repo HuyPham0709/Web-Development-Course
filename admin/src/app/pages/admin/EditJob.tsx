@@ -4,7 +4,7 @@ import { ArrowLeft, Loader2, Save } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { toast } from "sonner"
-import { jobService } from "../../../services/jobService"
+import { jobservice } from "../../../services/jobservice"
 import { formatSalary } from "../../../utils"
 
 export function EditJob() {
@@ -29,7 +29,7 @@ export function EditJob() {
         const fetchJobData = async () => {
             if (!id) return
             try {
-                const data = await jobService.getJobById(id)
+                const data = await jobservice.getJobById(id)
                 if (data.success) {
                     const j = data.data
                     setForm({
@@ -85,7 +85,7 @@ export function EditJob() {
                 rejected_reason: form.status === "rejected" ? form.rejected_reason : ""
             }
 
-            const res = await jobService.updateJob(id, payload)
+            const res = await jobservice.updateJob(id, payload)
             if (res.success) {
                 toast.success("Job updated successfully!")
                 navigate(-1) // Quay về màn hình quản lý, stats card sẽ tự động cập nhật

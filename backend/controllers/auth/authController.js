@@ -82,7 +82,7 @@ const generateEmailHTML = (fullName, otp, title, description) => {
                 <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #FFFBEB; border-radius: 12px; border: 1px solid #FEF3C7; margin-bottom: 10px;">
                   <tr>
                     <td style="padding: 12px 16px; text-align: left; font-size: 13px; color: #B45309; line-height: 18px;">
-                      ⚠️ This OTP code is valid for <strong>10 minutes</strong>. Do not share this code with anyone under any circumstances, including JobSpot support staff.
+                      ⚠️ This OTP code is valid for <strong>10 minutes</strong>. Do not share this code with anyone under any circumstances, including jobspot support staff.
                     </td>
                   </tr>
                 </table>
@@ -90,8 +90,8 @@ const generateEmailHTML = (fullName, otp, title, description) => {
             </tr>
             <tr>
               <td style="background-color: #F8FAFC; padding: 24px 32px; text-align: center; border-top: 1px solid #E2E8F0;">
-                <p style="margin: 0 0 6px 0; color: #64748B; font-size: 13px; font-weight: 600;">JobSpot Authentication System</p>
-                <p style="margin: 0; color: #94A3B8; font-size: 11px;">© 2026 JobSpot Inc. All rights reserved.</p>
+                <p style="margin: 0 0 6px 0; color: #64748B; font-size: 13px; font-weight: 600;">jobspot Authentication System</p>
+                <p style="margin: 0; color: #94A3B8; font-size: 11px;">© 2026 jobspot Inc. All rights reserved.</p>
               </td>
             </tr>
           </table>
@@ -143,7 +143,7 @@ exports.register = async (req, res) => {
       finalName,
       otp,
       "Verify Your New Account",
-      "Thank you for choosing to register with JobSpot tech job marketplace ecosystem. Please use the verification code below to activate your account:"
+      "Thank you for choosing to register with jobspot tech job marketplace ecosystem. Please use the verification code below to activate your account:"
     );
 
     if (role === "employer" && createAdminNotification) {
@@ -156,9 +156,9 @@ exports.register = async (req, res) => {
 
     try {
         await resend.emails.send({
-          from: "JobSpot <onboarding@resend.dev>", // Bắt buộc dùng mail này ở chế độ Test
+          from: "jobspot <onboarding@resend.dev>", // Bắt buộc dùng mail này ở chế độ Test
           to: email,
-          subject: "🛡️ Account Security Verification - JobSpot",
+          subject: "🛡️ Account Security Verification - jobspot",
           html: emailHTML,
         });
         console.log(`✅ OTP email successfully sent to: ${email}`);
@@ -206,7 +206,7 @@ exports.verifyEmail = async (req, res) => {
     }
 
     await db.execute(
-      "INSERT INTO Profiles (user_id, full_name, phone, avatar_url) VALUES (?, ?, ?, ?)",
+      "INSERT INTO profiles (user_id, full_name, phone, avatar_url) VALUES (?, ?, ?, ?)",
       [userId, tempData.full_name, tempData.phone, tempData.avatar_url]
     );
 
@@ -252,9 +252,9 @@ exports.resendOtp = async (req, res) => {
 
     try {
       await resend.emails.send({
-        from: "JobSpot <onboarding@resend.dev>",
+        from: "jobspot <onboarding@resend.dev>",
         to: email,
-        subject: "🔄 [Resend Code] Verify Your JobSpot Account",
+        subject: "🔄 [Resend Code] Verify Your jobspot Account",
         html: emailHTML,
       });
     } catch (mailError) {
@@ -360,9 +360,9 @@ exports.forgotPassword = async (req, res) => {
 
     try {
       await resend.emails.send({
-        from: "JobSpot <onboarding@resend.dev>", 
+        from: "jobspot <onboarding@resend.dev>", 
         to: email, 
-        subject: "🔑 Recover Your JobSpot Password", 
+        subject: "🔑 Recover Your jobspot Password", 
         html: emailHTML,
       });
     } catch (mailError) {
@@ -446,9 +446,9 @@ exports.googleLogin = async (req, res) => {
 
       try {
         await resend.emails.send({
-          from: "JobSpot <onboarding@resend.dev>",
+          from: "jobspot <onboarding@resend.dev>",
           to: email,
-          subject: "🛡️ Google Account Security Verification - JobSpot",
+          subject: "🛡️ Google Account Security Verification - jobspot",
           html: emailHTML,
         });
       } catch (mailError) {
@@ -512,9 +512,9 @@ exports.adminLogin = async (req, res) => {
 
     try {
       await resend.emails.send({
-        from: "JobSpot Admin <onboarding@resend.dev>", 
+        from: "jobspot Admin <onboarding@resend.dev>", 
         to: email,
-        subject: "🚨 High-Level Admin Verification Code - JobSpot", 
+        subject: "🚨 High-Level Admin Verification Code - jobspot", 
         html: emailHTML
       });
     } catch (mailError) {

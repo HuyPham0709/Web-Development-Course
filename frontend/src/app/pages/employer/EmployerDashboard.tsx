@@ -41,7 +41,7 @@ function RejectionModal({ reason, onClose }: { reason: string; onClose: () => vo
 
 export default function EmployerDashboard() {
   const navigate = useNavigate();
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobs, setjobs] = useState<Job[]>([]);
   const [stats, setStats] = useState<Stats>({ total_jobs: 0, total_applications: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -52,9 +52,9 @@ export default function EmployerDashboard() {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    applicationService.getEmployerJobs()
+    applicationService.getEmployerjobs()
       .then(res => {
-        setJobs(res.data.data || []);
+        setjobs(res.data.data || []);
         setStats(res.data.stats || { total_jobs: 0, total_applications: 0 });
       })
       .catch(err => setError(err.response?.data?.message || 'Error loading data'))
@@ -78,12 +78,12 @@ export default function EmployerDashboard() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const handleToggleJobStatus = async (job_id: number) => {
+  const handleTogglejobstatus = async (job_id: number) => {
     setTogglingId(job_id);
     setOpenMenuId(null);
     try {
-      const res = await applicationService.toggleJobStatus(job_id);
-      setJobs(prev => prev.map(j => j.id === job_id ? { ...j, status: res.data.new_status } : j));
+      const res = await applicationService.togglejobstatus(job_id);
+      setjobs(prev => prev.map(j => j.id === job_id ? { ...j, status: res.data.new_status } : j));
     } catch (err: any) {
       alert(err.response?.data?.message || 'Error updating status');
     } finally {
@@ -96,7 +96,7 @@ export default function EmployerDashboard() {
     setOpenMenuId(null);
     try {
       await applicationService.deleteJob(job_id);
-      setJobs(prev => prev.filter(j => j.id !== job_id));
+      setjobs(prev => prev.filter(j => j.id !== job_id));
       setStats(prev => ({ ...prev, total_jobs: prev.total_jobs - 1 }));
     } catch (err: any) {
       alert(err.response?.data?.message || 'Error deleting job posting');
@@ -125,7 +125,7 @@ export default function EmployerDashboard() {
             label: 'Close job',
             icon: <XCircle className="w-4 h-4 text-red-500 dark:text-red-400" />,
             danger: true,
-            onClick: () => handleToggleJobStatus(job.id),
+            onClick: () => handleTogglejobstatus(job.id),
           },
         ];
       case 'closed':
@@ -133,7 +133,7 @@ export default function EmployerDashboard() {
           {
             label: 'Reopen job',
             icon: <RefreshCw className="w-4 h-4 text-green-500 dark:text-green-400" />,
-            onClick: () => handleToggleJobStatus(job.id),
+            onClick: () => handleTogglejobstatus(job.id),
           },
         ];
       case 'rejected':
@@ -181,7 +181,7 @@ export default function EmployerDashboard() {
   };
 
   const STATS_DISPLAY = [
-    { id: 1, label: 'Total Jobs', value: String(stats.total_jobs), icon: Briefcase, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/40' },
+    { id: 1, label: 'Total jobs', value: String(stats.total_jobs), icon: Briefcase, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/40' },
     { id: 2, label: 'Active Applications', value: String(stats.total_applications), icon: Users, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-950/40' },
     { id: 3, label: 'New messages', value: '0', icon: messagesquare, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-950/40' },
     { id: 4, label: 'Total Views', value: '—', icon: Eye, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/40' },
@@ -210,7 +210,7 @@ export default function EmployerDashboard() {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Employer Dashboard</h1>
             <div className="flex space-x-8 border-b border-gray-200 dark:border-white/10 mt-6">
               <Link to="/employer/dashboard" className="border-b-2 border-blue-600 dark:border-blue-400 pb-4 text-blue-600 dark:text-blue-400 font-medium text-sm transition-colors">
-                Overview & Jobs
+                Overview & jobs
               </Link>
               <Link to="/employer/candidates" className="border-b-2 border-transparent pb-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-medium text-sm transition-colors">
                 Candidates

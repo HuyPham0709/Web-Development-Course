@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, MapPin, Briefcase, Zap, Layers, ChevronDown, DollarSign } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { getCategories, getlocations, getJobSuggestions } from "../../../../services/jobService";
+import { getCategories, getlocations, getjobsuggestions } from "../../../../services/jobservice";
 // Nhúng file Autocomplete đã được tối ưu hóa tự trị ở trên
 import { SearchAutocomplete } from "../../shared/SearchAutocomplete";
 
@@ -160,7 +160,7 @@ export function Hero({ initialTitle, initialLocation, initialCategoryId, initial
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">14,250+</p>
-                <p className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Active Tech Jobs</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Active Tech jobs</p>
               </div>
             </motion.div>
 
@@ -227,7 +227,7 @@ export function Hero({ initialTitle, initialLocation, initialCategoryId, initial
                 onInputChange={(value) => setTitle(value)} // Đảm bảo dòng này đã có để cập nhật state 'title' liên tục khi gõ phím
                 onFetchSuggestions={async (query, signal) => {
                   if (!query.trim()) return [];
-                  return await getJobSuggestions(query, signal);
+                  return await getjobsuggestions(query, signal);
                 }}
               />
             </div>

@@ -36,22 +36,22 @@ function getInitials(name: string): string {
   return name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '??';
 }
 
-export function Jobs() {
-  const [jobs, setJobs] = useState<PendingJob[]>([]);
+export function jobs() {
+  const [jobs, setjobs] = useState<PendingJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
   const [reason, setReason] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const fetchPendingJobs = async () => {
+  const fetchPendingjobs = async () => {
     setLoading(true);
     setError('');
     try {
       const res = await fetch(`${API_URL}/jobs/admin/pending`, { headers: getHeaders() });
       const data = await res.json();
       if (data.success) {
-        setJobs(data.data);
+        setjobs(data.data);
       } else {
         setError(data.message || 'Error loading data');
       }
@@ -63,7 +63,7 @@ export function Jobs() {
   };
 
   useEffect(() => {
-    fetchPendingJobs();
+    fetchPendingjobs();
   }, []);
 
   const handleAction = async (action: 'approve' | 'reject') => {
@@ -96,7 +96,7 @@ export function Jobs() {
           toast.error(`Job #${currentJob.id} rejected. ${reason ? `Reason: ${reason}` : ''}`);
         }
 
-        setJobs(prev => {
+        setjobs(prev => {
           const next = prev.filter((_, i) => i !== selectedIndex);
           setSelectedIndex(0);
           return next;
@@ -126,7 +126,7 @@ export function Jobs() {
       <div className="h-full w-full flex flex-col items-center justify-center min-h-[600px] gap-4 bg-[#F8FAFC] dark:bg-slate-900">
         <p className="text-red-500 dark:text-red-400 text-sm font-medium">{error}</p>
         <button
-          onClick={fetchPendingJobs}
+          onClick={fetchPendingjobs}
           className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-transparent dark:border-slate-700/50"
         >
           <RefreshCw className="w-4 h-4" /> Retry
@@ -146,7 +146,7 @@ export function Jobs() {
           You've successfully processed all pending job applications. Great work!
         </p>
         <button
-          onClick={fetchPendingJobs}
+          onClick={fetchPendingjobs}
           className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors"
         >
           <RefreshCw className="w-4 h-4" /> Refresh Queue
@@ -159,9 +159,9 @@ export function Jobs() {
   const requirements = parseRequirements(job.requirements);
   const initials = getInitials(job.company_name);
 
-  const upcomingJobs = jobs.filter((_, idx) => idx !== selectedIndex);
-  const displayedUpcomingJobs = upcomingJobs.slice(0, 3);
-  const remainingCount = upcomingJobs.length - displayedUpcomingJobs.length;
+  const upcomingjobs = jobs.filter((_, idx) => idx !== selectedIndex);
+  const displayedUpcomingjobs = upcomingjobs.slice(0, 3);
+  const remainingCount = upcomingjobs.length - displayedUpcomingjobs.length;
 
   return (
     <div className="p-6 md:p-8 bg-[#F8FAFC] dark:bg-slate-900 min-h-screen text-slate-900 dark:text-slate-100 transition-colors duration-200">
@@ -176,7 +176,7 @@ export function Jobs() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={fetchPendingJobs}
+            onClick={fetchPendingjobs}
             className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
             title="Refresh"
           >
@@ -357,11 +357,11 @@ export function Jobs() {
                 </button>
               </div>
 
-              {upcomingJobs.length > 0 && (
+              {upcomingjobs.length > 0 && (
                 <div className="pt-4 border-t border-slate-700/50">
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3">Up Next</p>
                   <div className="space-y-2">
-                    {displayedUpcomingJobs.map((nextJob) => {
+                    {displayedUpcomingjobs.map((nextJob) => {
                       const originalIndex = jobs.findIndex(j => j.id === nextJob.id);
                       return (
                         <button

@@ -162,7 +162,7 @@ exports.getApplicationById = async (req, res) => {
                 a.applied_at
             FROM Applications a
             JOIN Users u ON a.candidate_id = u.id
-            LEFT JOIN Profiles p ON u.id = p.user_id
+            LEFT JOIN profiles p ON u.id = p.user_id
             JOIN jobs j ON a.job_id = j.id
             WHERE a.id = ? AND j.posted_by = ?
         `,
@@ -176,15 +176,15 @@ exports.getApplicationById = async (req, res) => {
     }
 
     const [workExp] = await db.execute(
-      `SELECT company_name, position, start_date, end_date, description FROM Work_Experience WHERE profile_id = (SELECT id FROM Profiles WHERE user_id = ?) ORDER BY start_date DESC`,
+      `SELECT company_name, position, start_date, end_date, description FROM Work_Experience WHERE profile_id = (SELECT id FROM profiles WHERE user_id = ?) ORDER BY start_date DESC`,
       [rows[0].candidate_id],
     );
     const [education] = await db.execute(
-      `SELECT school_name, major, start_date, end_date FROM Education WHERE profile_id = (SELECT id FROM Profiles WHERE user_id = ?) ORDER BY start_date DESC`,
+      `SELECT school_name, major, start_date, end_date FROM Education WHERE profile_id = (SELECT id FROM profiles WHERE user_id = ?) ORDER BY start_date DESC`,
       [rows[0].candidate_id],
     );
     const [skills] = await db.execute(
-      `SELECT s.name FROM User_Skills us JOIN Skills s ON us.skill_id = s.id WHERE us.profile_id = (SELECT id FROM Profiles WHERE user_id = ?)`,
+      `SELECT s.name FROM User_Skills us JOIN Skills s ON us.skill_id = s.id WHERE us.profile_id = (SELECT id FROM profiles WHERE user_id = ?)`,
       [rows[0].candidate_id],
     );
 
@@ -288,9 +288,9 @@ exports.updateApplicationStatus = async (req, res) => {
 };
 
 // ======================================================
-// GET EMPLOYER JOBS
+// GET EMPLOYER jobs
 // ======================================================
-exports.getEmployerJobs = async (req, res) => {
+exports.getEmployerjobs = async (req, res) => {
   const employer_id = req.user.id;
   try {
     const [jobs] = await db.execute(
@@ -488,7 +488,7 @@ exports.deleteNote = async (req, res) => {
 // ======================================================
 // TOGGLE JOB STATUS
 // ======================================================
-exports.toggleJobStatus = async (req, res) => {
+exports.togglejobstatus = async (req, res) => {
   const { job_id } = req.body;
   const employer_id = req.user.id;
 
@@ -514,7 +514,7 @@ exports.toggleJobStatus = async (req, res) => {
 
     const newStatus = currentStatus === "closed" ? "approved" : "closed";
 
-    await db.execute("UPDATE Jobs SET status = ? WHERE id = ?", [
+    await db.execute("UPDATE jobs SET status = ? WHERE id = ?", [
       newStatus,
       job_id,
     ]);
@@ -549,7 +549,7 @@ exports.inviteInterview = async (req, res, next) => {
         c.name AS company_name
       FROM Applications a
       JOIN Users u ON a.candidate_id = u.id
-      LEFT JOIN Profiles p ON u.id = p.user_id
+      LEFT JOIN profiles p ON u.id = p.user_id
       JOIN jobs j ON a.job_id = j.id
       LEFT JOIN companies c ON j.company_id = c.id
       WHERE a.id = ?
@@ -599,7 +599,7 @@ exports.inviteInterview = async (req, res, next) => {
               <tr>
                 <td style="padding: 36px 40px 24px 40px;">
                   <span style="font-size: 22px; font-weight: 800; color: #0F172A; letter-spacing: -0.5px;">
-                    JobSpot<span style="color: #0052FF;">Network</span>
+                    jobspot<span style="color: #0052FF;">Network</span>
                   </span>
                 </td>
               </tr>
@@ -684,7 +684,7 @@ exports.inviteInterview = async (req, res, next) => {
               <tr>
                 <td style="padding: 24px 40px; background-color: #F8FAFC; border-top: 1px solid #E2E8F0; text-align: center;">
                   <p style="margin: 0; font-size: 12px; color: #94A3B8; line-height: 1.5;">
-                    This is an automated notification FROM jobspot Network.<br>© 2026 JobSpot Network. All rights reserved.
+                    This is an automated notification FROM jobspot Network.<br>© 2026 jobspot Network. All rights reserved.
                   </p>
                 </td>
               </tr>
@@ -746,7 +746,7 @@ exports.acceptInterview = async (req, res, next) => {
         j.title AS job_title
       FROM Applications a
       JOIN Users u ON a.candidate_id = u.id
-      LEFT JOIN Profiles p ON u.id = p.user_id
+      LEFT JOIN profiles p ON u.id = p.user_id
       JOIN jobs j ON a.job_id = j.id
       WHERE a.id = ?
     `,
@@ -799,7 +799,7 @@ exports.acceptInterview = async (req, res, next) => {
           <h2 style="color: #0F172A; margin: 0 0 12px 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">Attendance Confirmed!</h2>
           <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 24px 0;">The system has automatically updated your status to <span style="color: #0052FF; font-weight: 600;">Interviewing</span> and dispatched immediate feedback to the Employer.</p>
           <div style="border-top: 1px solid #F1F5F9; padding-top: 20px;">
-            <span style="font-size: 13px; font-weight: 700; color: #0F172A; letter-spacing: -0.3px;">JobSpot<span style="color: #0052FF;">Network</span></span>
+            <span style="font-size: 13px; font-weight: 700; color: #0F172A; letter-spacing: -0.3px;">jobspot<span style="color: #0052FF;">Network</span></span>
           </div>
         </div>
       </div>
@@ -825,7 +825,7 @@ exports.declineInterview = async (req, res, next) => {
         j.title AS job_title
       FROM Applications a
       JOIN Users u ON a.candidate_id = u.id
-      LEFT JOIN Profiles p ON u.id = p.user_id
+      LEFT JOIN profiles p ON u.id = p.user_id
       JOIN jobs j ON a.job_id = j.id
       WHERE a.id = ?
     `,
@@ -880,7 +880,7 @@ exports.declineInterview = async (req, res, next) => {
           <h2 style="color: #0F172A; margin: 0 0 12px 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">Decline Confirmed</h2>
           <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 24px 0;">We have successfully recorded your cancellation response and forwarded the rationale reasons directly to the Employer.</p>
           <div style="border-top: 1px solid #F1F5F9; padding-top: 20px;">
-            <span style="font-size: 13px; font-weight: 700; color: #0F172A; letter-spacing: -0.3px;">JobSpot<span style="color: #0052FF;">Network</span></span>
+            <span style="font-size: 13px; font-weight: 700; color: #0F172A; letter-spacing: -0.3px;">jobspot<span style="color: #0052FF;">Network</span></span>
           </div>
         </div>
       </div>
@@ -927,7 +927,7 @@ exports.getDeclineForm = (req, res) => {
         </form>
 
         <div style="border-top: 1px solid #F1F5F9; padding-top: 20px; margin-top: 24px; text-align: center;">
-          <span style="font-size: 12px; font-weight: 700; color: #0F172A; letter-spacing: -0.3px;">JobSpot<span style="color: #0052FF;">Network</span></span>
+          <span style="font-size: 12px; font-weight: 700; color: #0F172A; letter-spacing: -0.3px;">jobspot<span style="color: #0052FF;">Network</span></span>
         </div>
       </div>
     </div>

@@ -4,14 +4,14 @@ const jobController = require('../../controllers/admin/adminJobController');
 const { verifyToken, authorizeRole } = require('../../middlewares/authMiddleware');
 
 // Lấy tất cả jobs (Job Management page)
-router.get('/all', verifyToken, authorizeRole(['admin']), jobController.getAllJobs);
+router.get('/all', verifyToken, authorizeRole(['admin']), jobController.getAlljobs);
 
 // [THÊM MỚI] Tuyến đường xuất dữ liệu CSV
-router.get('/export', verifyToken, authorizeRole(['admin']), jobController.exportJobsCSV);
+router.get('/export', verifyToken, authorizeRole(['admin']), jobController.exportjobsCSV);
 
 // Pending queue (Job Moderation page)
-router.get('/admin/pending', verifyToken, authorizeRole(['admin']), jobController.getPendingJobs);
-router.get('/admin/stats', verifyToken, authorizeRole(['admin']), jobController.getJobStats);
+router.get('/admin/pending', verifyToken, authorizeRole(['admin']), jobController.getPendingjobs);
+router.get('/admin/stats', verifyToken, authorizeRole(['admin']), jobController.getjobstats);
 
 // Actions
 router.put('/admin/:job_id/approve', verifyToken, authorizeRole(['admin']), jobController.approveJob);
@@ -20,7 +20,7 @@ router.get('/:job_id', verifyToken, authorizeRole(['admin']), jobController.getJ
 router.put('/:job_id', verifyToken, authorizeRole(['admin']), jobController.updateJob);
 
 // [THÊM MỚI] Tuyến đường xóa hàng loạt và nhân bản tin
-router.post('/bulk-delete', verifyToken, authorizeRole(['admin']), jobController.bulkDeleteJobs);
+router.post('/bulk-delete', verifyToken, authorizeRole(['admin']), jobController.bulkDeletejobs);
 router.post('/:job_id/duplicate', verifyToken, authorizeRole(['admin']), jobController.duplicateJob);
 
 // Xóa đơn lẻ

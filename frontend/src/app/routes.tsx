@@ -8,7 +8,7 @@ import App from "./App";
 import Home from "./pages/public/Home";
 import JobDetail from "./pages/public/JobDetail";
 import Auth from "./pages/auth/Auth";
-import { Jobs } from "./pages/public/Jobs"; 
+import { jobs } from "./pages/public/jobs"; 
 
 // CANDIDATE PAGES
 import ProfileDashboard from "./pages/candidate/ProfileDashboard";
@@ -95,7 +95,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "jobs", 
-        element: <Jobs />,
+        element: <jobs />,
       },
       {
         path: "job/:id",

@@ -6,7 +6,7 @@ exports.getDashboardStats = async (req, res) => {
         const [
             [candidates],
             [companies],
-            [pendingJobs],
+            [pendingjobs],
             [activeReports],
             [categories],
             [trends] // Lấy dữ liệu danh sách rows của câu query trends
@@ -51,7 +51,7 @@ exports.getDashboardStats = async (req, res) => {
                 stats: {
                     totalCandidates: candidates[0].total,
                     verifiedcompanies: companies[0].total,
-                    pendingJobs: pendingJobs[0].total,
+                    pendingjobs: pendingjobs[0].total,
                     activeReports: activeReports[0].total,
                 },
                 categoryData: categories.map((c, index) => ({

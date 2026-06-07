@@ -1,29 +1,29 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { getJobs } from "../../../../services/jobService";
+import { getjobs } from "../../../../services/jobservice";
 import { api } from "../../../../services/api"; 
 import { JobCard } from "./JobCard";
 import { HorizontalTrack } from "./HorizontalTrack";
 import { IJob } from "../../../../types/job";
 
 // Định nghĩa các tab bộ lọc loại công việc (Bằng Tiếng Anh)
-const jobTabs = ["All Jobs", "Full-Time", "Contract", "Remote"];
+const jobTabs = ["All jobs", "Full-Time", "Contract", "Remote"];
 
 // Khai báo Interface nhận dữ liệu từ Home.tsx gửi xuống
-interface HighSalaryJobsProps {
+interface HighSalaryjobsProps {
   titleFilter: string;
   locationFilter: string;
   categoryFilter: string;
   salaryFilter: string;
 }
 
-export function HighSalaryJobs({ titleFilter, locationFilter, categoryFilter, salaryFilter }: HighSalaryJobsProps) {
-  const [jobs, setJobs] = useState<IJob[]>([]);
-  const [activeTab, setActiveTab] = useState("All Jobs"); // State lưu tab đang chọn
-  const [savedJobs, setSavedJobs] = useState<number[]>([]);
+export function HighSalaryjobs({ titleFilter, locationFilter, categoryFilter, salaryFilter }: HighSalaryjobsProps) {
+  const [jobs, setjobs] = useState<IJob[]>([]);
+  const [activeTab, setActiveTab] = useState("All jobs"); // State lưu tab đang chọn
+  const [savedjobs, setSavedjobs] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchHighSalaryJobs = async () => {
+    const fetchHighSalaryjobs = async () => {
       setLoading(true);
       try {
         // Chuyển đổi tab text sang query param thích hợp cho API
@@ -33,7 +33,7 @@ export function HighSalaryJobs({ titleFilter, locationFilter, categoryFilter, sa
         if (activeTab === "Remote") typeParam = "remote";
 
         const [response] = await Promise.all([
-          getJobs({
+          getjobs({
             title: titleFilter,
             location: locationFilter,
             category_id: categoryFilter,
@@ -47,8 +47,8 @@ export function HighSalaryJobs({ titleFilter, locationFilter, categoryFilter, sa
           new Promise(resolve => setTimeout(resolve, 500))
         ]);
         
-        const approvedJobs = response.data.filter((job: IJob) => job.status === "approved");
-        setJobs(approvedJobs.slice(0, 10));
+        const approvedjobs = response.data.filter((job: IJob) => job.status === "approved");
+        setjobs(approvedjobs.slice(0, 10));
       } catch (error) {
         console.error("Error loading high salary jobs:", error);
       } finally {
@@ -56,12 +56,12 @@ export function HighSalaryJobs({ titleFilter, locationFilter, categoryFilter, sa
       }
     };
 
-    fetchHighSalaryJobs();
+    fetchHighSalaryjobs();
     // Kích hoạt lại useEffect khi bất kỳ filter nào hoặc Tab thay đổi
   }, [titleFilter, locationFilter, categoryFilter, salaryFilter, activeTab]);
 
   useEffect(() => {
-    const fetchSavedJobs = async () => {
+    const fetchSavedjobs = async () => {
       const token = localStorage.getItem("token");
       if (!token) return;
       try {
@@ -73,18 +73,18 @@ export function HighSalaryJobs({ titleFilter, locationFilter, categoryFilter, sa
         }); 
         
         const savedIds = res.data.data.map((job: any) => job.id);
-        setSavedJobs(savedIds);
+        setSavedjobs(savedIds);
       } catch (err) {
         console.error("Fetch saved jobs error:", err);
       }
     };
 
-    fetchSavedJobs();
+    fetchSavedjobs();
 }, []);
 
   const handleToggleSave = useCallback(async (jobId: number) => {
     try {
-      setSavedJobs(prev => {
+      setSavedjobs(prev => {
         const isSaved = prev.includes(jobId);
         if (isSaved) {
           api.delete(`/api/favorites/${jobId}`).catch(err => console.error(err));
@@ -117,7 +117,7 @@ export function HighSalaryJobs({ titleFilter, locationFilter, categoryFilter, sa
               <span className="text-xs font-semibold text-orange-700 dark:text-orange-400">Premium Opportunities</span>
             </div>
             <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
-              High-Paying Jobs
+              High-Paying jobs
             </h2>
             <p className="mt-2 text-gray-500 dark:text-gray-400">
               Elevate your career with top-tier compensation packages.
@@ -185,7 +185,7 @@ export function HighSalaryJobs({ titleFilter, locationFilter, categoryFilter, sa
                 <JobCard 
                   index={idx}
                   job={job} 
-                  isSaved={savedJobs.includes(job.id)} 
+                  isSaved={savedjobs.includes(job.id)} 
                   onToggleSave={handleToggleSave} 
                 />
               </div>

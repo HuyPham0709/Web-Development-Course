@@ -2,7 +2,7 @@ import { api } from "./api";
 import { IConversation, IMessage } from "../types/chat";
 import axios from "axios";
 export const chatService = {
-  getConversations: async () => {
+  getconversations: async () => {
     const token = localStorage.getItem("token");
     if (!token) return []; // Thêm chốt chặn an toàn
 

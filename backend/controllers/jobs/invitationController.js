@@ -1,8 +1,8 @@
-const db = require("../../config/db"); // Giữ lại MySQL cho Jobs và Job_Invitations
+const db = require("../../config/db"); // Giữ lại MySQL cho jobs và Job_Invitations
 const socketModule = require("../../utils/socket"); // Import module socket
 const Notification = require("../../models/Notification"); // Model MongoDB gỡ lỗi 2 nấc
 
-exports.getEmployerJobs = async (req, res) => {
+exports.getEmployerjobs = async (req, res) => {
   try {
     const employerId = req.user.id;
     const [jobs] = await db.execute(
@@ -119,7 +119,7 @@ exports.getCandidateInvitations = async (req, res) => {
              FROM Job_Invitations ji
              JOIN jobs j ON ji.job_id = j.id
              JOIN Users u ON ji.employer_id = u.id
-             LEFT JOIN Profiles ep ON ep.user_id = u.id
+             LEFT JOIN profiles ep ON ep.user_id = u.id
              LEFT JOIN companies c ON u.company_id = c.id
              WHERE ji.candidate_id = ?
              ORDER BY ji.created_at DESC`,
@@ -157,7 +157,7 @@ exports.getInvitationDetail = async (req, res) => {
              FROM Job_Invitations ji
              JOIN jobs j ON ji.job_id = j.id
              JOIN Users u ON ji.employer_id = u.id
-             LEFT JOIN Profiles ep ON ep.user_id = u.id
+             LEFT JOIN profiles ep ON ep.user_id = u.id
              LEFT JOIN companies c ON u.company_id = c.id
              WHERE ji.id = ? AND ji.candidate_id = ?`,
       [id, candidateId],

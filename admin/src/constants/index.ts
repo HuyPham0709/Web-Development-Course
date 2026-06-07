@@ -2,7 +2,7 @@ export const API_BASE = 'https://web-development-course-y23i.onrender.com//api';
 
 // Admin routes — khớp với app.js
 export const ADMIN_USERS_API = `${API_BASE}/admin/users`;
-export const ADMIN_JOBS_API = `${API_BASE}/admin/jobs`;
+export const ADMIN_jobs_API = `${API_BASE}/admin/jobs`;
 export const ADMIN_METADATA_API = `${API_BASE}/admin/metadata`;
 export const ADMIN_REPORTS_API = `${API_BASE}/admin/reports`;
 export const ADMIN_DASHBOARD_API = `${API_BASE}/admin/dashboard`;

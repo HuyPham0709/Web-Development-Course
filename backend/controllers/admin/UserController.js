@@ -29,14 +29,14 @@ exports.getUsers = async (req, res) => {
         }
 
         if (search) {
-            // 🎯 FIX LỖI: Thay u.display_name thành p.full_name vì đã chuyển sang bảng Profiles
+            // 🎯 FIX LỖI: Thay u.display_name thành p.full_name vì đã chuyển sang bảng profiles
             where.push('(u.username LIKE ? OR u.email LIKE ? OR p.full_name LIKE ?)');
             params.push(`%${search}%`, `%${search}%`, `%${search}%`);
         }
 
         const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
 
-        // 🎯 FIX LỖI & TỐI ƯU: JOIN với Profiles và chọn p.full_name, p.avatar_url, p.phone
+        // 🎯 FIX LỖI & TỐI ƯU: JOIN với profiles và chọn p.full_name, p.avatar_url, p.phone
         const [rows] = await db.execute(`
             SELECT
                 u.id,
@@ -54,18 +54,18 @@ exports.getUsers = async (req, res) => {
                 c.is_verified AS company_verified
             FROM users u
             LEFT JOIN companies c ON u.company_id = c.id
-            LEFT JOIN Profiles p ON u.id = p.user_id /* Phải JOIN thêm bảng Profiles */
+            LEFT JOIN profiles p ON u.id = p.user_id /* Phải JOIN thêm bảng profiles */
             ${whereClause}
             ORDER BY u.created_at DESC
             LIMIT ${Number(limit)} OFFSET ${Number(offset)} 
         `, params);
 
-        // 🎯 FIX LỖI: Query đếm tổng cũng bắt buộc phải JOIN Profiles nếu có search theo tên
+        // 🎯 FIX LỖI: Query đếm tổng cũng bắt buộc phải JOIN profiles nếu có search theo tên
         const [countResult] = await db.execute(`
             SELECT COUNT(*) AS total
             FROM users u
             LEFT JOIN companies c ON u.company_id = c.id
-            LEFT JOIN Profiles p ON u.id = p.user_id 
+            LEFT JOIN profiles p ON u.id = p.user_id 
             ${whereClause}
         `, params);
 
@@ -147,7 +147,7 @@ exports.toggleBanUser = async (req, res) => {
             const banReason = reason?.trim() || "Violation of the terms of service.";
             try {
                 await resend.emails.send({
-                    from: "JobSpot Admin <onboarding@resend.dev>",
+                    from: "jobspot Admin <onboarding@resend.dev>",
                     to: user.email, // Lưu ý: Email người dùng phải trùng với mail đăng ký Resend nếu ở tài khoản Test miễn phí
                     subject: "⚠️ Your account has been temporarily locked",
                     html: `
@@ -157,12 +157,12 @@ exports.toggleBanUser = async (req, res) => {
                             </div>
                             <div style="padding: 24px;">
                                 <p>Hello <strong>${user.username}</strong>,</p>
-                                <p>Your account on <strong>JobSpot</strong> has been temporarily locked by an administrator.</p>
+                                <p>Your account on <strong>jobspot</strong> has been temporarily locked by an administrator.</p>
                                 <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 12px 16px; border-radius: 4px; margin: 16px 0;">
                                     <p style="margin: 0;"><strong>Reason:</strong> ${banReason}</p>
                                 </div>
                                 <p>If you believe this is a mistake, please contact our support team for assistance.</p>
-                                <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Best regards,<br/>The JobSpot Team</p>
+                                <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Best regards,<br/>The jobspot Team</p>
                             </div>
                         </div>
                     `
@@ -240,7 +240,7 @@ exports.getUserDetail = async (req, res) => {
                 p.full_name, p.avatar_url, p.phone, p.bio
             FROM users u
             LEFT JOIN companies c ON u.company_id = c.id
-            LEFT JOIN Profiles p ON u.id = p.user_id
+            LEFT JOIN profiles p ON u.id = p.user_id
             WHERE u.id = ?
         `, [user_id]);
 

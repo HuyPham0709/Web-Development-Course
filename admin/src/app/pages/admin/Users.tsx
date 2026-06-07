@@ -428,7 +428,7 @@ export function Users() {
                   <>
                     <div><p className="text-slate-500 dark:text-slate-400 transition-colors duration-200">Company</p><p className="font-medium text-slate-900 dark:text-slate-200 transition-colors duration-200">{detailData.company_name || '—'}</p></div>
                     <div><p className="text-slate-500 dark:text-slate-400 transition-colors duration-200">Verified</p><p className="font-medium text-slate-900 dark:text-slate-200 transition-colors duration-200">{detailData.company_verified ? '✅ Yes' : '❌ No'}</p></div>
-                    <div><p className="text-slate-500 dark:text-slate-400 transition-colors duration-200">Total Jobs</p><p className="font-medium text-slate-900 dark:text-slate-200 transition-colors duration-200">{detailData.total_jobs}</p></div>
+                    <div><p className="text-slate-500 dark:text-slate-400 transition-colors duration-200">Total jobs</p><p className="font-medium text-slate-900 dark:text-slate-200 transition-colors duration-200">{detailData.total_jobs}</p></div>
                     <div><p className="text-slate-500 dark:text-slate-400 transition-colors duration-200">Website</p><p className="font-medium text-slate-900 dark:text-slate-200 transition-colors duration-200">{detailData.website || '—'}</p></div>
                   </>
                 )}

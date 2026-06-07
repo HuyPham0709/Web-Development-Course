@@ -9,22 +9,22 @@ import { InvitationsPage } from '../../components/candidate/profile/InvitationsP
 import {
   getProfile, saveProfile, uploadCV, deleteCV,
   PersonalInfo, WorkExperience, Education
-} from '../../../services/profileService';
+} from '../../../services/profileservice';
 import { SIDEBAR_MENU, DEFAULT_AVATAR, DEFAULT_COVER } from '../../components/candidate/profile/constants';
 import { ProfileToast } from '../../components/candidate/profile/ProfileToast';
 import { EditModal } from '../../components/candidate/profile/EditModal';
 import { Field, inputCls } from '../../components/candidate/profile/Field';
-import { ProfileSidebar } from '../../components/candidate/profile/ProfileSidebar';
+import { profilesidebar } from '../../components/candidate/profile/profilesidebar';
 import MyApplications from './MyApplications';
 import JobCriteria from '../../components/candidate/profile/JobCriteria';
 import axios from 'axios';
-import SavedJobs from '../../components/candidate/profile/SavedJobs';
+import Savedjobs from '../../components/candidate/profile/Savedjobs';
 import { getRecommendations } from '../../../services/recommendationService';
 import Settings from '../../components/candidate/profile/Settings';
 import { CvLibraryTab } from '../../components/candidate/profile/CvLibraryTab';
-import { RecommendedJobsAside } from '../../components/candidate/profile/RecommendedJobsAside';
+import { RecommendedjobsAside } from '../../components/candidate/profile/RecommendedjobsAside';
 import { ProfileTab } from '../../components/candidate/profile/ProfileTab';
-import { ProfileSkeleton } from '../../components/candidate/profile/ProfileSkeleton';
+import { profileskeleton } from '../../components/candidate/profile/profileskeleton';
 import { invalidateProfileCache } from '../../../hooks/useSharedProfile';
 
 // Thêm biến môi trường API_BASE dùng chung để không bị lỗi thiếu dấu "/" nữa
@@ -66,7 +66,7 @@ export default function ProfileDashboard() {
   const [experiences, setExperiences] = useState<WorkExperience[]>([]);
   const [education, setEducation] = useState<Education[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
-  const [recommendedJobs, setRecommendedJobs] = useState<RecommendedJob[]>([]);
+  const [recommendedjobs, setRecommendedjobs] = useState<RecommendedJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<any>(null);
@@ -92,7 +92,7 @@ export default function ProfileDashboard() {
   const fetchRecommendations = useCallback(async () => {
     try {
       const res = await getRecommendations();
-      setRecommendedJobs(res.data.jobs || []);
+      setRecommendedjobs(res.data.jobs || []);
     } catch (error) {
       console.error('Fetch recommendations error:', error);
     }
@@ -358,7 +358,7 @@ export default function ProfileDashboard() {
 
         {/* Sidebar */}
         <div className="w-full xl:w-1/5 flex-shrink-0 p-4 md:p-8 xl:pr-0">
-          <ProfileSidebar activeTab={activeTab} setActiveTab={setActiveTab} userName={personalInfo.full_name} />
+          <profilesidebar activeTab={activeTab} setActiveTab={setActiveTab} userName={personalInfo.full_name} />
         </div>
 
         {/* Main Content */}
@@ -397,13 +397,13 @@ export default function ProfileDashboard() {
 
             {activeTab === 'applications' && <MyApplications />}
             {activeTab === 'search-criteria' && <JobCriteria />}
-            {activeTab === 'saved' && <SavedJobs />}
+            {activeTab === 'saved' && <Savedjobs />}
             {activeTab === 'apply' && <InvitationsPage />}
             {activeTab === 'viewed-by-employer' && <ViewedByEmployers />}
 
             {activeTab === 'account' && (
-              <Settings topJob={recommendedJobs.length > 0
-                ? recommendedJobs.reduce((prev, current) => (prev.match_score > current.match_score ? prev : current))
+              <Settings topJob={recommendedjobs.length > 0
+                ? recommendedjobs.reduce((prev, current) => (prev.match_score > current.match_score ? prev : current))
                 : undefined}
               />
             )}
@@ -422,8 +422,8 @@ export default function ProfileDashboard() {
 
         {activeTab !== 'cv-builder' && (
           <aside className="hidden 2xl:block w-[360px] flex-shrink-0 p-4 md:p-8 xl:pl-0 xl:h-full xl:overflow-y-auto no-scrollbar">
-            <RecommendedJobsAside
-              recommendedJobs={recommendedJobs}
+            <RecommendedjobsAside
+              recommendedjobs={recommendedjobs}
               userData={personalInfo}
               openModal={openModal}
             />

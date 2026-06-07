@@ -11,10 +11,10 @@ import { Checkbox } from "../../components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../components/ui/dropdown-menu"
 import { toast } from "sonner"
-import { ADMIN_JOBS_API, getHeaders } from "../../../constants"
+import { ADMIN_jobs_API, getHeaders } from "../../../constants"
 import { formatDate, formatSalary } from "../../../utils"
-import { AdminJob, JobStats, PaginationMeta } from '../../../types'
-import { jobService } from "../../../services/jobService"
+import { AdminJob, jobstats, PaginationMeta } from '../../../types'
+import { jobservice } from "../../../services/jobservice"
 
 const STATUS_BADGE: Record<string, React.ReactElement> = {
   approved: <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40">Approved</Badge>,
@@ -26,8 +26,8 @@ const STATUS_BADGE: Record<string, React.ReactElement> = {
 
 export function JobManagement() {
   const navigate = useNavigate()
-  const [jobs, setJobs] = useState<AdminJob[]>([])
-  const [stats, setStats] = useState<JobStats>({ total: 0, total_approved: 0, total_pending: 0, total_closed: 0, total_rejected: 0, total_banned: 0 })
+  const [jobs, setjobs] = useState<AdminJob[]>([])
+  const [stats, setStats] = useState<jobstats>({ total: 0, total_approved: 0, total_pending: 0, total_closed: 0, total_rejected: 0, total_banned: 0 })
   const [pagination, setPagination] = useState<PaginationMeta>({ total: 0, page: 1, limit: 10, totalPages: 1 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -50,7 +50,7 @@ export function JobManagement() {
     return () => clearTimeout(t)
   }, [searchInput])
 
-  const fetchJobs = useCallback(async (page = 1) => {
+  const fetchjobs = useCallback(async (page = 1) => {
     setLoading(true)
     setError('')
     try {
@@ -60,11 +60,11 @@ export function JobManagement() {
       if (filterLevel) params.append('experience_level', filterLevel)
       if (search) params.append('search', search)
 
-      const res = await fetch(`${ADMIN_JOBS_API}/all?${params}`, { headers: getHeaders() })
+      const res = await fetch(`${ADMIN_jobs_API}/all?${params}`, { headers: getHeaders() })
       const data = await res.json()
 
       if (data.success) {
-        setJobs(data.data)
+        setjobs(data.data)
         setStats(data.stats)
         setPagination(data.pagination)
         setSelectedJobIds([])
@@ -78,7 +78,7 @@ export function JobManagement() {
     }
   }, [filterStatus, filterType, filterLevel, search])
 
-  useEffect(() => { fetchJobs(1) }, [fetchJobs])
+  useEffect(() => { fetchjobs(1) }, [fetchjobs])
 
   const toggleSelectAll = () => {
     if (selectedJobIds.length === jobs.length) {
@@ -91,10 +91,10 @@ export function JobManagement() {
   const handleDuplicate = async (jobId: number) => {
     try {
       toast.loading("Duplicating...", { id: "duplicate" })
-      const data = await jobService.duplicateJob(jobId);
+      const data = await jobservice.duplicateJob(jobId);
       if (data.success) {
         toast.success(data.message, { id: "duplicate" })
-        fetchJobs(pagination.page)
+        fetchjobs(pagination.page)
       } else {
         toast.error(data.message, { id: "duplicate" })
       }
@@ -116,7 +116,7 @@ export function JobManagement() {
 
     setIsBulkDeleting(true)
     try {
-      const res = await fetch(`${ADMIN_JOBS_API}/bulk-delete`, {
+      const res = await fetch(`${ADMIN_jobs_API}/bulk-delete`, {
         method: 'POST',
         headers: { ...getHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: selectedJobIds })
@@ -126,7 +126,7 @@ export function JobManagement() {
       if (data.success) {
         toast.success(`Successfully deleted ${selectedJobIds.length} job postings`)
         setSelectedJobIds([])
-        fetchJobs(pagination.page)
+        fetchjobs(pagination.page)
       } else {
         toast.error(data.message || 'Bulk delete failed')
       }
@@ -141,13 +141,13 @@ export function JobManagement() {
     if (!window.confirm(`Delete job "${job.title}"?`)) return
     setDeletingId(job.id)
     try {
-      const res = await fetch(`${ADMIN_JOBS_API}/${job.id}`, {
+      const res = await fetch(`${ADMIN_jobs_API}/${job.id}`, {
         method: 'DELETE',
         headers: getHeaders()
       })
       const data = await res.json()
       if (data.success) {
-        setJobs(prev => prev.filter(j => j.id !== job.id))
+        setjobs(prev => prev.filter(j => j.id !== job.id))
         setSelectedJobIds(prev => prev.filter(id => id !== job.id))
         toast.success('Job posting deleted successfully!')
       } else {
@@ -169,7 +169,7 @@ export function JobManagement() {
       if (filterLevel) params.append('experience_level', filterLevel)
       if (search) params.append('search', search)
 
-      const res = await fetch(`${ADMIN_JOBS_API}/export?${params}`, {
+      const res = await fetch(`${ADMIN_jobs_API}/export?${params}`, {
         headers: getHeaders()
       })
 
@@ -231,7 +231,7 @@ export function JobManagement() {
                   </span>
                 )}
               </Button>
-              <Button variant="outline" onClick={() => fetchJobs(pagination.page)} className="border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 p-2 hover:bg-slate-50 dark:hover:bg-slate-800">
+              <Button variant="outline" onClick={() => fetchjobs(pagination.page)} className="border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 p-2 hover:bg-slate-50 dark:hover:bg-slate-800">
                 <RefreshCw className="w-4 h-4" />
               </Button>
             </div>
@@ -240,7 +240,7 @@ export function JobManagement() {
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {[
-              { label: 'Total Jobs', value: stats.total, icon: Briefcase, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/40' },
+              { label: 'Total jobs', value: stats.total, icon: Briefcase, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/40' },
               { label: 'Active', value: stats.total_approved, icon: CheckCircle2, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40' },
               { label: 'Pending Review', value: stats.total_pending, icon: Clock, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40' },
               { label: 'Closed/Rejected/Banned', value: Number(stats.total_closed || 0) + Number(stats.total_rejected || 0) + Number(stats.total_banned || 0), icon: XCircle, color: 'text-slate-500 dark:text-slate-400', bg: 'bg-slate-100 dark:bg-slate-800/60' },
@@ -317,7 +317,7 @@ export function JobManagement() {
             <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400">
               <AlertTriangle className="w-8 h-8 text-red-400" />
               <p className="text-sm text-red-500">{error}</p>
-              <Button variant="outline" size="sm" onClick={() => fetchJobs(1)}>Retry</Button>
+              <Button variant="outline" size="sm" onClick={() => fetchjobs(1)}>Retry</Button>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -464,7 +464,7 @@ export function JobManagement() {
                 <div className="flex items-center gap-1">
                   <Button variant="outline" size="sm" className="h-8 w-8 p-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                     disabled={pagination.page === 1}
-                    onClick={() => fetchJobs(pagination.page - 1)}>
+                    onClick={() => fetchjobs(pagination.page - 1)}>
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <span className="text-sm text-slate-600 dark:text-slate-400 px-2">
@@ -472,7 +472,7 @@ export function JobManagement() {
                   </span>
                   <Button variant="outline" size="sm" className="h-8 w-8 p-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                     disabled={pagination.page === pagination.totalPages}
-                    onClick={() => fetchJobs(pagination.page + 1)}>
+                    onClick={() => fetchjobs(pagination.page + 1)}>
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>

@@ -17,7 +17,7 @@ router.delete("/withdraw/:id", verifyToken, authorizeRole(["candidate"]), applic
 router.get("/employer/list", verifyToken, authorizeRole(["employer"]), applicationController.getEmployerApplications);
 router.get("/employer/detail/:id", verifyToken, authorizeRole(["employer"]), applicationController.getApplicationById);
 router.put("/update-status", verifyToken, authorizeRole(["employer"]), applicationController.updateApplicationStatus);
-router.get("/employer/jobs", verifyToken, authorizeRole(["employer"]), applicationController.getEmployerJobs);
+router.get("/employer/jobs", verifyToken, authorizeRole(["employer"]), applicationController.getEmployerjobs);
 
 // Bảo mật API gửi lời mời phỏng vấn (Chỉ Employer được gọi)
 router.post("/interview/invite", verifyToken, authorizeRole(["employer"]), applicationController.inviteInterview);
@@ -41,6 +41,6 @@ router.delete("/notes/:note_id", verifyToken, authorizeRole(["employer"]), appli
 // ======================================================
 // JOB STATUS (ẨN/HIỆN TIN TUYỂN DỤNG)
 // ======================================================
-router.put("/jobs/toggle-status", verifyToken, authorizeRole(["employer"]), applicationController.toggleJobStatus);
+router.put("/jobs/toggle-status", verifyToken, authorizeRole(["employer"]), applicationController.togglejobstatus);
 
 module.exports = router;

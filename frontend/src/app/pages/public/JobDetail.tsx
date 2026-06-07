@@ -18,7 +18,7 @@ import {
 import { Link, useParams, useNavigate } from "react-router-dom"; 
 
 // 1. Import Component và Service
-import { RecommendedJobsAside } from "../../components/candidate/profile/RecommendedJobsAside";
+import { RecommendedjobsAside } from "../../components/candidate/profile/RecommendedjobsAside";
 import { getRecommendations } from "../../../services/recommendationService";
 import { useSharedProfile } from "../../../hooks/useSharedProfile";
 
@@ -29,7 +29,7 @@ export default function JobDetail() {
   const [loading, setLoading] = useState(true);
   const { userData } = useSharedProfile();
   
-  // --- Recommended Jobs State ---
+  // --- Recommended jobs State ---
   const [aiRecommendations, setAiRecommendations] = useState<any[]>([]);
 
   // --- Apply Modal State & Logic ---
@@ -184,7 +184,7 @@ export default function JobDetail() {
     };
 
     // 2. Fetch recommended jobs
-    const fetchAiJobs = async () => {
+    const fetchAijobs = async () => {
       try {
         const token = localStorage.getItem("token");
         if (token) {
@@ -198,7 +198,7 @@ export default function JobDetail() {
     };
 
     fetchJob();
-    fetchAiJobs();
+    fetchAijobs();
   }, [id]);
 
   if (loading)
@@ -246,7 +246,7 @@ export default function JobDetail() {
             onClick={() => navigate(-1)}
             className="inline-flex items-center text-sm font-semibold text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" /> Back to Jobs
+            <ArrowLeft className="w-4 h-4 mr-2" /> Back to jobs
           </button>
         </div>
       </div>
@@ -402,10 +402,10 @@ export default function JobDetail() {
                 {job.website?.replace(/^https?:\/\//, "") || "company-website.com"}
               </a>
             </div>
-            {/* 3. THÊM RECOMMENDED JOBS VÀO ĐÂY */}
+            {/* 3. THÊM RECOMMENDED jobs VÀO ĐÂY */}
             <div className="sticky top-24">
-              <RecommendedJobsAside 
-                            recommendedJobs={aiRecommendations}
+              <RecommendedjobsAside 
+                            recommendedjobs={aiRecommendations}
                             userData={userData}
                             
                             openModal={(type) => {

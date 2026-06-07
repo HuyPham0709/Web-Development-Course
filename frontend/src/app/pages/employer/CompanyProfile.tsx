@@ -6,10 +6,10 @@ import {
 import axios from 'axios';
 
 import { getCompanyProfile, saveCompanyProfile } from '../../../services/companyService';
-import { getJobs } from '../../../services/jobService';
+import { getjobs } from '../../../services/jobservice';
 import { CompanyInfo } from '../../../types/company';
 import { ProfileToast, ToastState } from '../../components/candidate/profile/ProfileToast';
-import { ProfileSkeleton } from '../../components/candidate/profile/ProfileSkeleton';
+import { profileskeleton } from '../../components/candidate/profile/profileskeleton';
 import { EditModal } from '../../components/candidate/profile/EditModal';
 import { Field, inputCls } from '../../components/candidate/profile/Field';
 
@@ -44,11 +44,11 @@ export default function CompanyProfile() {
   const [logoSrc, setLogoSrc] = useState<string>(DEFAULT_LOGO);
   const [bannerSrc, setBannerSrc] = useState<string>(DEFAULT_BANNER);
 
-  const [openJobs, setOpenJobs] = useState<any[]>([]);
-  const [loadingJobs, setLoadingJobs] = useState(true);
+  const [openjobs, setOpenjobs] = useState<any[]>([]);
+  const [loadingjobs, setLoadingjobs] = useState(true);
 
   // Added state for search and pagination display
-  const [visibleJobsCount, setVisibleJobsCount] = useState(5);
+  const [visiblejobsCount, setVisiblejobsCount] = useState(5);
   const [searchJob, setSearchJob] = useState('');
 
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -67,7 +67,7 @@ export default function CompanyProfile() {
     window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
     if (!targetCompanyId) { 
       setLoading(false); 
-      setLoadingJobs(false);
+      setLoadingjobs(false);
       showToast('error', 'Company information not found');
       return; 
     }
@@ -82,15 +82,15 @@ export default function CompanyProfile() {
       .catch(() => showToast('error', 'Failed to load company profile'))
       .finally(() => setLoading(false));
 
-    setLoadingJobs(true);
+    setLoadingjobs(true);
     // PASS COMPANY_ID to params so BE filters it
-    getJobs({ company_id: targetCompanyId, limit: 100 } as any)
+    getjobs({ company_id: targetCompanyId, limit: 100 } as any)
       .then((jobsData: any) => {
         const list = Array.isArray(jobsData) ? jobsData : (jobsData?.data || []);
-        setOpenJobs(list);
+        setOpenjobs(list);
       })
       .catch(err => console.error("Error loading job list:", err))
-      .finally(() => setLoadingJobs(false));
+      .finally(() => setLoadingjobs(false));
 
   }, [targetCompanyId]);
 
@@ -176,10 +176,10 @@ export default function CompanyProfile() {
   };
 
   // Filter and calculate displayed jobs
-  const filteredJobs = openJobs.filter(job => 
+  const filteredjobs = openjobs.filter(job => 
     (job.title || '').toLowerCase().includes(searchJob.toLowerCase())
   );
-  const displayedJobs = filteredJobs.slice(0, visibleJobsCount);
+  const displayedjobs = filteredjobs.slice(0, visiblejobsCount);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-gray-900 transition-colors duration-300 dark:bg-[#070A13] dark:text-gray-100 relative overflow-hidden text-left pb-16">
@@ -208,7 +208,7 @@ export default function CompanyProfile() {
           style={{ '--stagger-index': 0 } as React.CSSProperties}
         >
           <div className="h-40 md:h-64 w-full relative group">
-            {loading ? <ProfileSkeleton className="w-full h-full rounded-none" /> : <img src={bannerSrc} alt="Banner" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />}
+            {loading ? <profileskeleton className="w-full h-full rounded-none" /> : <img src={bannerSrc} alt="Banner" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />}
             <div className="absolute inset-0 bg-black/10 dark:bg-black/40 pointer-events-none transition-colors duration-300"></div>
 
             {canEdit && (
@@ -224,7 +224,7 @@ export default function CompanyProfile() {
           <div className="px-6 md:px-8 pb-8 relative">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 -mt-12 md:-mt-16 mb-4">
               <div className="relative w-24 h-24 md:w-32 md:h-32 bg-white dark:bg-[#0B0F19] rounded-2xl shadow-lg border-4 border-white dark:border-[#0B0F19] p-2 transition-colors duration-300">
-                {loading ? <ProfileSkeleton className="w-full h-full rounded-xl" /> : <img src={logoSrc} alt="Logo" className="w-full h-full rounded-xl object-contain transition-colors" />}
+                {loading ? <profileskeleton className="w-full h-full rounded-xl" /> : <img src={logoSrc} alt="Logo" className="w-full h-full rounded-xl object-contain transition-colors" />}
                 
                 {canEdit && (
                   <>
@@ -247,7 +247,7 @@ export default function CompanyProfile() {
             </div>
 
             {loading ? (
-              <div className="space-y-3"><ProfileSkeleton className="h-8 w-64" /><ProfileSkeleton className="h-5 w-48" /></div>
+              <div className="space-y-3"><profileskeleton className="h-8 w-64" /><profileskeleton className="h-5 w-48" /></div>
             ) : (
               <div>
                 <div className="flex items-center gap-2">
@@ -278,7 +278,7 @@ export default function CompanyProfile() {
             </h2>
           </div>
           {loading ? (
-            <div className="space-y-3"><ProfileSkeleton className="h-4 w-full" /><ProfileSkeleton className="h-4 w-5/6" /></div>
+            <div className="space-y-3"><profileskeleton className="h-4 w-full" /><profileskeleton className="h-4 w-5/6" /></div>
           ) : companyInfo.description ? (
             <div className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
               {companyInfo.description}
@@ -288,7 +288,7 @@ export default function CompanyProfile() {
           )}
         </div>
 
-        {/* OPEN JOBS CARD - UPDATED TO ENGLISH & NEW SALARY FORMAT */}
+        {/* OPEN jobs CARD - UPDATED TO ENGLISH & NEW SALARY FORMAT */}
         <div 
           className="animate-fade-in-up bg-white dark:bg-[#0B0F19] rounded-3xl border border-gray-200 dark:border-white/5 shadow-sm p-6 md:p-8 transition-all duration-300"
           style={{ '--stagger-index': 2 } as React.CSSProperties}
@@ -298,11 +298,11 @@ export default function CompanyProfile() {
                <span className="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/30">
                 <Briefcase className="w-5 h-5 text-blue-500 dark:text-blue-400" />
               </span>
-              Open Positions {openJobs.length > 0 && <span className="text-sm font-medium bg-gray-100 dark:bg-white/10 px-2 py-1 rounded-md text-gray-500">{openJobs.length}</span>}
+              Open Positions {openjobs.length > 0 && <span className="text-sm font-medium bg-gray-100 dark:bg-white/10 px-2 py-1 rounded-md text-gray-500">{openjobs.length}</span>}
             </h2>
 
             {/* Search Bar */}
-            {openJobs.length > 0 && (
+            {openjobs.length > 0 && (
               <div className="w-full sm:w-64 relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Search className="h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
@@ -313,7 +313,7 @@ export default function CompanyProfile() {
                   value={searchJob}
                   onChange={(e) => {
                     setSearchJob(e.target.value);
-                    setVisibleJobsCount(5); // Reset display when searching
+                    setVisiblejobsCount(5); // Reset display when searching
                   }}
                   className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                 />
@@ -321,15 +321,15 @@ export default function CompanyProfile() {
             )}
           </div>
           
-          {loadingJobs ? (
+          {loadingjobs ? (
             <div className="flex h-32 w-full flex-col items-center justify-center gap-3">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600 dark:border-gray-700 dark:border-t-blue-500"></div>
             </div>
-          ) : openJobs.length > 0 ? (
+          ) : openjobs.length > 0 ? (
             <>
-              {displayedJobs.length > 0 ? (
+              {displayedjobs.length > 0 ? (
                 <div className="grid gap-4">
-                  {displayedJobs.map((job, index) => (
+                  {displayedjobs.map((job, index) => (
                     <div
                       key={job.id || index}
                       onClick={() => navigate(`/job/${job.id}`)}
@@ -363,20 +363,20 @@ export default function CompanyProfile() {
               )}
 
               {/* Load More / Show Less Buttons */}
-              {filteredJobs.length > 5 && (
+              {filteredjobs.length > 5 && (
                 <div className="mt-8 flex justify-center gap-4">
-                  {visibleJobsCount < filteredJobs.length && (
+                  {visiblejobsCount < filteredjobs.length && (
                     <button 
-                      onClick={() => setVisibleJobsCount(prev => prev + 5)}
+                      onClick={() => setVisiblejobsCount(prev => prev + 5)}
                       className="px-6 py-2.5 rounded-xl border border-blue-200 dark:border-blue-900/50 text-blue-600 dark:text-blue-400 font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-300 shadow-sm"
                     >
-                      Load more ({filteredJobs.length - visibleJobsCount} positions)
+                      Load more ({filteredjobs.length - visiblejobsCount} positions)
                     </button>
                   )}
-                  {visibleJobsCount > 5 && (
+                  {visiblejobsCount > 5 && (
                     <button 
                       onClick={() => {
-                        setVisibleJobsCount(5);
+                        setVisiblejobsCount(5);
                       }}
                       className="px-6 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 font-medium hover:bg-gray-50 dark:hover:bg-white/5 transition-all duration-300"
                     >

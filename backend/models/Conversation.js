@@ -1,7 +1,7 @@
 // backend/models/Conversation.js
 const mongoose = require('mongoose');
 
-const conversationSchema = new mongoose.Schema({
+const conversationschema = new mongoose.Schema({
     candidateId: { 
         type: Number, 
         required: true,
@@ -26,6 +26,6 @@ const conversationSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Đảm bảo mỗi ứng viên chỉ có 1 đoạn chat duy nhất với 1 công ty
-conversationSchema.index({ candidateId: 1, companyId: 1 }, { unique: true });
+conversationschema.index({ candidateId: 1, companyId: 1 }, { unique: true });
 
-module.exports = mongoose.model('Conversation', conversationSchema);
+module.exports = mongoose.model('Conversation', conversationschema);

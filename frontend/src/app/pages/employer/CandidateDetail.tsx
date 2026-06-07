@@ -1,5 +1,5 @@
 // ==========================================
-// CandidateDetail.tsx (Dark Mode, JobSpot Premium UI Modals)
+// CandidateDetail.tsx (Dark Mode, jobspot Premium UI Modals)
 // ==========================================
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';

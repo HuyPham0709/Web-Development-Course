@@ -30,9 +30,9 @@ router.get(
       }
       const candidate = candidateRows[0];
 
-      // 2. Lấy thông tin từ bảng Profiles
+      // 2. Lấy thông tin từ bảng profiles
       const [profileRows] = await db.query(
-        'SELECT * FROM Profiles WHERE user_id = ?',
+        'SELECT * FROM profiles WHERE user_id = ?',
         [candidateId]
       );
 

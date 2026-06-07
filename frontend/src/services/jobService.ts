@@ -7,7 +7,7 @@ export const getJobById = async (id: string) => {
 };
 
 // 2. Lấy danh sách công việc có hỗ trợ phân trang (Pagination/Infinite Scroll)
-export const getJobs = async (params?: IJobFilters): Promise<IPaginatedResponse<IJob>> => {
+export const getjobs = async (params?: IJobFilters): Promise<IPaginatedResponse<IJob>> => {
   const res = await api.get("/api/jobs", { params });
   
   // Giả định backend trả về { data: [...], meta: { hasMore: true } }
@@ -45,7 +45,7 @@ export const getSkills = async () => {
   const res = await api.get("/api/skills");
   return res.data.data || res.data;
 };
-export const getJobSuggestions = async (query: string, signal: AbortSignal): Promise<any[]> => {
+export const getjobsuggestions = async (query: string, signal: AbortSignal): Promise<any[]> => {
   try {
     // SỬA: Thêm tiền tố /api vào trước /jobs/autocomplete
     const response = await api.get(`/api/jobs/autocomplete?q=${encodeURIComponent(query)}`, { signal });

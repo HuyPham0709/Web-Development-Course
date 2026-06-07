@@ -29,7 +29,7 @@ export const SIDEBAR_MENU: MenuItem[] = [
     label: 'Job Management',
     icon: Briefcase,
     subItems: [
-      { id: 'saved', label: 'Saved Jobs' },
+      { id: 'saved', label: 'Saved jobs' },
       { id: 'apply', label: 'Invitations to Apply' },
       { id: 'viewed-by-employer', label: 'Employers Viewed Your Profile' },
     ]

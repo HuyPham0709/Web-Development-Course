@@ -57,7 +57,7 @@ INSERT INTO companies (id, name, slug, website, description, is_verified) VALUES
 -- Mật khẩu giả lập dạng hash cho tất cả: $2a$12$DummyHashStringForPassword12345
 INSERT INTO Users (id, username, password, email, role, company_id, is_active, is_verified) VALUES
 (1, 'admin_system', 'hashed_pwd_here', 'admin@jobfinder.vn', 'admin', NULL, 1, 1),
--- Employers của Viettel (Company 2) để gánh 30 Jobs
+-- Employers của Viettel (Company 2) để gánh 30 jobs
 (2, 'viettel_hr1', 'hashed_pwd_here', 'hr1@viettel.com.vn', 'employer', 2, 1, 1),
 (3, 'viettel_hr2', 'hashed_pwd_here', 'hr2@viettel.com.vn', 'employer', 2, 1, 1),
 (4, 'viettel_techlead', 'hashed_pwd_here', 'techlead@viettel.com.vn', 'employer', 2, 1, 1),
@@ -92,11 +92,11 @@ INSERT INTO Users (id, username, password, email, role, company_id, is_active, i
 (31, 'phanthanhm', 'hashed_pwd_here', 'phanthanhm@gmail.com', 'candidate', NULL, 1, 1);
 
 -- ==========================================================
--- 3. DETAILED PROFILES (Profiles, Education, Work_Experience)
+-- 3. DETAILED profiles (profiles, Education, Work_Experience)
 -- ==========================================================
 
--- INSERT INTO Profiles
-INSERT INTO Profiles (id, user_id, full_name, title, location, phone, gender, dob, bio, allow_employer_search) VALUES
+-- INSERT INTO profiles
+INSERT INTO profiles (id, user_id, full_name, title, location, phone, gender, dob, bio, allow_employer_search) VALUES
 (1, 17, 'Nguyễn Văn A', 'Senior Backend Developer', 'Hà Nội', '0901234567', 'male', '1995-05-12', '5 năm kinh nghiệm Java/Spring Boot.', 1),
 (2, 18, 'Trần Thị Ngọc', 'Data Scientist', 'TP. Hồ Chí Minh', '0912345678', 'female', '1996-08-20', 'Đam mê AI, Machine Learning và Big Data.', 1),
 (3, 19, 'Lê Hoàng Bách', 'Product Manager', 'Đà Nẵng', '0923456789', 'male', '1992-11-05', 'Kinh nghiệm quản lý sản phẩm fintech.', 1),
@@ -150,12 +150,12 @@ INSERT INTO Work_Experience (profile_id, company_name, position, start_date, end
 (15, 'Tiki', 'Fullstack Developer', '2018-08-01', '2023-07-30');
 
 -- ==========================================================
--- 4. JOB MANAGEMENT (Jobs >= 30, skills)
+-- 4. JOB MANAGEMENT (jobs >= 30, skills)
 -- Yêu cầu: VIETTEL (Company ID = 2) sở hữu 30 công việc.
 -- Sử dụng Employers ID: 2, 3, 4 (thuộc Viettel) làm posted_by.
 -- ==========================================================
 
-INSERT INTO Jobs (id, company_id, posted_by, category_id, location_id, title, slug, salary_min, salary_max, job_type, experience_level, description, status) VALUES
+INSERT INTO jobs (id, company_id, posted_by, category_id, location_id, title, slug, salary_min, salary_max, job_type, experience_level, description, status) VALUES
 -- Batch 1: Posted by Employer 2 (10 jobs)
 (1, 2, 2, 1, 1, 'Senior Java Developer (Spring Boot)', 'viettel-senior-java', 1200, 2400, 'full-time', 'senior', 'Phát triển các hệ thống lõi viễn thông.', 'approved'),
 (2, 2, 2, 1, 2, 'Junior Python Backend Developer', 'viettel-junior-python', 600, 1000, 'full-time', 'junior', 'Xây dựng API cho các dịch vụ VAS.', 'approved'),
@@ -192,7 +192,7 @@ INSERT INTO Jobs (id, company_id, posted_by, category_id, location_id, title, sl
 (29, 2, 4, 5, 1, 'QA Lead / Test Manager', 'viettel-qa-lead', 1800, 3200, 'full-time', 'senior', 'Quản lý đội ngũ kiểm thử chất lượng phần mềm.', 'approved'),
 (30, 2, 4, 1, 1, 'Technical Architect', 'viettel-tech-architect', 2800, 4800, 'full-time', 'senior', 'Thiết kế kiến trúc tổng thể cho siêu hệ thống.', 'approved');
 
--- INSERT INTO Job_Skills (Map Skills cho Jobs)
+-- INSERT INTO Job_Skills (Map Skills cho jobs)
 INSERT INTO Job_Skills (job_id, skill_id) VALUES
 (1, 1), (1, 6), (2, 2), (2, 6), (3, 2), (3, 9), (4, 8), (5, 7),
 (6, 1), (6, 6), (7, 5), (7, 10), (7, 11), (8, 15), (9, 8), (10, 12),
@@ -201,7 +201,7 @@ INSERT INTO Job_Skills (job_id, skill_id) VALUES
 (21, 1), (22, 1), (23, 1), (23, 3), (24, 15), (25, 8), (26, 6),
 (27, 5), (27, 10), (28, 14), (28, 6), (29, 8), (30, 1), (30, 5);
 
--- INSERT INTO User_Skills (Map Skills cho Profiles)
+-- INSERT INTO User_Skills (Map Skills cho profiles)
 INSERT INTO User_Skills (profile_id, skill_id) VALUES
 (1, 1), (1, 6), (2, 2), (2, 9), (3, 8), (4, 5), (4, 10), (4, 11),
 (5, 7), (6, 1), (7, 8), (8, 3), (10, 15), (12, 4), (13, 10), (14, 1), (15, 4), (15, 3);
@@ -261,8 +261,8 @@ INSERT INTO Applications (candidate_id, job_id, cover_letter, status) VALUES
 (19, 9, 'Đã từng làm BA cho dự án trước.', 'pending'),
 (28, 28, 'Có biết qua PHP Laravel.', 'rejected');
 
--- INSERT INTO Favorite_Jobs (Ứng viên lưu công việc yêu thích - 30 records)
-INSERT INTO Favorite_Jobs (user_id, job_id) VALUES
+-- INSERT INTO Favorite_jobs (Ứng viên lưu công việc yêu thích - 30 records)
+INSERT INTO Favorite_jobs (user_id, job_id) VALUES
 (17, 1), (17, 23), (17, 30), (18, 3), (18, 14), (18, 26), 
 (19, 4), (19, 25), (19, 9), (20, 7), (20, 13), (20, 27), 
 (21, 5), (21, 19), (22, 6), (22, 17), (22, 29), (23, 9), 
@@ -335,9 +335,9 @@ INSERT INTO Reports (reporter_id, job_id, reason, status) VALUES
 (26, 4, 'Ngôn ngữ trong JD thiếu chuyên nghiệp.', 'resolved');
 
 -- ==========================================================
--- JOBS FOR COMPANY: FPT SOFTWARE (ID = 1 | Posted by User 5, 14)
+-- jobs FOR COMPANY: FPT SOFTWARE (ID = 1 | Posted by User 5, 14)
 -- ==========================================================
-INSERT INTO Jobs (id, company_id, posted_by, category_id, location_id, title, slug, salary_min, salary_max, thumbnail_url, job_type, experience_level, description, requirements, benefit, status, created_at) VALUES
+INSERT INTO jobs (id, company_id, posted_by, category_id, location_id, title, slug, salary_min, salary_max, thumbnail_url, job_type, experience_level, description, requirements, benefit, status, created_at) VALUES
 (31, 1, 5, 1, 1, 'Senior Java Developer', 'fpt-senior-java-developer-1', 500, 1300, 'https://picsum.photos/200', 'full-time', 'intern', 'Phát triển hệ thống backend enterprise.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-10-12 08:30:00'),
 (32, 1, 14, 1, 2, 'Fullstack Web Developer', 'fpt-fullstack-web-developer-2', 550, 1380, 'https://picsum.photos/200', 'part-time', 'fresher', 'Xây dựng hệ thống portal.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-11-05 10:00:00'),
 (33, 1, 5, 2, 3, 'Data Engineer', 'fpt-data-engineer-3', 600, 1460, 'https://picsum.photos/200', 'contract', 'junior', 'Xây dựng và tối ưu data pipeline.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-11-20 14:15:00'),
@@ -370,9 +370,9 @@ INSERT INTO Jobs (id, company_id, posted_by, category_id, location_id, title, sl
 (60, 1, 14, 8, 10, 'IT Business Analyst (Level 3)', 'fpt-it-business-analyst-30', 1950, 3620, 'https://picsum.photos/200', 'part-time', 'middle', 'Khảo sát và phân tích yêu cầu nghiệp vụ.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2026-05-28 16:40:00');
 
 -- ==========================================================
--- JOBS FOR COMPANY: VNG CORPORATION (ID = 3 | Posted by User 6, 15)
+-- jobs FOR COMPANY: VNG CORPORATION (ID = 3 | Posted by User 6, 15)
 -- ==========================================================
-INSERT INTO Jobs (id, company_id, posted_by, category_id, location_id, title, slug, salary_min, salary_max, thumbnail_url, job_type, experience_level, description, requirements, benefit, status, created_at) VALUES
+INSERT INTO jobs (id, company_id, posted_by, category_id, location_id, title, slug, salary_min, salary_max, thumbnail_url, job_type, experience_level, description, requirements, benefit, status, created_at) VALUES
 (61, 3, 6, 1, 1, 'Senior Java Developer', 'vng-senior-java-developer-1', 500, 1300, 'https://picsum.photos/200', 'full-time', 'intern', 'Phát triển hệ thống backend enterprise.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-10-12 08:30:00'),
 (62, 3, 15, 1, 2, 'Fullstack Web Developer', 'vng-fullstack-web-developer-2', 550, 1380, 'https://picsum.photos/200', 'part-time', 'fresher', 'Xây dựng hệ thống portal.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-11-05 10:00:00'),
 (63, 3, 6, 2, 3, 'Data Engineer', 'vng-data-engineer-3', 600, 1460, 'https://picsum.photos/200', 'contract', 'junior', 'Xây dựng và tối ưu data pipeline.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-11-20 14:15:00'),
@@ -405,9 +405,9 @@ INSERT INTO Jobs (id, company_id, posted_by, category_id, location_id, title, sl
 (90, 3, 15, 8, 10, 'IT Business Analyst (Level 3)', 'vng-it-business-analyst-30', 1950, 3620, 'https://picsum.photos/200', 'part-time', 'middle', 'Khảo sát và phân tích yêu cầu nghiệp vụ.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2026-05-28 16:40:00');
 
 -- ==========================================================
--- JOBS FOR COMPANY: MOMO (ID = 4 | Posted by User 7, 16)
+-- jobs FOR COMPANY: MOMO (ID = 4 | Posted by User 7, 16)
 -- ==========================================================
-INSERT INTO Jobs (id, company_id, posted_by, category_id, location_id, title, slug, salary_min, salary_max, thumbnail_url, job_type, experience_level, description, requirements, benefit, status, created_at) VALUES
+INSERT INTO jobs (id, company_id, posted_by, category_id, location_id, title, slug, salary_min, salary_max, thumbnail_url, job_type, experience_level, description, requirements, benefit, status, created_at) VALUES
 (91, 4, 7, 1, 1, 'Senior Java Developer', 'momo-senior-java-developer-1', 500, 1300, 'https://picsum.photos/200', 'full-time', 'intern', 'Phát triển hệ thống backend enterprise.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-10-12 08:30:00'),
 (92, 4, 16, 1, 2, 'Fullstack Web Developer', 'momo-fullstack-web-developer-2', 550, 1380, 'https://picsum.photos/200', 'part-time', 'fresher', 'Xây dựng hệ thống portal.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-11-05 10:00:00'),
 (93, 4, 7, 2, 3, 'Data Engineer', 'momo-data-engineer-3', 600, 1460, 'https://picsum.photos/200', 'contract', 'junior', 'Xây dựng và tối ưu data pipeline.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-11-20 14:15:00'),
@@ -440,9 +440,9 @@ INSERT INTO Jobs (id, company_id, posted_by, category_id, location_id, title, sl
 (120, 4, 16, 8, 10, 'IT Business Analyst (Level 3)', 'momo-it-business-analyst-30', 1950, 3620, 'https://picsum.photos/200', 'part-time', 'middle', 'Khảo sát và phân tích yêu cầu nghiệp vụ.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2026-05-28 16:40:00');
 
 -- ==========================================================
--- JOBS FOR COMPANY: VNPT (ID = 5 | Posted by User 8)
+-- jobs FOR COMPANY: VNPT (ID = 5 | Posted by User 8)
 -- ==========================================================
-INSERT INTO Jobs (id, company_id, posted_by, category_id, location_id, title, slug, salary_min, salary_max, thumbnail_url, job_type, experience_level, description, requirements, benefit, status, created_at) VALUES
+INSERT INTO jobs (id, company_id, posted_by, category_id, location_id, title, slug, salary_min, salary_max, thumbnail_url, job_type, experience_level, description, requirements, benefit, status, created_at) VALUES
 (121, 5, 8, 1, 1, 'Senior Java Developer', 'vnpt-senior-java-developer-1', 500, 1300, 'https://picsum.photos/200', 'full-time', 'intern', 'Phát triển hệ thống backend enterprise.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-10-12 08:30:00'),
 (122, 5, 8, 1, 2, 'Fullstack Web Developer', 'vnpt-fullstack-web-developer-2', 550, 1380, 'https://picsum.photos/200', 'part-time', 'fresher', 'Xây dựng hệ thống portal.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-11-05 10:00:00'),
 (123, 5, 8, 2, 3, 'Data Engineer', 'vnpt-data-engineer-3', 600, 1460, 'https://picsum.photos/200', 'contract', 'junior', 'Xây dựng và tối ưu data pipeline.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-11-20 14:15:00'),
@@ -475,9 +475,9 @@ INSERT INTO Jobs (id, company_id, posted_by, category_id, location_id, title, sl
 (150, 5, 8, 8, 10, 'IT Business Analyst (Level 3)', 'vnpt-it-business-analyst-30', 1950, 3620, 'https://picsum.photos/200', 'part-time', 'middle', 'Khảo sát và phân tích yêu cầu nghiệp vụ.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2026-05-28 16:40:00');
 
 -- ==========================================================
--- JOBS FOR COMPANY: VNPAY (ID = 6 | Posted by User 9)
+-- jobs FOR COMPANY: VNPAY (ID = 6 | Posted by User 9)
 -- ==========================================================
-INSERT INTO Jobs (id, company_id, posted_by, category_id, location_id, title, slug, salary_min, salary_max, thumbnail_url, job_type, experience_level, description, requirements, benefit, status, created_at) VALUES
+INSERT INTO jobs (id, company_id, posted_by, category_id, location_id, title, slug, salary_min, salary_max, thumbnail_url, job_type, experience_level, description, requirements, benefit, status, created_at) VALUES
 (151, 6, 9, 1, 1, 'Senior Java Developer', 'vnpay-senior-java-developer-1', 500, 1300, 'https://picsum.photos/200', 'full-time', 'intern', 'Phát triển hệ thống backend enterprise.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-10-12 08:30:00'),
 (152, 6, 9, 1, 2, 'Fullstack Web Developer', 'vnpay-fullstack-web-developer-2', 550, 1380, 'https://picsum.photos/200', 'part-time', 'fresher', 'Xây dựng hệ thống portal.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-11-05 10:00:00'),
 (153, 6, 9, 2, 3, 'Data Engineer', 'vnpay-data-engineer-3', 600, 1460, 'https://picsum.photos/200', 'contract', 'junior', 'Xây dựng và tối ưu data pipeline.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-11-20 14:15:00'),
@@ -510,9 +510,9 @@ INSERT INTO Jobs (id, company_id, posted_by, category_id, location_id, title, sl
 (180, 6, 9, 8, 10, 'IT Business Analyst (Level 3)', 'vnpay-it-business-analyst-30', 1950, 3620, 'https://picsum.photos/200', 'part-time', 'middle', 'Khảo sát và phân tích yêu cầu nghiệp vụ.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2026-05-28 16:40:00');
 
 -- ==========================================================
--- JOBS FOR COMPANY: TIKI (ID = 7 | Posted by User 10)
+-- jobs FOR COMPANY: TIKI (ID = 7 | Posted by User 10)
 -- ==========================================================
-INSERT INTO Jobs (id, company_id, posted_by, category_id, location_id, title, slug, salary_min, salary_max, thumbnail_url, job_type, experience_level, description, requirements, benefit, status, created_at) VALUES
+INSERT INTO jobs (id, company_id, posted_by, category_id, location_id, title, slug, salary_min, salary_max, thumbnail_url, job_type, experience_level, description, requirements, benefit, status, created_at) VALUES
 (181, 7, 10, 1, 1, 'Senior Java Developer', 'tiki-senior-java-developer-1', 500, 1300, 'https://picsum.photos/200', 'full-time', 'intern', 'Phát triển hệ thống backend enterprise.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-10-12 08:30:00'),
 (182, 7, 10, 1, 2, 'Fullstack Web Developer', 'tiki-fullstack-web-developer-2', 550, 1380, 'https://picsum.photos/200', 'part-time', 'fresher', 'Xây dựng hệ thống portal.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-11-05 10:00:00'),
 (183, 7, 10, 2, 3, 'Data Engineer', 'tiki-data-engineer-3', 600, 1460, 'https://picsum.photos/200', 'contract', 'junior', 'Xây dựng và tối ưu data pipeline.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-11-20 14:15:00'),
@@ -545,9 +545,9 @@ INSERT INTO Jobs (id, company_id, posted_by, category_id, location_id, title, sl
 (210, 7, 10, 8, 10, 'IT Business Analyst (Level 3)', 'tiki-it-business-analyst-30', 1950, 3620, 'https://picsum.photos/200', 'part-time', 'middle', 'Khảo sát và phân tích yêu cầu nghiệp vụ.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2026-05-28 16:40:00');
 
 -- ==========================================================
--- JOBS FOR COMPANY: SHOPEE VIETNAM (ID = 8 | Posted by User 11)
+-- jobs FOR COMPANY: SHOPEE VIETNAM (ID = 8 | Posted by User 11)
 -- ==========================================================
-INSERT INTO Jobs (id, company_id, posted_by, category_id, location_id, title, slug, salary_min, salary_max, thumbnail_url, job_type, experience_level, description, requirements, benefit, status, created_at) VALUES
+INSERT INTO jobs (id, company_id, posted_by, category_id, location_id, title, slug, salary_min, salary_max, thumbnail_url, job_type, experience_level, description, requirements, benefit, status, created_at) VALUES
 (211, 8, 11, 1, 1, 'Senior Java Developer', 'shopee-senior-java-developer-1', 500, 1300, 'https://picsum.photos/200', 'full-time', 'intern', 'Phát triển hệ thống backend enterprise.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-10-12 08:30:00'),
 (212, 8, 11, 1, 2, 'Fullstack Web Developer', 'shopee-fullstack-web-developer-2', 550, 1380, 'https://picsum.photos/200', 'part-time', 'fresher', 'Xây dựng hệ thống portal.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-11-05 10:00:00'),
 (213, 8, 11, 2, 3, 'Data Engineer', 'shopee-data-engineer-3', 600, 1460, 'https://picsum.photos/200', 'contract', 'junior', 'Xây dựng và tối ưu data pipeline.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-11-20 14:15:00'),
@@ -580,9 +580,9 @@ INSERT INTO Jobs (id, company_id, posted_by, category_id, location_id, title, sl
 (240, 8, 11, 8, 10, 'IT Business Analyst (Level 3)', 'shopee-it-business-analyst-30', 1950, 3620, 'https://picsum.photos/200', 'part-time', 'middle', 'Khảo sát và phân tích yêu cầu nghiệp vụ.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2026-05-28 16:40:00');
 
 -- ==========================================================
--- JOBS FOR COMPANY: KMS TECHNOLOGY (ID = 9 | Posted by User 12)
+-- jobs FOR COMPANY: KMS TECHNOLOGY (ID = 9 | Posted by User 12)
 -- ==========================================================
-INSERT INTO Jobs (id, company_id, posted_by, category_id, location_id, title, slug, salary_min, salary_max, thumbnail_url, job_type, experience_level, description, requirements, benefit, status, created_at) VALUES
+INSERT INTO jobs (id, company_id, posted_by, category_id, location_id, title, slug, salary_min, salary_max, thumbnail_url, job_type, experience_level, description, requirements, benefit, status, created_at) VALUES
 (241, 9, 12, 1, 1, 'Senior Java Developer', 'kms-senior-java-developer-1', 500, 1300, 'https://picsum.photos/200', 'full-time', 'intern', 'Phát triển hệ thống backend enterprise.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-10-12 08:30:00'),
 (242, 9, 12, 1, 2, 'Fullstack Web Developer', 'kms-fullstack-web-developer-2', 550, 1380, 'https://picsum.photos/200', 'part-time', 'fresher', 'Xây dựng hệ thống portal.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-11-05 10:00:00'),
 (243, 9, 12, 2, 3, 'Data Engineer', 'kms-data-engineer-3', 600, 1460, 'https://picsum.photos/200', 'contract', 'junior', 'Xây dựng và tối ưu data pipeline.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-11-20 14:15:00'),
@@ -615,9 +615,9 @@ INSERT INTO Jobs (id, company_id, posted_by, category_id, location_id, title, sl
 (270, 9, 12, 8, 10, 'IT Business Analyst (Level 3)', 'kms-it-business-analyst-30', 1950, 3620, 'https://picsum.photos/200', 'part-time', 'middle', 'Khảo sát và phân tích yêu cầu nghiệp vụ.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2026-05-28 16:40:00');
 
 -- ==========================================================
--- JOBS FOR COMPANY: NASHTECH (ID = 10 | Posted by User 13)
+-- jobs FOR COMPANY: NASHTECH (ID = 10 | Posted by User 13)
 -- ==========================================================
-INSERT INTO Jobs (id, company_id, posted_by, category_id, location_id, title, slug, salary_min, salary_max, thumbnail_url, job_type, experience_level, description, requirements, benefit, status, created_at) VALUES
+INSERT INTO jobs (id, company_id, posted_by, category_id, location_id, title, slug, salary_min, salary_max, thumbnail_url, job_type, experience_level, description, requirements, benefit, status, created_at) VALUES
 (271, 10, 13, 1, 1, 'Senior Java Developer', 'nashtech-senior-java-developer-1', 500, 1300, 'https://picsum.photos/200', 'full-time', 'intern', 'Phát triển hệ thống backend enterprise.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-10-12 08:30:00'),
 (272, 10, 13, 1, 2, 'Fullstack Web Developer', 'nashtech-fullstack-web-developer-2', 550, 1380, 'https://picsum.photos/200', 'part-time', 'fresher', 'Xây dựng hệ thống portal.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-11-05 10:00:00'),
 (273, 10, 13, 2, 3, 'Data Engineer', 'nashtech-data-engineer-3', 600, 1460, 'https://picsum.photos/200', 'contract', 'junior', 'Xây dựng và tối ưu data pipeline.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2025-11-20 14:15:00'),
@@ -650,7 +650,7 @@ INSERT INTO Jobs (id, company_id, posted_by, category_id, location_id, title, sl
 (300, 10, 13, 8, 10, 'IT Business Analyst (Level 3)', 'nashtech-it-business-analyst-30', 1950, 3620, 'https://picsum.photos/200', 'part-time', 'middle', 'Khảo sát và phân tích yêu cầu nghiệp vụ.', 'Yêu cầu tối thiểu tương đương kinh nghiệm thực tế.', 'Phúc lợi hấp dẫn, bảo hiểm toàn phần, thưởng tháng 13.', 'approved', '2026-05-28 16:40:00');
 
 -- ==========================================================
--- MAP SKILLS FOR NEW JOBS (Job_Skills)
+-- MAP SKILLS FOR NEW jobs (Job_Skills)
 -- ==========================================================
 INSERT INTO Job_Skills (job_id, skill_id) VALUES
 (31, 1), (31, 6), (32, 1), (32, 6), (33, 2), (33, 7), (34, 2), (34, 7), (35, 3), (35, 8), (36, 4), (36, 9), (37, 5), (37, 10), (38, 6), (38, 11), (39, 7), (39, 12), (40, 8), (40, 13),

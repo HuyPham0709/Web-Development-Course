@@ -4,7 +4,7 @@ import { ArrowLeft, Calendar, MapPin, Briefcase, DollarSign, Award, Loader2, Che
 import { Button } from "../../components/ui/button"
 import { Badge } from "../../components/ui/badge"
 import { toast } from "sonner"
-import { jobService } from "../../../services/jobService"
+import { jobservice } from "../../../services/jobservice"
 import { formatSalary, formatDate } from "../../../utils"
 import { AdminJob } from '../../../types'
 
@@ -32,7 +32,7 @@ export function JobDetails() {
 
             setLoading(true)
             try {
-                const data = await jobService.getJobById(id)
+                const data = await jobservice.getJobById(id)
                 if (data.success && data.data) {
                     setJob(data.data)
                 } else {
@@ -67,12 +67,12 @@ export function JobDetails() {
         setSubmitting(action)
         try {
             const res = action === 'approve'
-                ? await jobService.approveJob(job.id, reason)
-                : await jobService.rejectJob(job.id, reason)
+                ? await jobservice.approveJob(job.id, reason)
+                : await jobservice.rejectJob(job.id, reason)
 
             if (res.success) {
                 toast.success(res.message || `Job ${action === 'approve' ? 'approved' : 'rejected'} successfully`)
-                const data = await jobService.getJobById(job.id)
+                const data = await jobservice.getJobById(job.id)
                 if (data.success) setJob(data.data)
             } else {
                 toast.error(res.message)

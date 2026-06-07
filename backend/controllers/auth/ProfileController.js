@@ -24,9 +24,9 @@ const getCloudinaryPublicId = (url) => {
 exports.getMyProfile = async (req, res) => {
     const userId = req.user.id;
     try {
-        // ✅ ĐÃ SỬA: Lấy thêm trường avatar_url trực tiếp từ bảng Profiles
+        // ✅ ĐÃ SỬA: Lấy thêm trường avatar_url trực tiếp từ bảng profiles
         const [profiles] = await db.query(
-            `SELECT id, full_name, avatar_url, title, location, bio, cv_url FROM Profiles WHERE user_id = ?`,
+            `SELECT id, full_name, avatar_url, title, location, bio, cv_url FROM profiles WHERE user_id = ?`,
             [userId]
         );
 
@@ -72,7 +72,7 @@ exports.getMyProfile = async (req, res) => {
 exports.getProfile = async (req, res) => {
     const { userId } = req.params;
     try {
-        const [profiles] = await db.query(`SELECT * FROM Profiles WHERE user_id = ?`, [userId]);
+        const [profiles] = await db.query(`SELECT * FROM profiles WHERE user_id = ?`, [userId]);
         if (profiles.length === 0) return res.status(404).json({ success: false, message: "Chưa có hồ sơ" });
 
         const profileId = profiles[0].id;
@@ -89,7 +89,7 @@ exports.getProfile = async (req, res) => {
             catch { personalInfo.social_links = {}; }
         }
 
-        // ✅ ĐÃ SỬA: Trả thẳng dữ liệu từ bảng Profiles về, không cần tính toán toggle chọn 1 trong 2 nữa
+        // ✅ ĐÃ SỬA: Trả thẳng dữ liệu từ bảng profiles về, không cần tính toán toggle chọn 1 trong 2 nữa
         res.status(200).json({
             success: true,
             personalInfo: {
@@ -129,12 +129,12 @@ exports.updateMyProfile = async (req, res) => {
         let cv_url = null;
         if (req.file) cv_url = `/uploads/cvs/${req.file.filename}`;
 
-        const [profiles] = await connection.query("SELECT * FROM Profiles WHERE user_id = ?", [userId]);
+        const [profiles] = await connection.query("SELECT * FROM profiles WHERE user_id = ?", [userId]);
         let profileId;
 
         if (profiles.length === 0) {
             const [result] = await connection.query(
-                `INSERT INTO Profiles (user_id, full_name, title, location, bio, cv_url) VALUES (?, ?, ?, ?, ?, ?)`,
+                `INSERT INTO profiles (user_id, full_name, title, location, bio, cv_url) VALUES (?, ?, ?, ?, ?, ?)`,
                 [userId, full_name, title, location, bio, cv_url]
             );
             profileId = result.insertId;
@@ -142,7 +142,7 @@ exports.updateMyProfile = async (req, res) => {
             profileId = profiles[0].id;
             if (!cv_url) cv_url = profiles[0].cv_url;
             await connection.query(
-                `UPDATE Profiles SET full_name = ?, title = ?, location = ?, bio = ?, cv_url = ? WHERE id = ?`,
+                `UPDATE profiles SET full_name = ?, title = ?, location = ?, bio = ?, cv_url = ? WHERE id = ?`,
                 [full_name, title, location, bio, cv_url, profileId]
             );
         }
@@ -189,9 +189,9 @@ exports.updateProfile = async (req, res) => {
 
         // ✅ ĐÃ XÓA: Bỏ câu lệnh UPDATE bảng Users (bỏ hoàn toàn custom_name, use_custom_name...)
 
-        // ✅ ĐÃ SỬA: Ghi đè thẳng thông tin full_name và avatar_url mới vào bảng Profiles
+        // ✅ ĐÃ SỬA: Ghi đè thẳng thông tin full_name và avatar_url mới vào bảng profiles
         await connection.query(
-            `UPDATE Profiles 
+            `UPDATE profiles 
              SET full_name = ?, title = ?, bio = ?, cv_url = ?, avatar_url = ?, cover_url = ?, 
                  phone = ?, gender = ?, dob = ?, location = ?, social_links = ? 
              WHERE user_id = ?`,
@@ -211,7 +211,7 @@ exports.updateProfile = async (req, res) => {
             ]
         );
 
-        const [profileRows] = await connection.query(`SELECT id FROM Profiles WHERE user_id = ?`, [userId]);
+        const [profileRows] = await connection.query(`SELECT id FROM profiles WHERE user_id = ?`, [userId]);
         if (profileRows.length === 0) throw new Error("User profile not found!");
         const profileId = profileRows[0].id;
 
@@ -267,7 +267,7 @@ exports.uploadCV = async (req, res) => {
         const result = await uploadToCloudinary(req.file.buffer, 'job_finder/cvs');
         const secureUrl = result.secure_url;
 
-        const [dbResult] = await db.query('UPDATE Profiles SET cv_url = ? WHERE user_id = ?', [secureUrl, userId]);
+        const [dbResult] = await db.query('UPDATE profiles SET cv_url = ? WHERE user_id = ?', [secureUrl, userId]);
         if (dbResult.affectedRows === 0) return res.status(404).json({ success: false, message: 'You need to create your personal information first!' });
 
         res.json({ success: true, cv_url: secureUrl, message: 'CV uploaded successfully!' });
@@ -281,7 +281,7 @@ exports.uploadCV = async (req, res) => {
 exports.deleteCV = async (req, res) => {
     try {
         const userId = req.user.id;
-        const [rows] = await db.query(`SELECT cv_url FROM Profiles WHERE user_id = ?`, [userId]);
+        const [rows] = await db.query(`SELECT cv_url FROM profiles WHERE user_id = ?`, [userId]);
         if (rows.length === 0 || !rows[0].cv_url) return res.status(404).json({ success: false, message: "CV not found" });
 
         const cvUrl = rows[0].cv_url;
@@ -294,7 +294,7 @@ exports.deleteCV = async (req, res) => {
             if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
         }
 
-        await db.query(`UPDATE Profiles SET cv_url = NULL, updated_at = NOW() WHERE user_id = ?`, [userId]);
+        await db.query(`UPDATE profiles SET cv_url = NULL, updated_at = NOW() WHERE user_id = ?`, [userId]);
         res.status(200).json({ success: true, message: "CV has been deleted" });
     } catch (error) {
         console.error("[deleteCV]", error.message);
@@ -311,8 +311,8 @@ exports.uploadAvatar = async (req, res) => {
         const result = await uploadToCloudinary(req.file.buffer, 'job_finder/avatars');
         const secureUrl = result.secure_url;
 
-        // ✅ ĐÃ SỬA: Chỉ cần UPDATE duy nhất trường avatar_url ở bảng Profiles là xong, bỏ hoàn toàn update bên Users
-        await db.query(`UPDATE Profiles SET avatar_url = ? WHERE user_id = ?`, [secureUrl, userId]);
+        // ✅ ĐÃ SỬA: Chỉ cần UPDATE duy nhất trường avatar_url ở bảng profiles là xong, bỏ hoàn toàn update bên Users
+        await db.query(`UPDATE profiles SET avatar_url = ? WHERE user_id = ?`, [secureUrl, userId]);
 
         res.json({ success: true, avatar_url: secureUrl, message: 'Avatar updated successfully!' });
     } catch (error) {
@@ -330,7 +330,7 @@ exports.uploadCover = async (req, res) => {
         const result = await uploadToCloudinary(req.file.buffer, 'job_finder/covers');
         const secureUrl = result.secure_url;
 
-        await db.query(`UPDATE Profiles SET cover_url = ? WHERE user_id = ?`, [secureUrl, userId]);
+        await db.query(`UPDATE profiles SET cover_url = ? WHERE user_id = ?`, [secureUrl, userId]);
 
         res.json({ success: true, cover_url: secureUrl, message: 'Cover updated successfully!' });
     } catch (error) {
@@ -358,7 +358,7 @@ exports.searchCandidates = async (req, res) => {
         p.dob,   
         (SELECT GROUP_CONCAT(s.name) FROM User_Skills us JOIN Skills s ON us.skill_id = s.id WHERE us.profile_id = p.id) AS skills,
         (SELECT COALESCE(SUM(TIMESTAMPDIFF(YEAR, start_date, IFNULL(end_date, CURRENT_DATE))), 0) FROM Work_Experience we WHERE we.profile_id = p.id) AS years_of_exp
-    FROM Profiles p 
+    FROM profiles p 
     JOIN Users u ON p.user_id = u.id 
     WHERE u.role = 'candidate' 
       AND u.is_active = 1 

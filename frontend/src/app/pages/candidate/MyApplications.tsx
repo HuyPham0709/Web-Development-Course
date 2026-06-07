@@ -12,7 +12,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 
 // Import thêm Component và Service cho mục Recommended
-import { RecommendedJobsAside } from '../../components/candidate/profile/RecommendedJobsAside';
+import { RecommendedjobsAside } from '../../components/candidate/profile/RecommendedjobsAside';
 import { getRecommendations } from '../../../services/recommendationService';
 import { useSharedProfile } from '../../../hooks/useSharedProfile';
 
@@ -43,13 +43,13 @@ export default function MyApplications() {
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [showFilter, setShowFilter] = useState(false);
 
-  // State cho Recommended Jobs
-  const [recommendedJobs, setRecommendedJobs] = useState<any[]>([]);
+  // State cho Recommended jobs
+  const [recommendedjobs, setRecommendedjobs] = useState<any[]>([]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
     fetchApplications();
-    fetchRecommendedJobs();
+    fetchRecommendedjobs();
   }, []);
 
   const fetchApplications = async () => {
@@ -99,17 +99,17 @@ export default function MyApplications() {
     }
   };
 
-  const fetchRecommendedJobs = async () => {
+  const fetchRecommendedjobs = async () => {
     try {
       const token = localStorage.getItem('token');
       if (token) {
         const response = await getRecommendations();
         const data = response?.data?.jobs;
-        setRecommendedJobs(Array.isArray(data) ? data : []);
+        setRecommendedjobs(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error("Lỗi fetch recommended jobs:", error);
-      setRecommendedJobs([]);
+      setRecommendedjobs([]);
     }
   };
 
@@ -334,10 +334,10 @@ export default function MyApplications() {
             )}
           </div>
 
-          {/* CỘT PHẢI: SIDEBAR RECOMMENDED JOBS */}
+          {/* CỘT PHẢI: SIDEBAR RECOMMENDED jobs */}
           <aside className="sticky top-24 hidden lg:flex lg:flex-col gap-6 lg:col-span-1 overflow-x-hidden">
-            <RecommendedJobsAside
-              recommendedJobs={recommendedJobs}
+            <RecommendedjobsAside
+              recommendedjobs={recommendedjobs}
               userData={userData}
               openModal={(type) => {
                 if (type === "personalInfo") {

@@ -32,7 +32,7 @@ const Chat = () => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const [conversations, setConversations] = useState<IConversation[]>([]);
+  const [conversations, setconversations] = useState<IConversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<IConversation | null>(null);
   const [messages, setmessages] = useState<IMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -61,9 +61,9 @@ const Chat = () => {
   // ======================================================================
   // 🔥 FETCH DATA & XỬ LÝ NHẢY TRANG CHUNG MỘT LUỒNG (TRÁNH XUNG ĐỘT)
   // ======================================================================
-  const fetchLatestConversations = async (updatedActiveId?: string) => {
+  const fetchLatestconversations = async (updatedActiveId?: string) => {
     try {
-      const response = await chatService.getConversations();
+      const response = await chatService.getconversations();
       let dataList = Array.isArray(response) ? response : response?.data || [];
 
       // 1. XỬ LÝ NHẢY TRANG TỪ JOB DETAIL (Chỉ chạy 1 lần)
@@ -115,7 +115,7 @@ const Chat = () => {
         }
       }
 
-      setConversations(dataList);
+      setconversations(dataList);
 
       // 4. TÍNH TOÁN SỐ LƯỢNG CHƯA ĐỌC VÀ BẮN SANG NAVBAR
       if (dataList.length > 0) {
@@ -163,7 +163,7 @@ const Chat = () => {
     setSocket(newSocket);
     newSocket.emit("add_user", user.id);
 
-    fetchLatestConversations();
+    fetchLatestconversations();
     setIsLoaded(true);
 
     return () => {
@@ -213,7 +213,7 @@ const Chat = () => {
           notification.onclick = () => window.focus();
           setTimeout(() => notification.close(), 4000);
         }
-        fetchLatestConversations();
+        fetchLatestconversations();
       }
     };
 
@@ -222,7 +222,7 @@ const Chat = () => {
     socket.on("receive_message", handleReceiveMessage);
     socket.on("get_online_users", handleGetOnlineUsers);
     socket.on("update_unread_total", () => {
-      fetchLatestConversations();
+      fetchLatestconversations();
     });
 
     return () => {
@@ -265,7 +265,7 @@ const Chat = () => {
           return [...data, ...localOnly];
         });
         
-        fetchLatestConversations();
+        fetchLatestconversations();
       })
       .catch((err) => console.error("Message loading error:", err));
 
@@ -311,7 +311,7 @@ const Chat = () => {
       if (currentConvId === "new_chat" && savedMsg.conversationId) {
         currentConvId = String(savedMsg.conversationId);
         
-        setConversations((prev) => 
+        setconversations((prev) => 
           prev.map((c) => (c._id === "new_chat" ? { ...c, _id: currentConvId } : c))
         );
         setActiveConversation((prev) => 
@@ -334,7 +334,7 @@ const Chat = () => {
       });
 
       // Fetch lại để đồng bộ hoàn toàn
-      fetchLatestConversations(currentConvId);
+      fetchLatestconversations(currentConvId);
 
     } catch (error) {
       console.error("Message sending error:", error);
@@ -361,7 +361,7 @@ const Chat = () => {
         setmessages([]);
       }
 
-      fetchLatestConversations();
+      fetchLatestconversations();
     } catch (error) {
       console.error("Chat deletion error:", error);
     }

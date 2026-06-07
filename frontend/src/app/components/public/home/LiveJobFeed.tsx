@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { getJobs } from "../../../../services/jobService";
+import { getjobs } from "../../../../services/jobservice";
 import { api } from "../../../../services/api"; 
 import { JobCard } from "./JobCard";
 import { HorizontalTrack } from "./HorizontalTrack";
 import { IJob } from "../../../../types/job";
 
-const jobTabs = ["All Jobs", "Full-Time", "Contract", "Remote"];
+const jobTabs = ["All jobs", "Full-Time", "Contract", "Remote"];
 
 interface LiveJobFeedProps {
   titleFilter: string;
@@ -15,13 +15,13 @@ interface LiveJobFeedProps {
 }
 
 export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter, salaryFilter }: LiveJobFeedProps) {
-  const [jobs, setJobs] = useState<IJob[]>([]);
-  const [activeTab, setActiveTab] = useState("All Jobs");
-  const [savedJobs, setSavedJobs] = useState<number[]>([]);
+  const [jobs, setjobs] = useState<IJob[]>([]);
+  const [activeTab, setActiveTab] = useState("All jobs");
+  const [savedjobs, setSavedjobs] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchJobs = async () => {
+    const fetchjobs = async () => {
       setLoading(true);
       try {
         let typeParam = "";
@@ -30,7 +30,7 @@ export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter, salar
         if (activeTab === "Remote") typeParam = "remote";
 
         const [response] = await Promise.all([
-          getJobs({
+          getjobs({
             title: titleFilter,
             location: locationFilter,
             category_id: categoryFilter,
@@ -43,8 +43,8 @@ export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter, salar
           new Promise(resolve => setTimeout(resolve, 500))
         ]);
         
-        const approvedJobs = response.data.filter((job: IJob) => job.status === "approved");
-        setJobs(approvedJobs.slice(0, 10));
+        const approvedjobs = response.data.filter((job: IJob) => job.status === "approved");
+        setjobs(approvedjobs.slice(0, 10));
         
       } catch (error) {
         console.error("Error loading job list:", error);
@@ -53,11 +53,11 @@ export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter, salar
       }
     };
 
-    fetchJobs();
+    fetchjobs();
   }, [titleFilter, locationFilter, categoryFilter, salaryFilter, activeTab]);
 
  useEffect(() => {
-    const fetchSavedJobs = async () => {
+    const fetchSavedjobs = async () => {
       const token = localStorage.getItem("token");
       if (!token) return;
       
@@ -70,19 +70,19 @@ export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter, salar
         }); 
         
         const savedIds = res.data.data.map((job: any) => job.id);
-        setSavedJobs(savedIds);
+        setSavedjobs(savedIds);
       } catch (err) {
         console.error("Fetch saved jobs error:", err);
       }
     };
 
     if (localStorage.getItem("token")) {
-      fetchSavedJobs();
+      fetchSavedjobs();
     }
   }, []);
   const handleToggleSave = useCallback(async (jobId: number) => {
     try {
-      setSavedJobs(prev => {
+      setSavedjobs(prev => {
         const isSaved = prev.includes(jobId);
         if (isSaved) {
           api.delete(`/api/favorites/${jobId}`).catch(err => console.error(err));
@@ -173,7 +173,7 @@ export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter, salar
                 <JobCard 
                   index={idx}
                   job={job} 
-                  isSaved={savedJobs.includes(job.id)} 
+                  isSaved={savedjobs.includes(job.id)} 
                   onToggleSave={handleToggleSave} 
                 />
               </div>

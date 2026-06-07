@@ -18,14 +18,14 @@ import {
 } from "lucide-react";
 
 import { IJob, IJobFilters } from "../../../types/job";
-// 1. Đã thêm getJobSuggestions vào đây
-import { getJobs, getlocations, getCategories, getJobSuggestions } from "../../../services/jobService";
+// 1. Đã thêm getjobsuggestions vào đây
+import { getjobs, getlocations, getCategories, getjobsuggestions } from "../../../services/jobservice";
 import { getRecommendations } from "../../../services/recommendationService";
 import { JobCard } from "../../components/public/home/JobCard";
-import { RecommendedJobsAside } from "../../components/candidate/profile/RecommendedJobsAside";
+import { RecommendedjobsAside } from "../../components/candidate/profile/RecommendedjobsAside";
 import { Link } from "react-router-dom";
 import { api } from "../../../services/api";
-// 2. Import SearchAutocomplete theo đúng cấu trúc thư mục của Jobs.tsx
+// 2. Import SearchAutocomplete theo đúng cấu trúc thư mục của jobs.tsx
 import { SearchAutocomplete } from "../../components/shared/SearchAutocomplete";
 import { useSharedProfile } from '../../../hooks/useSharedProfile';
 
@@ -34,7 +34,7 @@ interface IExtendedFilters extends IJobFilters {
   salary_min?: number;
 }
 
-export const Jobs: React.FC = () => {
+export const jobs: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const { userData } = useSharedProfile();
@@ -58,7 +58,7 @@ export const Jobs: React.FC = () => {
   const [searchInput, setSearchInput] = useState("");
   
   // Data States
-  const [jobs, setJobs] = useState<IJob[]>([]);
+  const [jobs, setjobs] = useState<IJob[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [locations, setlocations] = useState<any[]>([]);
   const [aiRecommendations, setAiRecommendations] = useState<any[]>([]); 
@@ -66,8 +66,8 @@ export const Jobs: React.FC = () => {
   // UI States
   const [loading, setLoading] = useState(false);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-  const [savedJobs, setSavedJobs] = useState<number[]>([]);
-  const [totalJobs, setTotalJobs] = useState(0);
+  const [savedjobs, setSavedjobs] = useState<number[]>([]);
+  const [totaljobs, setTotaljobs] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
@@ -121,23 +121,23 @@ export const Jobs: React.FC = () => {
     return () => clearTimeout(delayDebounce);
   }, [salarySlider, filters.salary_min]);
 
-  // Fetch Core Jobs
-  const fetchJobsData = useCallback(async (currentFilters: IExtendedFilters) => {
+  // Fetch Core jobs
+  const fetchjobsData = useCallback(async (currentFilters: IExtendedFilters) => {
     const currentRequestVersion = ++apiRequestCountRef.current;
     setLoading(true);
     
     try {
       const [response] = await Promise.all([
-        getJobs(currentFilters),
+        getjobs(currentFilters),
         new Promise(resolve => setTimeout(resolve, 500)) 
       ]);
       
       if (currentRequestVersion !== apiRequestCountRef.current) return;
 
       if (response && response.data) {
-        setJobs(response.data);
+        setjobs(response.data);
         const total = response.meta?.total || response.data.length;
-        setTotalJobs(total);
+        setTotaljobs(total);
         setTotalPages(Math.ceil(total / (currentFilters.limit || 12)) || 1);
       }
     } catch (error) {
@@ -171,9 +171,9 @@ export const Jobs: React.FC = () => {
           try {
             const res = await api.get("/api/favorites"); 
             const savedIds = res.data.data.map((job: any) => job.id);
-            setSavedJobs(savedIds);
+            setSavedjobs(savedIds);
           } catch (err) {
-            console.error("Fetch saved jobs error in Jobs.tsx:", err);
+            console.error("Fetch saved jobs error in jobs.tsx:", err);
           }
         }
       } catch (error) {
@@ -185,8 +185,8 @@ export const Jobs: React.FC = () => {
 
   // Trigger API whenever filters state changes
   useEffect(() => {
-    fetchJobsData(filters);
-  }, [filters, fetchJobsData]);
+    fetchjobsData(filters);
+  }, [filters, fetchjobsData]);
 
   // Handle Input Changes
   const handleInputChange = (field: keyof IExtendedFilters, value: string | number) => {
@@ -222,7 +222,7 @@ export const Jobs: React.FC = () => {
 
   const handleToggleSaveJob = useCallback(async (jobId: number) => {
     try {
-      setSavedJobs(prev => {
+      setSavedjobs(prev => {
         const isSaved = prev.includes(jobId);
         if (isSaved) {
           api.delete(`/api/favorites/${jobId}`).catch(err => console.error(err));
@@ -306,7 +306,7 @@ const handleOpenModal = (
                 onInputChange={(value) => setSearchInput(value)}
                 onFetchSuggestions={async (query, signal) => {
                   if (!query.trim()) return [];
-                  return await getJobSuggestions(query, signal);
+                  return await getjobsuggestions(query, signal);
                 }}
               />
             </div>
@@ -548,8 +548,8 @@ const handleOpenModal = (
               </div>
             </div>
 
-            <RecommendedJobsAside 
-              recommendedJobs={aiRecommendations}
+            <RecommendedjobsAside 
+              recommendedjobs={aiRecommendations}
               userData={userData}
               
               openModal={(type) => {
@@ -561,12 +561,12 @@ const handleOpenModal = (
 
           </aside>
 
-          {/* MAIN JOBS LIST AREA */}
+          {/* MAIN jobs LIST AREA */}
           <main className="lg:col-span-3 space-y-5 min-h-[600px]">
             <div className="flex items-center justify-between bg-white dark:bg-[#0B0F19] rounded-2xl px-5 py-3.5 border border-gray-100 dark:border-white/5 shadow-sm">
               <div className="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center gap-2">
                 <Grid size={16} className="text-purple-500" />
-                Found <span className="font-bold text-gray-900 dark:text-white">{totalJobs}</span> matching job listings
+                Found <span className="font-bold text-gray-900 dark:text-white">{totaljobs}</span> matching job listings
               </div>
             </div>
 
@@ -627,7 +627,7 @@ const handleOpenModal = (
                       <JobCard
                         index={idx}
                         job={job}
-                        isSaved={savedJobs.includes(job.id)}
+                        isSaved={savedjobs.includes(job.id)}
                         onToggleSave={handleToggleSaveJob}
                       />
                     </div>

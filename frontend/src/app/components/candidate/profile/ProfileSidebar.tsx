@@ -13,17 +13,17 @@ import {
   updateVisibility,
 } from '../../../../services/candidateVisibilityService';
 
-interface ProfileSidebarProps {
+interface profilesidebarProps {
   activeTab: string;
   setActiveTab: (tabId: string) => void;
   userName?: string;
 }
 
-export function ProfileSidebar({
+export function profilesidebar({
   activeTab,
   setActiveTab,
   userName,
-}: ProfileSidebarProps) {
+}: profilesidebarProps) {
 
   // Default expanded section
   const [expandedMenus, setExpandedMenus] = useState<string[]>([

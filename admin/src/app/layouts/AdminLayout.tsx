@@ -23,7 +23,7 @@ const BASE_URL = import.meta.env.VITE_API_URL || "https://web-development-course
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Users & companies", href: "/users", icon: Users },
-  { name: "Jobs", href: "/jobs/management", icon: BriefcaseBusiness },
+  { name: "jobs", href: "/jobs/management", icon: BriefcaseBusiness },
   { name: "Metadata", href: "/metadata", icon: Tags },
   { name: "Resolution Center", href: "/reports", icon: AlertTriangle },
 ]

@@ -5,7 +5,7 @@ const express = require('express');
 const router = express.Router();
 
 const {
-  getRecommendedJobs
+  getRecommendedjobs
 } = require('../../controllers/social/recommendationController');
 
 const {
@@ -13,11 +13,11 @@ const {
 } = require('../../middlewares/authMiddleware');
 
 
-// GET RECOMMENDED JOBS
+// GET RECOMMENDED jobs
 router.get(
   '/',
   verifyToken,
-  getRecommendedJobs
+  getRecommendedjobs
 );
 
 module.exports = router;

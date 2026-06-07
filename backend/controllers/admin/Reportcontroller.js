@@ -166,7 +166,7 @@ exports.deleteReportedJob = async (req, res) => {
             [jobId]
         );
 
-        await db.execute("UPDATE Jobs SET status = 'banned' WHERE id = ?", [jobId]);
+        await db.execute("UPDATE jobs SET status = 'banned' WHERE id = ?", [jobId]);
         await db.execute("UPDATE Reports SET status = 'resolved' WHERE job_id = ?", [jobId]);
 
         // ĐÃ CHUYỂN ĐỔI: Gửi mail thông báo khóa Job sang cho Resend
@@ -174,7 +174,7 @@ exports.deleteReportedJob = async (req, res) => {
             const { title, email, username } = jobRows[0];
             try {
                 await resend.emails.send({
-                    from: "JobSpot Admin <onboarding@resend.dev>",
+                    from: "jobspot Admin <onboarding@resend.dev>",
                     to: email, // Lưu ý: Email employer này phải trùng với mail bạn đăng ký Resend nếu đang ở tài khoản Test miễn phí
                     subject: "⛔ Your job posting has been banned",
                     html: `
@@ -189,7 +189,7 @@ exports.deleteReportedJob = async (req, res) => {
                                     <p style="margin: 0;"><strong>Reason:</strong> Violated platform terms of service based on user reports.</p>
                                 </div>
                                 <p>If you believe this is a mistake, please contact our support team.</p>
-                                <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Best regards,<br/>JobSpot Admin Team</p>
+                                <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Best regards,<br/>jobspot Admin Team</p>
                             </div>
                         </div>
                     `

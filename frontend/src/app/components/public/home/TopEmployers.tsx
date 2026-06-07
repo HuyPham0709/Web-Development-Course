@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ShieldCheck, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
 import { useNavigate } from "react-router-dom"; // Hook điều hướng trang
-import { getTopcompanies } from "../../../../services/jobService";
+import { getTopcompanies } from "../../../../services/jobservice";
 
 // Dải màu nền Banner ngẫu nhiên xoay vòng cho các công ty nếu DB không có banner_url
 const bannerGradients = [
@@ -100,7 +100,7 @@ export function TopEmployers() {
                     onClick={() => navigate(`/company/${emp.id || emp.company_id}`)}
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-gray-50 py-3 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-100 border border-gray-200 hover:border-gray-300 hover:text-gray-900 dark:bg-white/5 dark:text-gray-300 dark:border-white/10 dark:hover:bg-white/10 dark:hover:text-white"
                   >
-                    View Hub & Jobs
+                    View Hub & jobs
                     <ChevronRight size={16} />
                   </button>
                 </div>

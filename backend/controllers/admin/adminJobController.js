@@ -2,7 +2,7 @@ const db = require('../../config/db');
 
 // 1. Lấy tất cả jobs (cho trang Job Management)
 // 1. Lấy tất cả jobs (cho trang Job Management)
-exports.getAllJobs = async (req, res) => {
+exports.getAlljobs = async (req, res) => {
     const { status, job_type, experience_level, search } = req.query;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -88,7 +88,7 @@ exports.deleteJob = async (req, res) => {
     const { job_id } = req.params;
     try {
         const [result] = await db.execute(
-            "UPDATE Jobs SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL"
+            "UPDATE jobs SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL"
             [job_id]
         );
         if (result.affectedRows === 0) {
@@ -101,7 +101,7 @@ exports.deleteJob = async (req, res) => {
 };
 
 // 3. Lấy danh sách jobs chờ duyệt (pending queue)
-exports.getPendingJobs = async (req, res) => {
+exports.getPendingjobs = async (req, res) => {
     try {
         const [jobs] = await db.execute(`
             SELECT
@@ -144,7 +144,7 @@ exports.approveJob = async (req, res) => {
         if (jobs[0].status !== 'pending') {
             return res.status(400).json({ success: false, message: `This news is currently in this state. "${jobs[0].status}", unreadable!` });
         }
-        await db.execute("UPDATE Jobs SET status = 'approved' WHERE id = ?", [job_id]);
+        await db.execute("UPDATE jobs SET status = 'approved' WHERE id = ?", [job_id]);
         res.status(200).json({ success: true, message: "Job posting has been successfully approved.!" });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -172,7 +172,7 @@ exports.rejectJob = async (req, res) => {
 
         // ← Lưu rejection_reason vào cột mới
         await db.execute(
-            "UPDATE Jobs SET status = 'rejected', rejection_reason = ? WHERE id = ?",
+            "UPDATE jobs SET status = 'rejected', rejection_reason = ? WHERE id = ?",
             [reason || null, job_id]
         );
 
@@ -183,7 +183,7 @@ exports.rejectJob = async (req, res) => {
 };
 
 // 6. Stats tổng quan
-exports.getJobStats = async (req, res) => {
+exports.getjobstats = async (req, res) => {
     try {
         const [stats] = await db.execute(`
             SELECT
@@ -201,7 +201,7 @@ exports.getJobStats = async (req, res) => {
 };
 
 // [THÊM MỚI] 7. Xóa nhiều Job hàng loạt (Bulk Delete)
-exports.bulkDeleteJobs = async (req, res) => {
+exports.bulkDeletejobs = async (req, res) => {
     const { ids } = req.body; // Mảng chứa các ID cần xóa, ví dụ: [232, 233]
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
         return res.status(400).json({ success: false, message: 'Invalid ID list' });
@@ -209,7 +209,7 @@ exports.bulkDeleteJobs = async (req, res) => {
 
     try {
         const [result] = await db.execute(
-            `UPDATE Jobs SET deleted_at = NOW()
+            `UPDATE jobs SET deleted_at = NOW()
  WHERE id IN (${ids.map(() => '?').join(',')}) AND deleted_at IS NULL`,
             ids
         );
@@ -238,7 +238,7 @@ exports.duplicateJob = async (req, res) => {
         const original = jobs[0];
         // Nhân bản dữ liệu với tiêu đề mới kèm hậu tố Copy
         const [result] = await db.execute(`
-            INSERT INTO Jobs (
+            INSERT INTO jobs (
                 title, description, requirements, company_id, location_id, category_id,
                 job_type, experience_level, salary_min, salary_max, status, posted_by, created_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NOW())
@@ -260,7 +260,7 @@ exports.duplicateJob = async (req, res) => {
 };
 
 // [THÊM MỚI] 9. Xuất danh sách CSV lọc theo điều kiện (Export CSV)
-exports.exportJobsCSV = async (req, res) => {
+exports.exportjobsCSV = async (req, res) => {
     const { status, job_type, experience_level, search } = req.query;
     try {
         let where = ['j.deleted_at IS NULL'];
@@ -337,7 +337,7 @@ exports.updateJob = async (req, res) => {
     try {
         // Đồng bộ chuẩn xác toàn bộ các trường text, số và enum từ Frontend truyền lên
         const [result] = await db.execute(`
-            UPDATE Jobs 
+            UPDATE jobs 
             SET title = ?, 
                 description = ?, 
                 requirements = ?, 

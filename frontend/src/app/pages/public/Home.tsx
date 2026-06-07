@@ -8,7 +8,7 @@ import { CategoriesAndSkills } from "../../components/public/home/CategoriesAndS
 import { LiveJobFeed } from "../../components/public/home/LiveJobFeed";
 import { TopEmployers } from "../../components/public/home/TopEmployers";
 import { RecruitmentHubTeaser } from "../../components/public/home/RecruitmentHubTeaser";
-import { HighSalaryJobs } from "../../components/public/home/HighSalaryJobs";
+import { HighSalaryjobs } from "../../components/public/home/HighSalaryjobs";
 // 🔥 ĐƯỜNG DẪN ĐÃ ĐƯỢC FIX CHUẨN: Gọi từ components/shared
 import ChatbotFloating from "../../components/shared/ChatbotFloating";
 
@@ -39,7 +39,7 @@ export default function Home() {
           categoryFilter={categoryId} 
           salaryFilter={salary} 
         />
-        <HighSalaryJobs 
+        <HighSalaryjobs 
           titleFilter={title} 
           locationFilter={location} 
           categoryFilter={categoryId} 

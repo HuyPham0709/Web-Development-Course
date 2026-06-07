@@ -10,7 +10,7 @@ const { verifyToken, authorizeRole } = require('../../middlewares/authMiddleware
 router.use(verifyToken);
 
 // [EMPLOYER] Route lấy danh sách job để đổ vào Dropdown trong InviteModal
-router.get('/jobs', authorizeRole(['employer']), invitationController.getEmployerJobs);
+router.get('/jobs', authorizeRole(['employer']), invitationController.getEmployerjobs);
 
 // [EMPLOYER] Route gửi lời mời ứng tuyển cho một ứng viên
 router.post('/send', authorizeRole(['employer']), invitationController.sendInvitation);
