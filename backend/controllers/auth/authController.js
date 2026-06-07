@@ -192,7 +192,7 @@ exports.verifyEmail = async (req, res) => {
     }
 
     const [userResult] = await db.execute(
-      "INSERT INTO Users (username, email, password, role, is_verified, is_active) VALUES (?, ?, ?, ?, 1, 1)",
+      "INSERT INTO users (username, email, password, role, is_verified, is_active) VALUES (?, ?, ?, ?, 1, 1)",
       [tempData.username, tempData.email, tempData.password, tempData.role]
     );
 

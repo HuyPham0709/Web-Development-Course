@@ -87,7 +87,7 @@ exports.getReports = async (req, res) => {
             FROM Reports r
             INNER JOIN jobs j ON r.job_id = j.id
             INNER JOIN companies c ON j.company_id = c.id
-            INNER JOIN Users u ON r.reporter_id = u.id
+            INNER JOIN users u ON r.reporter_id = u.id
             WHERE 1=1
         `;
 
@@ -161,7 +161,7 @@ exports.deleteReportedJob = async (req, res) => {
         // Lấy thông tin job + employer để gửi mail
         const [jobRows] = await db.execute(
             `SELECT j.title, u.email, u.username 
-             FROM jobs j JOIN Users u ON j.posted_by = u.id 
+             FROM jobs j JOIN users u ON j.posted_by = u.id 
              WHERE j.id = ?`,
             [jobId]
         );

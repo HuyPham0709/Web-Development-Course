@@ -21,7 +21,7 @@ router.get('/viewed-by-employers', verifyToken, authorizeRole(['candidate']), as
                 c.logo_url AS company_logo,
                 v.viewed_at
              FROM Employer_Profile_Views v
-             JOIN Users u ON v.employer_id = u.id
+             JOIN users u ON v.employer_id = u.id
              LEFT JOIN profiles ep ON ep.user_id = u.id
              LEFT JOIN companies c ON u.company_id = c.id
              WHERE v.candidate_id = ?
@@ -142,7 +142,7 @@ router.get('/views/:id', verifyToken, async (req, res) => {
                 c.name AS company_name,
                 v.viewed_at
              FROM Employer_Profile_Views v
-             JOIN Users u ON v.employer_id = u.id
+             JOIN users u ON v.employer_id = u.id
              LEFT JOIN profiles ep ON ep.user_id = u.id
              LEFT JOIN companies c ON u.company_id = c.id
              WHERE v.candidate_id = ?

@@ -118,7 +118,7 @@ exports.getCandidateInvitations = async (req, res) => {
                 c.logo_url AS company_logo
              FROM Job_Invitations ji
              JOIN jobs j ON ji.job_id = j.id
-             JOIN Users u ON ji.employer_id = u.id
+             JOIN users u ON ji.employer_id = u.id
              LEFT JOIN profiles ep ON ep.user_id = u.id
              LEFT JOIN companies c ON u.company_id = c.id
              WHERE ji.candidate_id = ?
@@ -156,7 +156,7 @@ exports.getInvitationDetail = async (req, res) => {
                 c.logo_url AS company_logo
              FROM Job_Invitations ji
              JOIN jobs j ON ji.job_id = j.id
-             JOIN Users u ON ji.employer_id = u.id
+             JOIN users u ON ji.employer_id = u.id
              LEFT JOIN profiles ep ON ep.user_id = u.id
              LEFT JOIN companies c ON u.company_id = c.id
              WHERE ji.id = ? AND ji.candidate_id = ?`,

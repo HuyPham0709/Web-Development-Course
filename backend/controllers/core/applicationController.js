@@ -829,7 +829,7 @@ exports.declineInterview = async (req, res, next) => {
         COALESCE(p.full_name, u.username) AS candidate_name,
         j.title AS job_title
       FROM applications a
-      JOIN Users u ON a.candidate_id = u.id
+      JOIN users u ON a.candidate_id = u.id
       LEFT JOIN profiles p ON u.id = p.user_id
       JOIN jobs j ON a.job_id = j.id
       WHERE a.id = ?

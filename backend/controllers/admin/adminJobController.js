@@ -120,7 +120,7 @@ exports.getPendingjobs = async (req, res) => {
             JOIN companies  c   ON j.company_id   = c.id
             JOIN locations  l   ON j.location_id  = l.id
             JOIN Categories cat ON j.category_id  = cat.id
-            JOIN Users      u   ON j.posted_by    = u.id
+            JOIN users      u   ON j.posted_by    = u.id
             WHERE j.status = 'pending' AND j.deleted_at IS NULL
             ORDER BY j.created_at ASC
         `);

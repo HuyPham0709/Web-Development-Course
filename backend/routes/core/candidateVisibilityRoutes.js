@@ -79,7 +79,7 @@ router.get('/profile-views', verifyToken, authorizeRole(['candidate']), async (r
         v.viewed_at,
         (v.is_notified = 0) AS is_new
       FROM Employer_Profile_Views v
-      JOIN Users u ON v.employer_id = u.id
+      JOIN users u ON v.employer_id = u.id
       LEFT JOIN companies c ON u.company_id = c.id
       WHERE v.candidate_id = ?
       ORDER BY v.viewed_at DESC`,

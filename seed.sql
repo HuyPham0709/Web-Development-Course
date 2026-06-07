@@ -52,10 +52,10 @@ INSERT INTO companies (id, name, slug, website, description, is_verified) VALUES
 (9, 'KMS Technology', 'kms-technology', 'https://kms-technology.com', 'Công ty phần mềm 100% vốn đầu tư Mỹ.', 1),
 (10, 'NashTech', 'nashtech', 'https://nashtechglobal.com', 'Công ty công nghệ thuộc tập đoàn Harvey Nash.', 1);
 
--- INSERT INTO Users 
+-- INSERT INTO users 
 -- (1 Admin, 15 Employers map với các công ty, 15 Candidates - Tổng 31 Users)
 -- Mật khẩu giả lập dạng hash cho tất cả: $2a$12$DummyHashStringForPassword12345
-INSERT INTO Users (id, username, password, email, role, company_id, is_active, is_verified) VALUES
+INSERT INTO users (id, username, password, email, role, company_id, is_active, is_verified) VALUES
 (1, 'admin_system', 'hashed_pwd_here', 'admin@jobfinder.vn', 'admin', NULL, 1, 1),
 -- Employers của Viettel (Company 2) để gánh 30 jobs
 (2, 'viettel_hr1', 'hashed_pwd_here', 'hr1@viettel.com.vn', 'employer', 2, 1, 1),
