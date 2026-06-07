@@ -39,12 +39,55 @@ export default function CandidateManagement() {
   };
   const [interviewForm, setInterviewForm] = useState(initialFormState);
 
+  // ✅ ĐÃ NÂNG CẤP PHÒNG THỦ: Chuẩn hóa mọi cấu trúc dữ liệu từ DB trả về
+  const fetchCandidatesData = () => {
+    applicationService.getEmployerApplications()
+      .then(res => {
+        console.log("=== TOÀN BỘ DATA BACKEND TRẢ VỀ ===", res.data);
+        
+        let rawList: any[] = [];
+        
+        // Bóc tách mảng an toàn bất kể Backend bọc dữ liệu ở tầng nào
+        if (Array.isArray(res.data)) {
+          rawList = res.data;
+        } else if (res.data && Array.isArray(res.data.data)) {
+          rawList = res.data.data;
+        } else if (res.data && res.data.data && Array.isArray(res.data.data.applications)) {
+          rawList = res.data.data.applications;
+        } else if (res.data && Array.isArray(res.data.applications)) {
+          rawList = res.data.applications;
+        }
+
+        // ✅ CHUẨN HÓA DỮ LIỆU: Ép hoa chữ cái status để khớp tuyệt đối với Frontend STATUSES hằng số
+        const normalized = rawList.map((item: any) => {
+          let currentStatus = (item.status || 'PENDING').toString().trim().toUpperCase();
+          
+          // Chống lỗi lệch pha từ khóa (Ví dụ: DB lưu 'applied' nhưng cột Kanban là 'PENDING')
+          if (currentStatus === 'APPLIED') currentStatus = 'PENDING';
+          if (currentStatus === 'INTERVIEW') currentStatus = 'INTERVIEWING';
+          if (currentStatus === 'REJECT') currentStatus = 'REJECTED';
+          if (currentStatus === 'FAIL') currentStatus = 'FAILED';
+
+          return {
+            ...item,
+            job_title: item.job_title || item.title || 'Untitled Position',
+            status: currentStatus 
+          };
+        });
+
+        console.log("=== DANH SÁCH SAU KHI CHUẨN HÓA ===", normalized);
+        setCandidates(normalized);
+      })
+      .catch(err => {
+        console.error("Lỗi API gọi hồ sơ:", err);
+        setError(err.response?.data?.message || 'An error occurred while loading candidates.');
+      })
+      .finally(() => setLoading(false));
+  };
+
   // Initial fetch of candidates
   useEffect(() => {
-    applicationService.getEmployerApplications()
-      .then(res => setCandidates(res.data.data))
-      .catch(err => setError(err.response?.data?.message || 'An error occurred while loading candidates.'))
-      .finally(() => setLoading(false));
+    fetchCandidatesData();
   }, []);
 
   // Trigger animations after data loads
@@ -55,19 +98,21 @@ export default function CandidateManagement() {
     }
   }, [loading]);
 
-  // --- REALTIME: Listen for status updates via Socket.io ---
+  // --- REALTIME: Lắng nghe qua Socket.io ---
   useEffect(() => {
     const socket = io(BASE_URL);
 
     socket.on('candidateStatusUpdated', (data: { application_id: number; newStatus: string }) => {
+      const formattedStatus = (data.newStatus || '').toString().trim().toUpperCase();
       setCandidates(prev => prev.map(c =>
-        Number(c.application_id) === Number(data.application_id) ? { ...c, status: data.newStatus } : c
+        Number(c.application_id) === Number(data.application_id) ? { ...c, status: formattedStatus } : c
       ));
     });
 
-    return () => {
-      socket.disconnect();
-    };
+    socket.on('newApplicationReceived', () => { fetchCandidatesData(); });
+    socket.on('applicationCreated', () => { fetchCandidatesData(); });
+
+    return () => { socket.disconnect(); };
   }, []);
 
   // Performance optimization via useMemo
@@ -81,8 +126,8 @@ export default function CandidateManagement() {
 
   // Handle general pipeline status changes
   const handleStatusChange = async (application_id: number, newStatus: string) => {
-    // Kích hoạt modal nhập lịch hẹn nếu chuyển sang trạng thái Phỏng vấn (Interviewing / INTERVIEWING)
-    if (newStatus === 'Interviewing' || newStatus === 'INTERVIEWING' || newStatus === 'Interview') {
+    const cleanStatus = newStatus.trim().toUpperCase();
+    if (cleanStatus === 'INTERVIEWING' || cleanStatus === 'INTERVIEW') {
       setSelectedAppId(application_id);
       setSelectedStatus(newStatus); 
       setIsModalOpen(true);
@@ -93,7 +138,7 @@ export default function CandidateManagement() {
     try {
       await applicationService.updateStatus(application_id, newStatus);
       setCandidates(prev => prev.map(c =>
-        c.application_id === application_id ? { ...c, status: newStatus } : c
+        Number(c.application_id) === Number(application_id) ? { ...c, status: cleanStatus } : c
       ));
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to update application status.');
@@ -111,7 +156,6 @@ export default function CandidateManagement() {
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
 
-      // Gọi endpoint xử lý lên lịch phỏng vấn đồng bộ với Controller của backend
       const response = await fetch(`${BASE_URL}/api/applications/interview/schedule/${selectedAppId}`, {
         method: 'POST',
         headers: { 
@@ -131,13 +175,12 @@ export default function CandidateManagement() {
         throw new Error(errorData.message || 'Unable to send interview invitation. Please try again!');
       }
 
-      // Cập nhật trạng thái mới lên UI sau khi thành công
       setCandidates(prev => prev.map(c =>
-        Number(c.application_id) === Number(selectedAppId) ? { ...c, status: selectedStatus } : c
+        Number(c.application_id) === Number(selectedAppId) ? { ...c, status: selectedStatus.trim().toUpperCase() } : c
       ));
 
       setIsModalOpen(false);
-      setInterviewForm(initialFormState); // Reset form sạch sẽ
+      setInterviewForm(initialFormState); 
       alert('Interview invitation sent successfully!');
     } catch (err: any) {
       alert(err.message || 'Unable to send interview invitation. Please try again!');
@@ -200,6 +243,9 @@ export default function CandidateManagement() {
               const isRejected = status.toLowerCase().includes('reject') || status === 'FAILED';
               const delayClass = delays[index] || 'delay-300';
 
+              // So sánh tuyệt đối qua chữ viết hoa đã chuẩn hóa
+              const columnCandidates = filtered.filter(c => (c.status || '').toString().toUpperCase() === status.toUpperCase());
+
               return (
                 <div key={status} className={`flex flex-col transform transition-all duration-700 ease-out ${delayClass} ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} ${isRejected ? 'col-span-1 md:col-span-2 lg:col-span-4 mt-4' : 'w-full'}`}>
                   <div className="flex items-center justify-between mb-4 px-1">
@@ -207,13 +253,13 @@ export default function CandidateManagement() {
                       {STATUS_LABEL[status]}
                     </h3>
                     <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${isRejected ? 'bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-400' : 'bg-gray-200 text-gray-600 dark:bg-white/10 dark:text-gray-400'}`}>
-                      {filtered.filter(c => c.status === status).length}
+                      {columnCandidates.length}
                     </span>
                   </div>
 
                   <div className={`flex flex-col gap-4 rounded-2xl p-3 transition-colors ${isRejected ? 'bg-red-50/30 dark:bg-red-950/10 border border-dashed border-red-200 dark:border-red-500/20 min-h-[180px]' : 'bg-gray-100/50 dark:bg-white/5 min-h-[450px]'}`}>
                     <div className={isRejected ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' : 'flex flex-col gap-4'}>
-                      {filtered.filter(c => c.status === status).map(candidate => (
+                      {columnCandidates.map(candidate => (
                         <div key={candidate.application_id} className="bg-white dark:bg-[#0E1422] p-4 rounded-xl border border-gray-200 dark:border-white/10 dark:hover:border-white/20 shadow-sm hover:shadow-md transition-all group">
                           <div className="flex justify-between items-start mb-3">
                             <Link to={`/employer/candidate/${candidate.application_id}`} className="flex items-center gap-3 hover:opacity-80">
@@ -252,7 +298,7 @@ export default function CandidateManagement() {
                           </div>
                           <div className="pt-3 border-t border-gray-100 dark:border-white/10 flex items-center justify-between transition-colors">
                             <span className={`px-2.5 py-1 rounded-md text-xs font-bold border ${STATUS_COLORS[candidate.status] || 'dark:bg-white/5 dark:text-gray-400 dark:border-white/10'}`}>
-                              {STATUS_LABEL[candidate.status]}
+                              {STATUS_LABEL[candidate.status] || candidate.status}
                             </span>
                             <button className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                               <MoreVertical className="w-4 h-4" />
@@ -261,7 +307,7 @@ export default function CandidateManagement() {
                         </div>
                       ))}
                     </div>
-                    {filtered.filter(c => c.status === status).length === 0 && (
+                    {columnCandidates.length === 0 && (
                       <div className={`text-center text-sm py-8 border-2 border-dashed rounded-xl w-full transition-colors ${isRejected ? 'border-red-200/60 dark:border-red-500/20 text-red-400 bg-white/50 dark:bg-transparent' : 'border-gray-200 dark:border-white/10 text-gray-400 dark:text-gray-500'}`}>
                         No candidates found
                       </div>

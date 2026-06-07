@@ -34,7 +34,7 @@ interface IExtendedFilters extends IJobFilters {
   salary_min?: number;
 }
 
-export const jobs: React.FC = () => {
+const Jobs: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const { userData } = useSharedProfile();
@@ -881,3 +881,4 @@ const handleOpenModal = (
     </div>
   );
 };
+export default Jobs;
