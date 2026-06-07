@@ -11,18 +11,12 @@ exports.applyJob = async (req, res) => {
   const candidate_id = req.user.id;
 
   try {
-    console.log(
-      "🚀 [Backend] Received application request for Job ID:",
-      job_id,
-    );
-
     const [jobs] = await db.execute(
       "SELECT id, title, posted_by FROM jobs WHERE id = ? AND deleted_at IS NULL",
       [job_id],
     );
 
     if (jobs.length === 0) {
-      console.log(`❌ Failure: Job ID ${job_id} not found in MySQL`);
       return res.status(404).json({
         success: false,
         message: "This job post could not be found or has been deleted!",
@@ -37,34 +31,25 @@ exports.applyJob = async (req, res) => {
     );
 
     if (existingApp.length > 0) {
-      console.log(
-        "⚠️ Warning: This candidate has already submitted a duplicate application.",
-      );
       return res.status(400).json({
         success: false,
         message: "You have already applied for this position!",
       });
     }
 
-    await db.execute(
+    // 1. LƯU ỨNG TUYỂN VÀ LẤY INSERT ID
+    const [insertResult] = await db.execute(
       "INSERT INTO applications (job_id, candidate_id, cover_letter, status, applied_at) VALUES (?, ?, ?, 'pending', NOW())",
       [job_id, candidate_id, cover_letter || null],
     );
-    console.log("⚙️ [MySQL] Successfully saved new job application record!");
+    
+    const newApplicationId = insertResult.insertId; // Lấy ID vừa tạo
 
     try {
-      console.log(
-        "⏳ [MongoDB] Preparing to send notification to native Employer ID:",
-        job.posted_by,
-      );
-
       const targetEmployerId = String(job.posted_by);
-      const candidateName =
-        req.user.full_name ||
-        req.user.name ||
-        req.user.username ||
-        "Anonymous Candidate";
+      const candidateName = req.user.full_name || req.user.name || req.user.username || "Anonymous Candidate";
 
+      // 2. TẠO VÀ GỬI CHUÔNG THÔNG BÁO (NOTIFICATION)
       const newNotify = await Notification.create({
         user_id: targetEmployerId,
         title: "New Job Application 📄",
@@ -74,14 +59,28 @@ exports.applyJob = async (req, res) => {
         link_url: "/employer/candidates",
         created_at: new Date(),
       });
-
-      console.log("🍃 [MongoDB] Successfully saved new notification!");
       socketUtils.sendNotification(targetEmployerId, newNotify);
+
+      // 3. THÊM MỚI: QUERY DATA ĐẦY ĐỦ VÀ BẮN SANG KANBAN BOARD
+      const [newAppRows] = await db.execute(`
+        SELECT
+            a.id AS application_id, u.id AS candidate_id, u.username AS candidate_name, u.email AS candidate_email,
+            p.full_name, p.phone, p.cv_url, p.avatar_url,
+            j.title AS job_title, j.id AS job_id, j.experience_level,
+            a.cover_letter, a.status, a.applied_at
+        FROM applications a
+        JOIN users u ON a.candidate_id = u.id
+        LEFT JOIN profiles p ON u.id = p.user_id
+        JOIN jobs j ON a.job_id = j.id
+        WHERE a.id = ?
+      `, [newApplicationId]);
+
+      if (newAppRows.length > 0) {
+        socketUtils.emitToUser(targetEmployerId, "newApplication", newAppRows[0]);
+      }
+
     } catch (mongoError) {
-      console.error(
-        "❌ ERROR WITHIN MONGODB/SOCKET THREAD (MySQL remains unaffected):",
-      );
-      console.error(mongoError.message);
+      console.error("❌ MONGODB/SOCKET ERROR:", mongoError.message);
     }
 
     return res.status(201).json({
@@ -89,13 +88,10 @@ exports.applyJob = async (req, res) => {
       message: "Applied successfully and dispatching updates!",
     });
   } catch (error) {
-    console.error("====== CRITICAL APPLICATION PROCESS FLOW CRASH ======");
     console.error(error);
-    console.error("=====================================================");
     return res.status(500).json({ success: false, message: error.message });
   }
 };
-
 // ======================================================
 // GET EMPLOYER applications
 // ======================================================
@@ -104,30 +100,35 @@ exports.getEmployerapplications = async (req, res) => {
   try {
     const [rows] = await db.execute(
       `
-            SELECT
-    a.id AS application_id,
-    u.id AS candidate_id,
-    u.username AS candidate_name,
-    u.email AS candidate_email,
-    p.full_name,
-    p.phone,
-    p.cv_url,
-    p.avatar_url,
-    j.title AS job_title,
-    j.id AS job_id,
-    j.experience_level,
-    a.cover_letter,
-    a.status,
-    a.applied_at
-FROM applications a
-JOIN users u ON a.candidate_id = u.id
-LEFT JOIN profiles p ON u.id = p.user_id
-JOIN jobs j ON a.job_id = j.id
-WHERE j.posted_by = ?
-ORDER BY a.applied_at DESC
-        `,
+        SELECT
+            a.id AS application_id,
+            u.id AS candidate_id,
+            u.username AS candidate_name,
+            u.email AS candidate_email,
+            p.full_name,
+            p.phone,
+            p.cv_url,
+            p.avatar_url,
+            j.title AS job_title,
+            j.id AS job_id,
+            j.experience_level,
+            a.cover_letter,
+            a.status,
+            a.applied_at
+        FROM applications a
+        JOIN users u ON a.candidate_id = u.id
+        LEFT JOIN profiles p ON u.id = p.user_id
+        JOIN jobs j ON a.job_id = j.id
+        WHERE j.posted_by = ?
+        ORDER BY a.applied_at DESC
+      `,
       [employer_id],
     );
+
+    // BỔ SUNG: Ép trình duyệt KHÔNG ĐƯỢC CACHE kết quả của API này
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
 
     res.status(200).json({ success: true, data: rows });
   } catch (error) {

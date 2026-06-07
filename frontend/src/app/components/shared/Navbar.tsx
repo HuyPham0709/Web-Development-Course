@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Briefcase,
   Bell,
-  messagesquare,
+  MessageSquare,
   LogOut,
   Settings,
   ChevronDown,
@@ -27,7 +27,7 @@ import {
 
 import { chatService } from "../../../services/chatService";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "https://web-development-course-y23i.onrender.com";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const toFullUrl = (url: string | null | undefined): string => {
   if (!url) return "";
@@ -36,7 +36,7 @@ const toFullUrl = (url: string | null | undefined): string => {
 };
 
 interface NotificationItem {
-  id: number | string; 
+  id: number | string;
   title: string;
   message: string;
   created_at: string;
@@ -58,7 +58,7 @@ export const Navbar = () => {
     name: "",
     avatarUrl: "",
     role: "",
-    id: "", 
+    id: "",
   });
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -66,7 +66,7 @@ export const Navbar = () => {
   const [chatUnreadCount, setChatUnreadCount] = useState<number>(0);
 
   // ======================================================================
-  // Handlers & Actions (Đưa handleLogout lên đầu scope để tránh lỗi định nghĩa)
+  // Handlers & Actions
   // ======================================================================
   const handleLogout = () => {
     if (socketRef.current) {
@@ -86,7 +86,7 @@ export const Navbar = () => {
     if (!isLoggedIn) {
       return [
         { name: "Home", path: "/" },
-        { name: "jobs", path: "/jobs" },
+        { name: "Jobs", path: "/jobs" },
       ];
     }
     
@@ -103,19 +103,20 @@ export const Navbar = () => {
     if (userRole === "candidate") {
       return [
         { name: "Home", path: "/" },
-        { name: "jobs", path: "/jobs" },
-        { name: "My applications", path: "/applications" },
+        { name: "Jobs", path: "/jobs" },
+        { name: "My Applications", path: "/applications" },
       ];
     }
 
     return [
       { name: "Home", path: "/" },
-      { name: "jobs", path: "/jobs" },
+      { name: "Jobs", path: "/jobs" },
     ];
   };
 
   const navLinks = getNavLinks();
 
+  // ✅ ĐÃ SỬA: Logic fetch thông báo an toàn, tương thích nhiều định dạng API
   const fetchNotifications = useCallback(async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -123,25 +124,28 @@ export const Navbar = () => {
       const response = await axios.get(`${BASE_URL}/api/notifications`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (response.data.success) {
-        const systemNotifs = response.data.data.filter(
-          (n: any) => n.link_url !== "/chat"
-        );
-        const mappedNotifs = systemNotifs.map((n: any) => ({
-          ...n,
-          id: n.id || n._id
-        }));
-        setNotifications(mappedNotifs);
-      }
+      
+      // Xử lý linh hoạt trường hợp API trả về Array trực tiếp hoặc bọc trong object { data: [...] }
+      const resData = response.data;
+      const notificationsArray = Array.isArray(resData) ? resData : (resData?.data || []);
+
+      const systemNotifs = notificationsArray.filter(
+        (n: any) => n.link_url !== "/chat"
+      );
+      const mappedNotifs = systemNotifs.map((n: any) => ({
+        ...n,
+        id: n.id || n._id,
+        is_read: n.is_read === true || n.is_read === 1 || n.is_read === "1" // Chuẩn hóa boolean
+      }));
+      setNotifications(mappedNotifs);
+      
     } catch (error) {
       console.error("Error fetching notifications:", error);
     }
   }, []);
 
   const checkUnreadChat = useCallback(async () => {
-    // ✅ ĐÃ THÊM CHỐT CHẶN TOKEN Ở ĐÂY
-    const token = localStorage.getItem("token");
-    if (!token || !isLoggedIn || !user.id) return;
+    if (!isLoggedIn || !user.id) return;
 
     if (window.location.pathname === "/chat") {
       setChatUnreadCount(0);
@@ -149,7 +153,7 @@ export const Navbar = () => {
     }
     
     try {
-      const response = await chatService.getconversations();
+      const response = await chatService.getConversations();
       const dataList = Array.isArray(response) ? response : response?.data || [];
 
       if (dataList && dataList.length > 0) {
@@ -157,7 +161,6 @@ export const Navbar = () => {
           return sum + Number(conv.unreadCount ?? conv.unread_count ?? 0);
         }, 0);
 
-        console.log("🔥 [Navbar] Total unread messages:", total);
         setChatUnreadCount(total);
       } else {
         setChatUnreadCount(0);
@@ -200,31 +203,30 @@ export const Navbar = () => {
 
       socket.emit("add_user", user.id);
 
-      socket.on("receive_notification", (newNotify: any) => {
+      // ✅ ĐÃ SỬA: Hàm gom chung logic xử lý notification mới từ Socket, chống trùng lặp dữ liệu (Duplicate IDs)
+      const handleIncomingNotification = (newNotify: any) => {
         if (newNotify.link_url !== "/chat") {
           const formattedNotify: NotificationItem = {
             ...newNotify,
-            id: newNotify.id || newNotify._id
+            id: newNotify.id || newNotify._id,
+            is_read: false
           };
-          setNotifications((prev) => [formattedNotify, ...prev]);
+          
+          setNotifications((prev) => {
+            // Kiểm tra xem thông báo này đã tồn tại chưa để tránh bị lặp khi socket gửi 2 lần
+            const isExist = prev.some((n) => n.id === formattedNotify.id);
+            if (isExist) return prev;
+            return [formattedNotify, ...prev];
+          });
         }
-      });
+      };
 
-      socket.on("new_notification", (newNotify: any) => {
-        console.log("🔔 [Socket] Receive new notifications from the Backend.:", newNotify);
-        if (newNotify.link_url !== "/chat") {
-          const formattedNotify: NotificationItem = {
-            ...newNotify,
-            id: newNotify.id || newNotify._id
-          };
-          setNotifications((prev) => [formattedNotify, ...prev]);
-        }
-      });
+      socket.on("receive_notification", handleIncomingNotification);
+      socket.on("new_notification", handleIncomingNotification);
 
       socket.on("receive_message", () => checkUnreadChat());
       
       socket.on("update_unread_total", (data: any) => {
-        console.log("📩 [SOCKET] Successfully received update_unread_total signal:", data);
         checkUnreadChat();
         if (window.location.pathname !== "/chat") {
           setChatUnreadCount((prevCount) => prevCount + 1);
@@ -232,8 +234,8 @@ export const Navbar = () => {
       });
 
       return () => {
-        socket.off("receive_notification");
-        socket.off("new_notification"); 
+        socket.off("receive_notification", handleIncomingNotification);
+        socket.off("new_notification", handleIncomingNotification); 
         socket.off("update_unread_total");
         socket.off("receive_message");
         socket.disconnect();
@@ -241,6 +243,7 @@ export const Navbar = () => {
     }
   }, [isLoggedIn, user.id, checkUnreadChat]);
 
+  // Tải lại thông báo mỗi khi mở dropdown
   useEffect(() => {
     if (showNotifications && isLoggedIn) {
       fetchNotifications();
@@ -262,11 +265,14 @@ export const Navbar = () => {
 
     if (currentNotif && !currentNotif.is_read) {
       setIsProcessing(true);
+      
+      // Update UI lập tức (Optimistic UI)
       setNotifications((prev) =>
         prev.map((item) =>
           item.id === id ? { ...item, is_read: true } : item
         )
       );
+      
       try {
         await axios.put(
           `${BASE_URL}/api/notifications/${id}/read`,
@@ -275,6 +281,7 @@ export const Navbar = () => {
         );
       } catch (error) {
         console.error("Error updating read status:", error);
+        // Tùy chọn: Revert trạng thái nếu lỗi
       } finally {
         setIsProcessing(false);
       }
@@ -356,6 +363,7 @@ export const Navbar = () => {
     };
   }, []);
 
+  // Fetch thông báo ngay khi vừa đăng nhập thành công
   useEffect(() => {
     if (isLoggedIn) {
       fetchNotifications();
@@ -440,9 +448,9 @@ export const Navbar = () => {
                   ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
                   : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10"
               }`}
-              title="messages"
+              title="Messages"
             >
-              <messagesquare size={20} />
+              <MessageSquare size={20} />
               {chatUnreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white dark:ring-[#0B0F19]">
                   {chatUnreadCount > 99 ? "99+" : chatUnreadCount}
@@ -477,29 +485,27 @@ export const Navbar = () => {
                     notifications.map((notif) => (
                       <div
                         key={notif.id}
-                        onClick={() =>
-                          handleMarkAsRead(notif.id, notif.link_url)
-                        }
+                        onClick={() => handleMarkAsRead(notif.id, notif.link_url)}
                         className={`p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors flex gap-3 items-start ${
-                          !notif.is_read
-                            ? "bg-blue-50/60 dark:bg-blue-950/20"
-                            : ""
+                          !notif.is_read ? "bg-blue-50/60 dark:bg-blue-950/20" : ""
                         }`}
                       >
                         {!notif.is_read && <div className="mt-1.5 flex h-2 w-2 shrink-0 rounded-full bg-blue-600"></div>}
                         <div className="flex-1">
                           <p
-                            className={`text-sm text-gray-900 dark:text-white ${notif.is_read ? "font-normal" : "font-semibold"}`}
+                            className={`text-sm text-gray-900 dark:text-white ${
+                              notif.is_read ? "font-normal" : "font-semibold"
+                            }`}
                           >
                             {notif.title}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{notif.message}</p>
                           <p className="text-[10px] text-gray-400 mt-1">
                             {notif.created_at
-                              ? new Date(notif.created_at).toLocaleTimeString(
-                                  "en-US",
-                                  { hour: "2-digit", minute: "2-digit" },
-                                )
+                              ? new Date(notif.created_at).toLocaleTimeString("en-US", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
                               : ""}
                           </p>
                         </div>
@@ -638,7 +644,7 @@ export const Navbar = () => {
                   : "text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5"
               }`}
             >
-              messages
+              Messages
             </Link>
           )}
 
