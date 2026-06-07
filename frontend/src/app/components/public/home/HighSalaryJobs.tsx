@@ -19,7 +19,7 @@ interface HighSalaryjobsProps {
 export function HighSalaryjobs({ titleFilter, locationFilter, categoryFilter, salaryFilter }: HighSalaryjobsProps) {
   const [jobs, setjobs] = useState<IJob[]>([]);
   const [activeTab, setActiveTab] = useState("All jobs"); // State lưu tab đang chọn
-  const [savedjobs, setSavedjobs] = useState<number[]>([]);
+  const [SavedJobs, setSavedJobs] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -61,7 +61,7 @@ export function HighSalaryjobs({ titleFilter, locationFilter, categoryFilter, sa
   }, [titleFilter, locationFilter, categoryFilter, salaryFilter, activeTab]);
 
   useEffect(() => {
-    const fetchSavedjobs = async () => {
+    const fetchSavedJobs = async () => {
       const token = localStorage.getItem("token");
       if (!token) return;
       try {
@@ -73,18 +73,18 @@ export function HighSalaryjobs({ titleFilter, locationFilter, categoryFilter, sa
         }); 
         
         const savedIds = res.data.data.map((job: any) => job.id);
-        setSavedjobs(savedIds);
+        setSavedJobs(savedIds);
       } catch (err) {
         console.error("Fetch saved jobs error:", err);
       }
     };
 
-    fetchSavedjobs();
+    fetchSavedJobs();
 }, []);
 
   const handleToggleSave = useCallback(async (jobId: number) => {
     try {
-      setSavedjobs(prev => {
+      setSavedJobs(prev => {
         const isSaved = prev.includes(jobId);
         if (isSaved) {
           api.delete(`/api/favorites/${jobId}`).catch(err => console.error(err));
@@ -185,7 +185,7 @@ export function HighSalaryjobs({ titleFilter, locationFilter, categoryFilter, sa
                 <JobCard 
                   index={idx}
                   job={job} 
-                  isSaved={savedjobs.includes(job.id)} 
+                  isSaved={SavedJobs.includes(job.id)} 
                   onToggleSave={handleToggleSave} 
                 />
               </div>

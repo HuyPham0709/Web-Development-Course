@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, MapPin, Briefcase, Plus, Loader2, ChevronDown } from 'lucide-react';
-import { searchCandidates, Candidate } from '../../../services/profileservice';
+import { searchCandidates, Candidate } from '../../../services/profileService';
 import { CandidateProfileModal } from '../../../app/components/candidate/profile/CandidateProfileModal';
 import { InviteModal } from '../../pages/employer/InviteModal';
 

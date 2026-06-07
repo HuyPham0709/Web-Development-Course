@@ -9,7 +9,7 @@ import { InvitationsPage } from '../../components/candidate/profile/InvitationsP
 import {
   getProfile, saveProfile, uploadCV, deleteCV,
   PersonalInfo, WorkExperience, Education
-} from '../../../services/profileservice';
+} from '../../../services/profileService';
 import { SIDEBAR_MENU, DEFAULT_AVATAR, DEFAULT_COVER } from '../../components/candidate/profile/constants';
 import { ProfileToast } from '../../components/candidate/profile/ProfileToast';
 import { EditModal } from '../../components/candidate/profile/EditModal';
@@ -18,7 +18,7 @@ import { profilesidebar } from '../../components/candidate/profile/profilesideba
 import Myapplications from './MyApplications';
 import JobCriteria from '../../components/candidate/profile/JobCriteria';
 import axios from 'axios';
-import Savedjobs from '../../components/candidate/profile/Savedjobs';
+import SavedJobs from '../../components/candidate/profile/SavedJobs';
 import { getRecommendations } from '../../../services/recommendationService';
 import Settings from '../../components/candidate/profile/Settings';
 import { CvLibraryTab } from '../../components/candidate/profile/CvLibraryTab';
@@ -397,7 +397,7 @@ export default function ProfileDashboard() {
 
             {activeTab === 'applications' && <Myapplications />}
             {activeTab === 'search-criteria' && <JobCriteria />}
-            {activeTab === 'saved' && <Savedjobs />}
+            {activeTab === 'saved' && <SavedJobs />}
             {activeTab === 'apply' && <InvitationsPage />}
             {activeTab === 'viewed-by-employer' && <ViewedByEmployers />}
 

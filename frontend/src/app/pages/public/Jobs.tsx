@@ -66,7 +66,7 @@ const Jobs: React.FC = () => {
   // UI States
   const [loading, setLoading] = useState(false);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-  const [savedjobs, setSavedjobs] = useState<number[]>([]);
+  const [SavedJobs, setSavedJobs] = useState<number[]>([]);
   const [totaljobs, setTotaljobs] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -171,7 +171,7 @@ const Jobs: React.FC = () => {
           try {
             const res = await api.get("/api/favorites"); 
             const savedIds = res.data.data.map((job: any) => job.id);
-            setSavedjobs(savedIds);
+            setSavedJobs(savedIds);
           } catch (err) {
             console.error("Fetch saved jobs error in jobs.tsx:", err);
           }
@@ -222,7 +222,7 @@ const Jobs: React.FC = () => {
 
   const handleToggleSaveJob = useCallback(async (jobId: number) => {
     try {
-      setSavedjobs(prev => {
+      setSavedJobs(prev => {
         const isSaved = prev.includes(jobId);
         if (isSaved) {
           api.delete(`/api/favorites/${jobId}`).catch(err => console.error(err));
@@ -627,7 +627,7 @@ const handleOpenModal = (
                       <JobCard
                         index={idx}
                         job={job}
-                        isSaved={savedjobs.includes(job.id)}
+                        isSaved={SavedJobs.includes(job.id)}
                         onToggleSave={handleToggleSaveJob}
                       />
                     </div>

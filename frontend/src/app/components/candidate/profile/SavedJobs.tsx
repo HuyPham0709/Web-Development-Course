@@ -13,19 +13,19 @@ interface SavedJob {
   job_type: string;
 }
 
-export default function Savedjobs() {
+export default function SavedJobs() {
   const [jobs, setjobs] = useState<SavedJob[]>([]);
-  const [savedjobs, setSavedjobs] = useState<number[]>([]);
+  const [SavedJobs, setSavedJobs] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
 
   // SEARCH
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    fetchSavedjobs();
+    fetchSavedJobs();
   }, []);
 
-  const fetchSavedjobs = async () => {
+  const fetchSavedJobs = async () => {
     try {
       const token = localStorage.getItem("token");
 
@@ -43,7 +43,7 @@ export default function Savedjobs() {
       setjobs(jobData);
 
       // lưu id các job đã save
-      setSavedjobs(jobData.map((job: SavedJob) => job.id));
+      setSavedJobs(jobData.map((job: SavedJob) => job.id));
 
     } catch (error) {
       console.error("Fetch saved jobs error:", error);
@@ -56,7 +56,7 @@ export default function Savedjobs() {
     try {
       const token = localStorage.getItem("token");
 
-      const isSaved = savedjobs.includes(jobId);
+      const isSaved = SavedJobs.includes(jobId);
 
       // BỎ LƯU
       if (isSaved) {
@@ -70,7 +70,7 @@ export default function Savedjobs() {
         );
 
         // update UI
-        setSavedjobs((prev) => prev.filter((id) => id !== jobId));
+        setSavedJobs((prev) => prev.filter((id) => id !== jobId));
 
         // xoá khỏi list
         setjobs((prev) => prev.filter((job) => job.id !== jobId));
@@ -180,7 +180,7 @@ export default function Savedjobs() {
                   size={18}
                   className={`transition-colors
                     ${
-                      savedjobs.includes(job.id)
+                      SavedJobs.includes(job.id)
                         ? "text-rose-500 fill-rose-500"
                         : "text-gray-400 fill-none"
                     }

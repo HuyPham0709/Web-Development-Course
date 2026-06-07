@@ -1,4 +1,4 @@
-// frontend/src/services/profileservice.ts
+// frontend/src/services/profileService.ts
 
 const RAW_BASE_URL = import.meta.env.VITE_API_URL || 'https://web-development-course-y23i.onrender.com';
 // ✅ Loại bỏ dấu gạch chéo ở cuối (nếu có) để triệt tiêu lỗi song gạch `//api`

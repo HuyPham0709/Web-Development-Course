@@ -1,7 +1,7 @@
 import React from 'react';
 import { Edit2, MapPin, Phone, Calendar, Plus, FileText, UploadCloud, Loader2, Trash2 } from 'lucide-react';
 import { profileskeleton } from './profileskeleton';
-import { PersonalInfo, WorkExperience, Education } from '../../../../services/profileservice';
+import { PersonalInfo, WorkExperience, Education } from '../../../../services/profileService';
 import { resolveFileUrl } from '../../../../utils/format';
 
 interface ProfileTabProps {
