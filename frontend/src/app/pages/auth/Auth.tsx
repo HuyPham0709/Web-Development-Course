@@ -103,20 +103,29 @@ export default function AuthPage() {
         const response = await axios.post("https://web-development-course-y23i.onrender.com/api/auth/login", {
           email: formData.email, password: formData.password, role: role,
         });
-        const token = response.data.token || response.data.data?.token;
-        const userData = response.data.user || response.data.data?.user;
+        
+        // Bóc tách token & user từ response một cách an toàn hơn
+        const token = response.data?.token || response.data?.data?.token;
+        const userData = response.data?.user || response.data?.data?.user;
 
         if (token) {
           localStorage.setItem("token", token);
           localStorage.setItem("user", JSON.stringify(userData || {}));
-          await Swal.fire({ title: "Success!", text: "Welcome back!", icon: "success", timer: 1500, showConfirmButton: false });
           
-          // Sửa đổi ở đây: Ép nạp lại trang chủ để cập nhật Axios Interceptor ngay lập tức
+          await Swal.fire({ 
+            title: "Success!", 
+            text: "Welcome back!", 
+            icon: "success", 
+            timer: 1200, 
+            showConfirmButton: false 
+          });
+          
+          // Chuyển sang dùng href để reload trang đồng bộ toàn diện, nạp token mới vào Axios Interceptor lập tức
           window.location.href = "/";
         } else {
           setError("Đăng nhập thành công nhưng Backend không trả về Token!");
         }
-      } : {
+      } else {
         const response = await axios.post("https://web-development-course-y23i.onrender.com//api/auth/register", {
           username: formData.fullName, name: formData.fullName, email: formData.email, phone: formData.phone, password: formData.password, role: role,
         });
@@ -147,13 +156,15 @@ export default function AuthPage() {
       });
 
       if (response.data.success) {
-        if (response.data.token) {
-          localStorage.setItem("token", response.data.token);
-          localStorage.setItem("user", JSON.stringify(response.data.user));
+        const token = response.data?.token || response.data?.data?.token;
+        const userData = response.data?.user || response.data?.data?.user;
+
+        if (token) {
+          localStorage.setItem("token", token);
+          localStorage.setItem("user", JSON.stringify(userData || {}));
           
-          await Swal.fire({ title: "Success!", text: "Verification and login successful!", icon: "success", timer: 1500, showConfirmButton: false });
+          await Swal.fire({ title: "Success!", text: "Verification and login successful!", icon: "success", timer: 1200, showConfirmButton: false });
           
-          // Sửa đổi ở đây: Đồng bộ tải lại trang chủ để tránh lỗi token bất đồng bộ
           window.location.href = "/";
         } else {
           await Swal.fire({ title: "Verification successful!", text: "Please login now!", icon: "success" });
@@ -212,9 +223,8 @@ export default function AuthPage() {
           localStorage.setItem("token", token);
           localStorage.setItem("user", JSON.stringify(userData || {}));
 
-          await Swal.fire({ title: "Success!", text: "Google login successful!", icon: "success", timer: 1500, showConfirmButton: false });
+          await Swal.fire({ title: "Success!", text: "Google login successful!", icon: "success", timer: 1200, showConfirmButton: false });
           
-          // Sửa đổi ở đây: Điều hướng trực tiếp đồng bộ để tránh nạp API lậu không mang Token
           window.location.href = "/";
         } else {
           setError("Google Login thành công nhưng không nhận được Token!");
@@ -562,7 +572,7 @@ export default function AuthPage() {
               </form>
             </motion.div>
           ) : (
-            /* CASE 4: Form Đăng nhập & Đăng ký mặc định */
+            /* Form Đăng nhập & Đăng ký mặc định */
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

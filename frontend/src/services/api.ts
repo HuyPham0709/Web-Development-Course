@@ -34,6 +34,7 @@ api.interceptors.request.use(
 );
 
 // 🛑 Response interceptor - Xử lý tập trung các lỗi Auth & Banned
+// Response interceptor - Bản gia cố miễn nhiễm lỗi profile ngầm
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -41,15 +42,20 @@ api.interceptors.response.use(
     const message = error.response?.data?.message ?? "";
     const url = error.config?.url ?? "";
 
-    // 🔍 NHẬT KÝ KIỂM TRA: In lỗi ra Console F12 để bạn biết chính xác API nào đang bị lỗi 401/403
     console.warn(`[Axios Interceptor] Phát hiện lỗi API: URL="${url}" | Status=${status} | Message="${message}"`);
 
-    // PHANH AN TOÀN CHỐNG VĂNG: Nếu người dùng đang ở trang Auth (/auth) thì KHÔNG kích hoạt ép văng
+    // 🛑 PHANH AN TOÀN 1: Nếu ở trang Auth thì không văng
     if (window.location.pathname.includes("/auth")) {
       return Promise.reject(error);
     }
 
-    // 1. Kiểm tra Token hết hạn / không hợp lệ
+    // 🛑 PHANH AN TOÀN 2: Nếu lỗi 403 từ API lấy thông tin profile cá nhân, TUYỆT ĐỐI không xóa token, không ép văng!
+    if (url.includes("/users/profile") || url.includes("/profile")) {
+      console.error("🛑 Chặn hành vi văng tài khoản: Lỗi phát sinh từ API lấy Profile.");
+      return Promise.reject(error);
+    }
+
+    // 1. Kiểm tra Token thực sự hết hạn / không hợp lệ từ các API chức năng khác
     const isTokenExpired =
       status === 401 ||
       (status === 403 && (
@@ -62,7 +68,7 @@ api.interceptors.response.use(
     // 2. Kiểm tra tài khoản bị khóa
     const isBanned = status === 403 && message.includes("bị khóa");
 
-    // XỬ LÝ LOGIC ÉP ĐĂNG XUẤT KHI THỰC SỰ HẾT HẠN PHIÊN
+    // XỬ LÝ LOGIC ÉP ĐĂNG XUẤT
     if (isTokenExpired) {
       if (localStorage.getItem("token")) {
         localStorage.removeItem("token");
@@ -76,7 +82,6 @@ api.interceptors.response.use(
           window.location.href = "/auth";
         }, 1500);
       }
-      
     } else if (isBanned) {
       if (localStorage.getItem("token")) {
         localStorage.removeItem("token");
