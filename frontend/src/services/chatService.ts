@@ -2,7 +2,7 @@ import { api } from "./api";
 import { IConversation, IMessage } from "../types/chat";
 
 // 1. Export lẻ từng hàm (Đặt tên chuẩn chữ C viết hoa để Navbar.tsx import lẻ được)
-export const getConversations = async (): Promise<IConversation[]> => {
+export const getconversations = async (): Promise<IConversation[]> => {
   const token = localStorage.getItem("token");
   if (!token) return [];
 
@@ -61,7 +61,7 @@ export const deleteConversation = async (conversationId: string) => {
 
 // 2. Gom cụm lại thành object và Export Default để tương thích với các file import kiểu cũ
 const chatService = {
-  getConversations,
+  getconversations,
   getMessages,
   sendMessage,
   deleteConversation,
