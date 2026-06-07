@@ -580,7 +580,7 @@ exports.inviteInterview = async (req, res, next) => {
 
     const baseUrl =
       process.env.BACKEND_URL ||
-      "https://web-development-course-y23i.onrender.com/";
+      "https://web-development-course-y23i.onrender.com";
 
     // NÂNG CẤP GIAO DIỆN EMAIL THEO THIẾT KẾ PREMIUM GRADIENT
     const htmlEmailContent = `

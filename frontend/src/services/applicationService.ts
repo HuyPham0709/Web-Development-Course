@@ -68,6 +68,22 @@ export const applicationService = {
       headers: getHeaders(),
     }),
 
+  // ✅ BỔ SUNG THÊM: API Chấp nhận phỏng vấn
+  acceptInterview: (application_id: string | number) =>
+    axios.post(
+      `${API_URL}/applications/interview/accept/${application_id}`,
+      {},
+      { headers: getHeaders() }
+    ),
+
+  // ✅ BỔ SUNG THÊM: API Từ chối phỏng vấn
+  declineInterview: (application_id: string | number, reason: string) =>
+    axios.post(
+      `${API_URL}/applications/interview/decline/${application_id}`,
+      { reason },
+      { headers: getHeaders() }
+    ),
+
   // =========================
   // NOTES & JOB ACTIONS
   // =========================
