@@ -68,8 +68,7 @@ exports.applyJob = async (req, res) => {
             p.full_name, p.phone, p.cv_url, p.avatar_url,
             j.title AS job_title, j.id AS job_id, j.experience_level,
             a.cover_letter, a.status, a.applied_at
-        FROM applications a
-        JOIN users u ON a.candidate_id = u.id
+        FROM application_notes n JOIN users u ON n.author_id = u.id
         LEFT JOIN profiles p ON u.id = p.user_id
         JOIN jobs j ON a.job_id = j.id
         WHERE a.id = ?
@@ -176,16 +175,17 @@ exports.getApplicationById = async (req, res) => {
         .json({ success: false, message: "Application not found" });
     }
 
+    // ĐÃ SỬA: Đổi toàn bộ tên bảng thành chữ thường
     const [workExp] = await db.execute(
-      `SELECT company_name, position, start_date, end_date, description FROM Work_Experience WHERE profile_id = (SELECT id FROM profiles WHERE user_id = ?) ORDER BY start_date DESC`,
+      `SELECT company_name, position, start_date, end_date, description FROM work_experience WHERE profile_id = (SELECT id FROM profiles WHERE user_id = ?) ORDER BY start_date DESC`,
       [rows[0].candidate_id],
     );
     const [education] = await db.execute(
-      `SELECT school_name, major, start_date, end_date FROM Education WHERE profile_id = (SELECT id FROM profiles WHERE user_id = ?) ORDER BY start_date DESC`,
+      `SELECT school_name, major, start_date, end_date FROM education WHERE profile_id = (SELECT id FROM profiles WHERE user_id = ?) ORDER BY start_date DESC`,
       [rows[0].candidate_id],
     );
     const [skills] = await db.execute(
-      `SELECT s.name FROM User_Skills us JOIN Skills s ON us.skill_id = s.id WHERE us.profile_id = (SELECT id FROM profiles WHERE user_id = ?)`,
+      `SELECT s.name FROM user_skills us JOIN skills s ON us.skill_id = s.id WHERE us.profile_id = (SELECT id FROM profiles WHERE user_id = ?)`,
       [rows[0].candidate_id],
     );
 
@@ -399,7 +399,6 @@ exports.withdrawApplication = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 // ======================================================
 // GET NOTES
 // ======================================================
@@ -407,10 +406,11 @@ exports.getNotes = async (req, res) => {
   const application_id = req.params.id || req.params.application_id;
 
   try {
+    // ĐÃ SỬA: application_notes, users
     const [rows] = await db.execute(
       `
             SELECT n.id, n.content, n.created_at, u.username
-            FROM Application_Notes n JOIN Users u ON n.author_id = u.id
+            FROM application_notes n JOIN users u ON n.author_id = u.id
             WHERE n.application_id = ? ORDER BY n.created_at ASC
         `,
       [application_id],
@@ -437,15 +437,17 @@ exports.addNote = async (req, res) => {
   }
 
   try {
+    // ĐÃ SỬA: application_notes
     const [result] = await db.execute(
-      "INSERT INTO Application_Notes (application_id, author_id, content) VALUES (?, ?, ?)",
+      "INSERT INTO application_notes (application_id, author_id, content) VALUES (?, ?, ?)",
       [application_id, author_id, content.trim()],
     );
 
+    // ĐÃ SỬA: application_notes, users
     const [newNote] = await db.execute(
       `
             SELECT n.id, n.content, n.created_at, u.username
-            FROM Application_Notes n JOIN Users u ON n.author_id = u.id WHERE n.id = ?
+            FROM application_notes n JOIN users u ON n.author_id = u.id WHERE n.id = ?
         `,
       [result.insertId],
     );
@@ -465,8 +467,9 @@ exports.deleteNote = async (req, res) => {
   const author_id = req.user.id;
 
   try {
+    // ĐÃ SỬA: application_notes
     const [result] = await db.execute(
-      "DELETE FROM Application_Notes WHERE id = ? AND author_id = ?",
+      "DELETE FROM application_notes WHERE id = ? AND author_id = ?",
       [note_id, author_id],
     );
 
@@ -487,7 +490,6 @@ exports.deleteNote = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 // ======================================================
 // TOGGLE JOB STATUS
 // ======================================================
