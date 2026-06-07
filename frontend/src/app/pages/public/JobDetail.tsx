@@ -18,7 +18,7 @@ import {
 import { Link, useParams, useNavigate } from "react-router-dom"; 
 
 // 1. Import Component và Service
-import { RecommendedjobsAside } from "../../components/candidate/profile/RecommendedjobsAside";
+import { RecommendedjobsAside } from "../../components/candidate/profile/RecommendedJobsAside";
 import { getRecommendations } from "../../../services/recommendationService";
 import { useSharedProfile } from "../../../hooks/useSharedProfile";
 
