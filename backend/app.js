@@ -28,7 +28,7 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ─────────────────────────────────────────────────────────────
-// 2. IMPORT ROUTES & MIDDLEWARES (Đã sửa theo cấu trúc thư mục mới)
+// 2. IMPORT ROUTES & MIDDLEWARES
 // ─────────────────────────────────────────────────────────────
 
 // Phân hệ Auth
@@ -57,10 +57,7 @@ const recommendationRoutes = require("./routes/social/recommendationRoutes");
 const notificationRoutes = require("./routes/social/notificationRoutes");
 const messageRoutes = require("./routes/social/messageRoutes");
 
-// Client Report (Nằm ngay trong thư mục routes gốc)
-const routes = require('./routes/index');
-
-// Phân hệ Admin Routes (Đã sửa lại viết hoa/thường theo đúng file tree)
+// Phân hệ Admin Routes 
 const adminRoutes = require("./routes/admin/adminRoutes");
 const adminUserRoutes = require("./routes/admin/Userroutes");
 const adminJobRoutes = require("./routes/admin/adminJobRoutes");
@@ -70,12 +67,10 @@ const adminReportRoutes = require("./routes/admin/Reportroutes");
 // Custom Middlewares & Utils
 const { verifyToken, authorizeRole } = require("./middlewares/authMiddleware");
 const socketUtils = require("./utils/socket");
-// ─────────────────────────────────────────────────────────────
-// 3. API ROUTES CONFIGURATION (Đăng ký các tuyến đường)
-// ─────────────────────────────────────────────────────────────
 
-// Router tổng hợp (Có file routes/index.js nên dòng này hoạt động bình thường)
-// app.use("/api", require("./routes/index"));
+// ─────────────────────────────────────────────────────────────
+// 3. API ROUTES CONFIGURATION (Đăng ký các tuyến đường trực tiếp)
+// ─────────────────────────────────────────────────────────────
 
 // Chi tiết các phân hệ Route chính (Client)
 app.use("/api/auth", authRoutes);
@@ -83,7 +78,7 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/locations", locationRoutes);
 app.use("/api/applications", applicationRoutes);
-app.use("/api/jobs", jobRoutes);
+app.use("/api/jobs", jobRoutes); // Tuyến đường chính quản lý job, bao gồm cả /my-jobs
 app.use("/api/companies", companyRoutes);
 app.use("/api/skills", skillRoutes);
 app.use("/api/job-criteria", jobCriteriaRoutes);
@@ -99,7 +94,7 @@ app.use('/api/candidate', candidateViewRoutes);
 // Route lời mời ứng tuyển
 app.use("/api/invitations", invitationRoutes);
 
-app.use('/api', routes);  
+// 🛠️ ĐA XÓA: Dòng app.use('/api', routes) trung gian ở đây để loại bỏ hoàn toàn việc nạp trùng route gây 404.
 
 // Phân hệ Admin Routes
 app.use("/api/admin", adminRoutes);
@@ -109,15 +104,10 @@ app.use("/api/admin/metadata", metadataRoutes);
 app.use("/api/admin/reports", adminReportRoutes);
 
 // ─────────────────────────────────────────────────────────────
-// 4. TEST ROUTE & ROOT ROUTE
+// 4. ROOT ROUTE
 // ─────────────────────────────────────────────────────────────
 
-app.post("/api/jobs/create", verifyToken, authorizeRole(["employer"]), (req, res) => {
-  res.json({
-    message: "Posting successful!",
-    user: req.user,
-  });
-});
+// 🛠️ ĐÃ XÓA: Block test trùng lặp POST /api/jobs/create tại đây.
 
 app.get("/", (req, res) => {
   res.send("The JobFinder backend is working.! 🚀");
