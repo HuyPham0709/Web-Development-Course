@@ -6,7 +6,7 @@ import {
 import axios from 'axios';
 
 import { getCompanyProfile, saveCompanyProfile } from '../../../services/companyService';
-import { getjobs } from '../../../services/jobservice';
+import { getjobs } from '../../../services/jobService';
 import { CompanyInfo } from '../../../types/company';
 import { ProfileToast, ToastState } from '../../components/candidate/profile/ProfileToast';
 import { profileskeleton } from '../../components/candidate/profile/profileskeleton';

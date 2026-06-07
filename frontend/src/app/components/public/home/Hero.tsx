@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, MapPin, Briefcase, Zap, Layers, ChevronDown, DollarSign } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { getCategories, getlocations, getjobsuggestions } from "../../../../services/jobservice";
+import { getCategories, getlocations, getjobsuggestions } from "../../../../services/jobService";
 // Nhúng file Autocomplete đã được tối ưu hóa tự trị ở trên
 import { SearchAutocomplete } from "../../shared/SearchAutocomplete";
 

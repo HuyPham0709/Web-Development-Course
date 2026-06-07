@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { getjobs } from "../../../../services/jobservice";
+import { getjobs } from "../../../../services/jobService";
 import { api } from "../../../../services/api"; 
 import { JobCard } from "./JobCard";
 import { HorizontalTrack } from "./HorizontalTrack";

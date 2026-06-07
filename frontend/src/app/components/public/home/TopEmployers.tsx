@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ShieldCheck, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
 import { useNavigate } from "react-router-dom"; // Hook điều hướng trang
-import { getTopcompanies } from "../../../../services/jobservice";
+import { getTopcompanies } from "../../../../services/jobService";
 
 // Dải màu nền Banner ngẫu nhiên xoay vòng cho các công ty nếu DB không có banner_url
 const bannerGradients = [

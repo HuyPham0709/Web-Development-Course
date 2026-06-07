@@ -19,7 +19,7 @@ import {
 
 import { IJob, IJobFilters } from "../../../types/job";
 // 1. Đã thêm getjobsuggestions vào đây
-import { getjobs, getlocations, getCategories, getjobsuggestions } from "../../../services/jobservice";
+import { getjobs, getlocations, getCategories, getjobsuggestions } from "../../../services/jobService";
 import { getRecommendations } from "../../../services/recommendationService";
 import { JobCard } from "../../components/public/home/JobCard";
 import { RecommendedjobsAside } from "../../components/candidate/profile/RecommendedjobsAside";

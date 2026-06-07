@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"; // Đã thêm import này
 import { TrendingUp, Briefcase } from "lucide-react";
 // Import toàn bộ icon từ thư viện lucide để làm bộ tra cứu động
 import * as LucideIcons from "lucide-react"; 
-import { getCategories, getSkills } from "../../../../services/jobservice";
+import { getCategories, getSkills } from "../../../../services/jobService";
 
 // Bản đồ dải màu sắc cố định theo vị trí
 const cardGradients = [

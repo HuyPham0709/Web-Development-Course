@@ -1,6 +1,6 @@
 import { ADMIN_jobs_API, getHeaders } from '../constants';
 
-export const jobservice = {
+export const jobService = {
     // 1. GET /api/admin/jobs/admin/pending
     getPendingjobs: async () => {
         const res = await fetch(`${ADMIN_jobs_API}/admin/pending`, { headers: getHeaders() });
