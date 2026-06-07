@@ -31,7 +31,7 @@ export default defineConfig({
     proxy: {
       '/api': {
         // QUAN TRỌNG: Thay số 5000 bằng PORT mà backend của bạn đang chạy
-        target: 'https://web-development-course-y23i.onrender.com/', 
+        target: 'https://web-development-course-y23i.onrender.com', 
         changeOrigin: true,
         secure: false,
       },

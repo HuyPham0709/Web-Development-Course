@@ -2,7 +2,7 @@ const db = require("../../config/db"); // Giữ lại MySQL cho jobs và Job_Inv
 const socketModule = require("../../utils/socket"); // Import module socket
 const Notification = require("../../models/Notification"); // Model MongoDB gỡ lỗi 2 nấc
 
-exports.getEmployerjobs = async (req, res) => {
+exports.getEmployerJobs = async (req, res) => {
   try {
     const employerId = req.user.id;
     const [jobs] = await db.execute(

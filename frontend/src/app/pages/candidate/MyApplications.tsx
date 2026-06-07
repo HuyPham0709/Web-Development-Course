@@ -16,8 +16,12 @@ import { RecommendedjobsAside } from '../../components/candidate/profile/Recomme
 import { getRecommendations } from '../../../services/recommendationService';
 import { useSharedProfile } from '../../../hooks/useSharedProfile';
 
-// Thêm cấu hình API_BASE thống nhất
-const API_BASE = import.meta.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'https://web-development-course-y23i.onrender.com/';
+// Import applicationService để chuẩn hóa các lượt gọi API
+import { applicationService } from '../../../services/applicationService'; // <-- Bạn nhớ kiểm tra lại đường dẫn này xem đã đúng thư mục chưa nhé
+
+// Giữ lại API_BASE phục vụ cho việc hiển thị ảnh Logo (nếu cần xử lý fallback URL)
+const API_BASE = import.meta.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'https://web-development-course-y23i.onrender.com';
+const CLEAN_API_BASE = API_BASE.replace(/\/$/, ''); // Đảm bảo không bao giờ có dấu / ở cuối
 
 interface Application {
   id: number;
@@ -55,21 +59,11 @@ export default function MyApplications() {
   const fetchApplications = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      // Đã sửa: Dùng API_BASE
-      const response = await fetch(`${API_BASE}/api/applications/my`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      
+      // ✅ ĐÃ SỬA: Dùng applicationService.getMyApplications() thay cho fetch thuần mang đường dẫn /api/v1 cũ
+      const response = await applicationService.getMyApplications();
+      const result = response.data;
 
-      if (!response.ok) {
-        setApplications([]);
-        return;
-      }
-
-      const result = await response.json();
       if (result.success && Array.isArray(result.data)) {
         const formattedData = result.data.map((item: any) => ({
           id: item.application_id,
@@ -82,17 +76,18 @@ export default function MyApplications() {
             ? new Date(item.applied_at).toLocaleDateString('vi-VN')
             : 'N/A',
           status: item.status || 'pending',
-          // Đã sửa: Bỏ localhost, dùng API_BASE
           logoUrl: item.logo_url
             ? item.logo_url.startsWith('http')
               ? item.logo_url
-              : `${API_BASE}${item.logo_url.startsWith('/') ? '' : '/'}${item.logo_url}`
+              : `${CLEAN_API_BASE}${item.logo_url.startsWith('/') ? '' : '/'}${item.logo_url}`
             : `https://ui-avatars.com/api/?name=${encodeURIComponent(item.company_name || 'Co')}&background=random`
         }));
         setApplications(formattedData);
+      } else {
+        setApplications([]);
       }
     } catch (error) {
-      console.error("Lỗi fetch:", error);
+      console.error("Lỗi fetch đơn ứng tuyển:", error);
       setApplications([]);
     } finally {
       setLoading(false);
@@ -120,8 +115,9 @@ export default function MyApplications() {
     try {
       setWithdrawingId(applicationId);
       const token = localStorage.getItem("token");
-      // Đã sửa: Dùng API_BASE
-      const response = await fetch(`${API_BASE}/api/applications/withdraw/${applicationId}`, {
+      
+      // ✅ ĐÃ SỬA: Chuẩn hóa lại đường dẫn fetch rút đơn, xóa bỏ /v1 lỗi thời và triệt tiêu nguy cơ lặp dấu //
+      const response = await fetch(`${CLEAN_API_BASE}/api/applications/withdraw/${applicationId}`, {
         method: "DELETE",
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -133,7 +129,7 @@ export default function MyApplications() {
         alert(result.message || "Cannot withdraw application");
       }
     } catch (error) {
-      alert("Có lỗi xảy ra");
+      alert("Có lỗi xảy ra khi hủy đơn ứng tuyển");
     } finally {
       setWithdrawingId(null);
     }
@@ -182,7 +178,6 @@ export default function MyApplications() {
       <div className="absolute top-0 right-1/4 h-[500px] w-[600px] translate-x-1/2 rounded-full bg-gradient-to-bl from-blue-500/10 to-purple-500/10 blur-[120px] pointer-events-none -z-10"></div>
       <div className="absolute top-40 left-10 h-[400px] w-[400px] rounded-full bg-emerald-500/5 blur-[100px] pointer-events-none -z-10"></div>
 
-      {/* Nới rộng max-w để chứa cả Applications và Sidebar */}
       <div className="mx-auto max-w-7xl xl:max-w-[1440px] px-4 py-10 sm:px-6 lg:px-8">
         
         {/* HEADER */}

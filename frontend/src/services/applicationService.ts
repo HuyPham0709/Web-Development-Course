@@ -30,8 +30,9 @@ export const applicationService = {
       { headers: getHeaders() }
     ),
 
-  getEmployerjobs: () =>
-    axios.get(`${API_URL}/jobs/my-jobs`, {
+  // ✅ Đã sửa thành J viết HOA cho đồng bộ hệ thống
+  getEmployerJobs: () =>
+    axios.get(`${API_URL}/applications/employer/jobs`, { // <-- Đường dẫn chính xác
       headers: getHeaders(),
     }),
 
@@ -55,9 +56,9 @@ export const applicationService = {
     ),
 
   getMyApplications: () =>
-    axios.get(`${API_URL}/applications/my`, {
-      headers: getHeaders(),
-    }),
+  axios.get(`${API_URL}/applications/my`, {
+    headers: getHeaders(),
+  }),
 
   // =========================
   // NOTES & JOB ACTIONS
@@ -72,8 +73,8 @@ export const applicationService = {
   deleteNote: (note_id: number | string) =>
     axios.delete(`${API_URL}/applications/notes/${note_id}`, { headers: getHeaders() }),
 
-  // Toggle job status
-  togglejobstatus: (job_id: number | string) =>
+  // ✅ Đã sửa thành J và S viết HOA cho chuẩn CamelCase
+  toggleJobStatus: (job_id: number | string) =>
     axios.put(`${API_URL}/applications/jobs/toggle-status`, { job_id }, { headers: getHeaders() }),
 
   deleteJob: (job_id: number | string) =>

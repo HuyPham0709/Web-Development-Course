@@ -1,6 +1,7 @@
 import axios from "axios";
 import toast from "react-hot-toast";
 
+// 🚀 Đã chuẩn hóa: Thêm luôn /api vào baseURL để các file khác gọi ngắn gọn và không bị lỗi xuyệt kép //
 const API = "https://web-development-course-y23i.onrender.com";
 
 export const api = axios.create({
@@ -35,7 +36,6 @@ api.interceptors.request.use(
 );
 
 // 🛑 Response interceptor - Xử lý tập trung các lỗi Auth & Banned
-// Response interceptor - Bản gia cố miễn nhiễm lỗi profile ngầm
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -50,7 +50,7 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // 🛑 PHANH AN TOÀN 2: Nếu lỗi 403 từ API lấy thông tin profile cá nhân, TUYỆT ĐỐI không xóa token, không ép văng!
+    // 🛑 PHANH AN TOÀN 2: Nếu lỗi từ API lấy thông tin profile cá nhân, TUYỆT ĐỐI không xóa token, không ép văng!
     if (url.includes("/users/profile") || url.includes("/profile")) {
       console.error("🛑 Chặn hành vi văng tài khoản: Lỗi phát sinh từ API lấy Profile.");
       return Promise.reject(error);

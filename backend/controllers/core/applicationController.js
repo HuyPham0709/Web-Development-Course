@@ -290,7 +290,7 @@ exports.updateApplicationStatus = async (req, res) => {
 // ======================================================
 // GET EMPLOYER jobs
 // ======================================================
-exports.getEmployerjobs = async (req, res) => {
+exports.getEmployerJobs = async (req, res) => {
   const employer_id = req.user.id;
   try {
     const [jobs] = await db.execute(
@@ -302,9 +302,9 @@ exports.getEmployerjobs = async (req, res) => {
         COUNT(a.id) AS application_count
       FROM jobs j
       LEFT JOIN locations l ON j.location_id = l.id
-      LEFT JOIN Applications a ON j.id = a.job_id
+      LEFT JOIN applications a ON j.id = a.job_id 
       WHERE j.posted_by = ? AND j.deleted_at IS NULL
-      GROUP BY j.id
+      GROUP BY j.id, l.name
       ORDER BY j.created_at DESC
     `,
       [employer_id],
@@ -323,6 +323,8 @@ exports.getEmployerjobs = async (req, res) => {
       stats: { total_jobs, total_applications },
     });
   } catch (error) {
+    // Thêm dòng log này để nếu tương lai có lỗi, Render sẽ in ra lỗi màu đỏ rất dễ tìm
+    console.error("🚨 SQL Error in getEmployerJobs:", error.message); 
     res.status(500).json({ success: false, message: error.message });
   }
 };

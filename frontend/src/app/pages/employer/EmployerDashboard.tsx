@@ -52,7 +52,7 @@ export default function EmployerDashboard() {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    applicationService.getEmployerjobs()
+    applicationService.getEmployerJobs()
       .then(res => {
         setjobs(res.data.data || []);
         setStats(res.data.stats || { total_jobs: 0, total_applications: 0 });
@@ -183,7 +183,7 @@ export default function EmployerDashboard() {
   const STATS_DISPLAY = [
     { id: 1, label: 'Total jobs', value: String(stats.total_jobs), icon: Briefcase, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/40' },
     { id: 2, label: 'Active Applications', value: String(stats.total_applications), icon: Users, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-950/40' },
-    { id: 3, label: 'New messages', value: '0', icon: messagesquare, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-950/40' },
+    { id: 3, label: 'New messages', value: '0', icon: MessageSquare, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-950/40' },
     { id: 4, label: 'Total Views', value: '—', icon: Eye, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/40' },
   ];
 
