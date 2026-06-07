@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { LayoutGrid, List, MoreVertical, Calendar, Briefcase, ChevronDown, Loader2, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { applicationservice } from '../../../services/applicationservice';
+import applicationService from '../../../services/applicationService';
 import { Candidate } from '../../../types/application';
 import { STATUSES, STATUS_LABEL, STATUS_COLORS } from '../../../constants/status';
 import { getInitials, formatDateVN } from '../../../utils/format';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import { io } from 'socket.io-client';
 
-const BASE_URL = 'https://web-development-course-y23i.onrender.com/';
+const BASE_URL = 'http://localhost:5000';
 
 const toFullUrl = (url: string | null | undefined): string => {
   if (!url) return '';
@@ -29,7 +29,7 @@ export default function CandidateManagement() {
   // --- INTERVIEW MODAL STATE ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAppId, setSelectedAppId] = useState<number | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<string>('UnderReview'); 
+  const [selectedStatus, setSelectedStatus] = useState<string>('Interviewing'); 
   const [submitLoading, setSubmitLoading] = useState(false);
   
   const initialFormState = {
@@ -41,7 +41,7 @@ export default function CandidateManagement() {
 
   // Initial fetch of candidates
   useEffect(() => {
-    applicationservice.getEmployerapplications()
+    applicationService.getEmployerApplications()
       .then(res => setCandidates(res.data.data))
       .catch(err => setError(err.response?.data?.message || 'An error occurred while loading candidates.'))
       .finally(() => setLoading(false));
@@ -81,7 +81,8 @@ export default function CandidateManagement() {
 
   // Handle general pipeline status changes
   const handleStatusChange = async (application_id: number, newStatus: string) => {
-    if (newStatus === 'UnderReview' || newStatus === 'UNDER_REVIEW') {
+    // Kích hoạt modal nhập lịch hẹn nếu chuyển sang trạng thái Phỏng vấn (Interviewing / INTERVIEWING)
+    if (newStatus === 'Interviewing' || newStatus === 'INTERVIEWING' || newStatus === 'Interview') {
       setSelectedAppId(application_id);
       setSelectedStatus(newStatus); 
       setIsModalOpen(true);
@@ -90,7 +91,7 @@ export default function CandidateManagement() {
 
     setUpdatingId(application_id);
     try {
-      await applicationservice.updateStatus(application_id, newStatus);
+      await applicationService.updateStatus(application_id, newStatus);
       setCandidates(prev => prev.map(c =>
         c.application_id === application_id ? { ...c, status: newStatus } : c
       ));
@@ -110,15 +111,18 @@ export default function CandidateManagement() {
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
 
-      const response = await fetch(`${BASE_URL}/api/interviews/invite`, {
+      // Gọi endpoint xử lý lên lịch phỏng vấn đồng bộ với Controller của backend
+      const response = await fetch(`${BASE_URL}/api/applications/interview/schedule/${selectedAppId}`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {}) 
         },
         body: JSON.stringify({
-          application_id: selectedAppId,
-          ...interviewForm
+          interview_location: interviewForm.location,
+          interview_time: interviewForm.time,
+          message: interviewForm.message,
+          status: selectedStatus
         })
       });
 
@@ -127,13 +131,13 @@ export default function CandidateManagement() {
         throw new Error(errorData.message || 'Unable to send interview invitation. Please try again!');
       }
 
-      // Optimistically update status format on UI
+      // Cập nhật trạng thái mới lên UI sau khi thành công
       setCandidates(prev => prev.map(c =>
         Number(c.application_id) === Number(selectedAppId) ? { ...c, status: selectedStatus } : c
       ));
 
       setIsModalOpen(false);
-      setInterviewForm(initialFormState); // Reset form cleanly
+      setInterviewForm(initialFormState); // Reset form sạch sẽ
       alert('Interview invitation sent successfully!');
     } catch (err: any) {
       alert(err.message || 'Unable to send interview invitation. Please try again!');
@@ -175,7 +179,7 @@ export default function CandidateManagement() {
           <div className="relative">
             <select value={filterJob} onChange={e => setFilterJob(e.target.value)}
               className="appearance-none bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 py-2.5 pl-4 pr-10 rounded-xl font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500/50 shadow-sm transition-colors">
-              {jobOptions.map(job => <option key={job} value={job} className="dark:bg-[#0E1422]">{job === 'All' ? 'All jobs' : job}</option>)}
+              {jobOptions.map(job => <option key={job} value={job} className="dark:bg-[#0E1422]">{job === 'All' ? 'All Jobs' : job}</option>)}
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
           </div>

@@ -8,11 +8,19 @@ function getHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export const applicationservice = {
+// Thay đổi thành applicationService (chữ S viết HOA) để trùng khớp với Component gọi tới
+export const applicationService = {
   // =========================
   // EMPLOYER
   // =========================
 
+  // Đổi thành "A" viết hoa để trùng với candidateManagement gọi: applicationService.getEmployerApplications()
+  getEmployerApplications: () =>
+    axios.get(`${API_URL}/applications/employer/list`, {
+      headers: getHeaders(),
+    }),
+
+  // Định nghĩa thêm hàm chữ thường để phòng hờ các file cũ khác gọi trúng
   getEmployerapplications: () =>
     axios.get(`${API_URL}/applications/employer/list`, {
       headers: getHeaders(),
@@ -56,9 +64,9 @@ export const applicationservice = {
     ),
 
   getMyapplications: () =>
-  axios.get(`${API_URL}/applications/my`, {
-    headers: getHeaders(),
-  }),
+    axios.get(`${API_URL}/applications/my`, {
+      headers: getHeaders(),
+    }),
 
   // =========================
   // NOTES & JOB ACTIONS
@@ -80,3 +88,9 @@ export const applicationservice = {
   deleteJob: (job_id: number | string) =>
     axios.delete(`${API_URL}/jobs/${job_id}`, { headers: getHeaders() }),
 };
+
+// Tạo một alias tên viết thường để tương thích ngược nếu có file nào khác đang import { applicationservice }
+export const applicationservice = applicationService;
+
+// EXPORT DEFAULT để file CandidateManagement.tsx có thể nhận dạng đúng cấu trúc
+export default applicationService;

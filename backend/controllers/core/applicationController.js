@@ -61,7 +61,7 @@ exports.applyJob = async (req, res) => {
       });
       socketUtils.sendNotification(targetEmployerId, newNotify);
 
-      // 3. THÊM MỚI: QUERY DATA ĐẦY ĐỦ VÀ BẮN SANG KANBAN BOARD
+      // 3. QUERY DATA ĐẦY ĐỦ VÀ BẮN SANG KANBAN BOARD
       const [newAppRows] = await db.execute(`
         SELECT
             a.id AS application_id, u.id AS candidate_id, u.username AS candidate_name, u.email AS candidate_email,
@@ -92,6 +92,7 @@ exports.applyJob = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
 // ======================================================
 // GET EMPLOYER applications
 // ======================================================
@@ -125,7 +126,7 @@ exports.getEmployerapplications = async (req, res) => {
       [employer_id],
     );
 
-    // BỔ SUNG: Ép trình duyệt KHÔNG ĐƯỢC CACHE kết quả của API này
+    // Ép trình duyệt KHÔNG ĐƯỢC CACHE kết quả của API này
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
@@ -204,11 +205,14 @@ exports.getApplicationById = async (req, res) => {
 };
 
 // ======================================================
-// UPDATE APPLICATION STATUS
+// UPDATE APPLICATION STATUS (Đã bổ sung Socket realtime cho Employer & chuẩn hóa lowercase)
 // ======================================================
 exports.updateapplicationstatus = async (req, res) => {
-  const { application_id, status } = req.body;
+  let { application_id, status } = req.body;
   const employer_id = req.user.id;
+
+  // SỬA LỖI 1: Tự động chuyển status thành chữ thường để đồng bộ với DB, tránh lệch chữ Hoa từ UI gửi lên
+  if (status) status = status.toLowerCase();
 
   const allowedStatuses = [
     "pending",
@@ -278,6 +282,12 @@ exports.updateapplicationstatus = async (req, res) => {
       socketUtils.sendNotification(candidateId, newCandidateNotify);
     }
 
+    // SỬA LỖI 3: Phát tín hiệu Socket cho chính Employer để cập nhật Kanban Board tức thì
+    socketUtils.emitToUser(String(employer_id), "candidateStatusUpdated", {
+      application_id: Number(application_id),
+      newStatus: status,
+    });
+
     res.status(200).json({
       success: true,
       message: `Status transitioned to: ${status} and candidate notified successfully!`,
@@ -324,7 +334,6 @@ exports.getEmployerJobs = async (req, res) => {
       stats: { total_jobs, total_applications },
     });
   } catch (error) {
-    // Thêm dòng log này để nếu tương lai có lỗi, Render sẽ in ra lỗi màu đỏ rất dễ tìm
     console.error("🚨 SQL Error in getEmployerJobs:", error.message); 
     res.status(500).json({ success: false, message: error.message });
   }
@@ -541,6 +550,7 @@ exports.togglejobstatus = async (req, res) => {
 exports.inviteInterview = async (req, res, next) => {
   try {
     const { application_id, location, time, message } = req.body;
+    const employer_id = req.user.id; // Lấy ID nhà tuyển dụng hiện tại
 
     const [rows] = await db.execute(
       `
@@ -716,7 +726,14 @@ exports.inviteInterview = async (req, res, next) => {
       created_at: new Date(),
     });
 
-    socketUtils.emitToUser(targetCandidateId, "applicationstatusChanged", {
+    // SỬA LỖI 2: Đổi tên từ "applicationstatusChanged" thành "candidateStatusUpdated" cho khớp với Front-end React
+    socketUtils.emitToUser(targetCandidateId, "candidateStatusUpdated", {
+      application_id: Number(application_id),
+      newStatus: "reviewed",
+    });
+
+    // Đồng thời cập nhật luôn cho cả Employer đang mở màn hình quản lý ứng viên
+    socketUtils.emitToUser(String(employer_id), "candidateStatusUpdated", {
       application_id: Number(application_id),
       newStatus: "reviewed",
     });
@@ -784,14 +801,14 @@ exports.acceptInterview = async (req, res, next) => {
       created_at: new Date(),
     });
 
-    socketUtils.emitToUser(targetEmployerId, "applicationstatusChanged", {
+    // SỬA LỖI 2: Đồng bộ tên sự kiện Socket thành "candidateStatusUpdated" để Kanban Board tự nhảy cột sang Interviewing
+    socketUtils.emitToUser(targetEmployerId, "candidateStatusUpdated", {
       application_id: Number(id),
       newStatus: "interviewing",
     });
 
     socketUtils.sendNotification(targetEmployerId, newNotify);
 
-    // MÀN HÌNH XÁC NHẬN THÀNH CÔNG ĐỒNG BỘ TONE MÀU GRADIENT VÀ THIẾT KẾ BO GÓC CAO CẤP
     return res.send(`
       <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #F8FAFC; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
         <div style="max-width: 480px; width: 100%; margin: 20px; background-color: #ffffff; border-radius: 24px; padding: 40px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02); border: 1px solid #E2E8F0; position: relative; overflow: hidden;">
@@ -827,7 +844,7 @@ exports.declineInterview = async (req, res, next) => {
         COALESCE(p.full_name, u.username) AS candidate_name,
         j.title AS job_title
       FROM applications a
-      JOIN Users u ON a.candidate_id = u.id
+      JOIN users u ON a.candidate_id = u.id
       LEFT JOIN profiles p ON u.id = p.user_id
       JOIN jobs j ON a.job_id = j.id
       WHERE a.id = ?
@@ -840,7 +857,7 @@ exports.declineInterview = async (req, res, next) => {
         <div style="max-width: 500px; margin: 80px auto; font-family: -apple-system, sans-serif; padding: 40px; text-align: center; border: 1px solid #fee2e2; background-color: #fef2f2; border-radius: 20px; box-shadow: 0 4px 12px rgba(239,68,68,0.05);">
           <div style="font-size: 48px; margin-bottom: 16px;">❌</div>
           <h3 style="color:#dc2626; margin: 0 0 10px 0; font-size: 20px; font-weight: 700;">Profile Not Found!</h3>
-          <p style="color:#7f1d1d; font-size:14px; margin: 0;">Matching application profile metadata cannot be extracted from our core DB.</p>
+          <p style="color:#7f1d1d; font-size:14px;">Matching application profile information does not exist in our network.</p>
         </div>
       `);
     }
@@ -853,86 +870,34 @@ exports.declineInterview = async (req, res, next) => {
     );
 
     const targetEmployerId = String(application.employer_user_id);
-    const textReason = reason ? reason.trim() : "No specific reason provided";
-
     const newNotify = await Notification.create({
       user_id: targetEmployerId,
-      title: "Candidate declined interview ❌",
-      message: `Candidate ${application.candidate_name} has declined the interview for position ${application.job_title}. Reason: ${textReason}`,
+      title: "Candidate declined interview 📋",
+      message: `Candidate ${application.candidate_name} has declined the interview for position ${application.job_title}. Reason: ${reason || "Not specified"}`,
       is_read: false,
       type: "system",
       link_url: "/employer/candidates",
       created_at: new Date(),
     });
 
-    socketUtils.emitToUser(targetEmployerId, "applicationstatusChanged", {
+    // SỬA LỖI 2: Đồng bộ tên sự kiện Socket thành "candidateStatusUpdated" khi từ chối phỏng vấn
+    socketUtils.emitToUser(targetEmployerId, "candidateStatusUpdated", {
       application_id: Number(id),
       newStatus: "rejected",
     });
 
     socketUtils.sendNotification(targetEmployerId, newNotify);
 
-    // MÀN HÌNH THÔNG BÁO HỦY LỊCH THÀNH CÔNG UI SẠCH SẼ, CAO CẤP
     return res.send(`
       <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #F8FAFC; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-        <div style="max-width: 480px; width: 100%; margin: 20px; background-color: #ffffff; border-radius: 24px; padding: 40px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02); border: 1px solid #E2E8F0; position: relative; overflow: hidden;">
+        <div style="max-width: 480px; width: 100%; margin: 20px; background-color: #ffffff; border-radius: 24px; padding: 40px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05); border: 1px solid #E2E8F0; position: relative; overflow: hidden;">
           <div style="position: absolute; top: 0; left: 0; right: 0; height: 5px; background: #EF4444;"></div>
-          <div style="width: 72px; height: 72px; background: #FEF2F2; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 24px;">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          </div>
-          <h2 style="color: #0F172A; margin: 0 0 12px 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">Decline Confirmed</h2>
-          <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 24px 0;">We have successfully recorded your cancellation response and forwarded the rationale reasons directly to the Employer.</p>
-          <div style="border-top: 1px solid #F1F5F9; padding-top: 20px;">
-            <span style="font-size: 13px; font-weight: 700; color: #0F172A; letter-spacing: -0.3px;">jobspot<span style="color: #0052FF;">Network</span></span>
-          </div>
+          <h2 style="color: #0F172A; margin: 0 0 12px 0; font-size: 22px; font-weight: 800;">Decline Processed</h2>
+          <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 24px 0;">We have notified the employer that you declined this schedule. Thank you for informing us.</p>
         </div>
       </div>
     `);
   } catch (error) {
     next(error);
   }
-};
-
-// ======================================================
-// GET DECLINE FORM
-// ======================================================
-exports.getDeclineForm = (req, res) => {
-  const { id } = req.params;
-
-  // NÂNG CẤP GIAO DIỆN FORM ĐIỀN LÝ DO TỪ CHỐI CHUẨN PREMIUM ĐỒNG BỘ AUTH.TSX
-  res.send(`
-    <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #F8FAFC; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-      <div style="max-width: 500px; width: 100%; margin: 20px; background-color: #ffffff; border-radius: 24px; padding: 40px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02); border: 1px solid #E2E8F0; position: relative; overflow: hidden;">
-        
-        <div style="position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(to right, #0052FF, #8B5CF6);"></div>
-        
-        <h2 style="color: #0F172A; margin: 0 0 10px 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">Decline Interview Invitation</h2>
-        <p style="color: #64748B; font-size: 14px; margin-bottom: 28px; line-height: 1.6;">
-          You are about to decline this interview opportunity. Please provide a brief reason below so we can accurately update the employer.
-        </p>
-        
-        <form action="/api/applications/interview/decline/${id}" method="POST">
-          <label style="display: block; font-weight: 700; margin-bottom: 8px; font-size: 13px; color: #334155; text-transform: uppercase; letter-spacing: 0.5px;">
-            Reason for declining <span style="color: #EF4444;">*</span>
-          </label>
-          <textarea 
-            name="reason" 
-            rows="4" 
-            required 
-            style="width: 100%; padding: 14px; border: 1px solid #CBD5E1; border-radius: 16px; box-sizing: border-box; resize: none; margin-bottom: 24px; font-size: 14px; font-family: inherit; color: #0F172A; background-color: #F8FAFC; transition: border-color 0.2s;" 
-            placeholder="e.g., I have accepted another offer / Schedule conflict / Family emergency..."></textarea>
-            
-          <button 
-            type="submit" 
-            style="background: #EF4444; color: white; border: none; padding: 14px 20px; border-radius: 16px; font-weight: 700; cursor: pointer; width: 100%; font-size: 15px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15); transition: background 0.2s;">
-            Confirm Decline
-          </button>
-        </form>
-
-        <div style="border-top: 1px solid #F1F5F9; padding-top: 20px; margin-top: 24px; text-align: center;">
-          <span style="font-size: 12px; font-weight: 700; color: #0F172A; letter-spacing: -0.3px;">jobspot<span style="color: #0052FF;">Network</span></span>
-        </div>
-      </div>
-    </div>
-  `);
 };
