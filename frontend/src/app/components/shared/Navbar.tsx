@@ -205,7 +205,6 @@ export const Navbar = () => {
 
       socket.emit("add_user", user.id);
 
-      // Hàm xử lý chung để ngăn nhân đôi thông báo (Trùng ID sẽ bị loại bỏ)
       const handleNewNotification = (newNotify: any) => {
         if (newNotify.link_url !== "/chat") {
           const formattedNotify: NotificationItem = {
@@ -213,7 +212,6 @@ export const Navbar = () => {
             id: newNotify.id || newNotify._id,
           };
           setNotifications((prev) => {
-            // Kiểm tra trùng ID
             if (prev.some((n) => n.id === formattedNotify.id)) {
               return prev;
             }
@@ -244,7 +242,6 @@ export const Navbar = () => {
     }
   }, [isLoggedIn, user.id, checkUnreadChat]);
 
-  // Fetch khi thay đổi trạng thái (Gỡ showNotifications ra để nạp ngầm tức thời)
   useEffect(() => {
     if (isLoggedIn) {
       fetchNotifications();
@@ -269,7 +266,6 @@ export const Navbar = () => {
 
     if (currentNotif && !currentNotif.is_read) {
       setIsProcessing(true);
-      // UI Update tức thì (Lạc quan)
       setNotifications((prev) =>
         prev.map((item) =>
           item.id === id ? { ...item, is_read: true } : item,
@@ -383,274 +379,296 @@ export const Navbar = () => {
 
   const isEmployer = user.role?.toLowerCase() === "employer";
 
-  // TÍNH TOÁN SỐ LƯỢNG THÔNG BÁO CHƯA ĐỌC LÀM HUY HIỆU (BADGE)
   const unreadCount = notifications.filter(
     (n) => n.is_read === false || n.is_read === 0 || (n.is_read as any) === "0",
   ).length;
 
+  const hasUnread = unreadCount > 0;
+
   return (
-    <nav className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md dark:bg-gray-950/80 border-gray-100 dark:border-white/5">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between gap-4">
-          {/* LOGO */}
-          <div className="flex items-center gap-8">
-            <Link
-              to="/"
-              className="flex items-center gap-2.5 transition-transform active:scale-95"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20">
-                <Briefcase className="h-5 w-5" />
-              </div>
-              <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300">
-                JobPortal
-              </span>
-            </Link>
-
-            {/* DESKTOP NAVIGATION LINKS */}
-            <div className="hidden md:flex items-center gap-1">
-              {navLinks.map((link) => {
-                const isActive = location.pathname === link.path;
-                return (
-                  <Link
-                    key={link.path}
-                    to={link.path}
-                    className={`px-4 py-2 text-sm font-medium rounded-xl transition-all ${
-                      isActive
-                        ? "text-blue-600 bg-blue-50/50 dark:text-blue-400 dark:bg-blue-950/30 font-semibold"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/5"
-                    }`}
-                  >
-                    {link.name}
-                  </Link>
-                );
-              })}
+    <nav className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/80 backdrop-blur-md transition-colors dark:border-white/10 dark:bg-[#0B0F19]/80">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+        <div className="flex items-center gap-10">
+          <Link to="/" className="flex items-center gap-2 shrink-0">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-md shadow-blue-500/20">
+              <Briefcase size={20} />
             </div>
-          </div>
+            <span className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+              Job{" "}
+              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Spot
+              </span>
+            </span>
+          </Link>
 
-          {/* RIGHT CONTROLS */}
-          <div className="flex items-center gap-2">
-            {/* Dark Mode Toggle */}
-            <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="relative flex items-center justify-center p-2.5 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/5 transition-all active:scale-95"
-              aria-label="Toggle theme"
-            >
-              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            </button>
-
-            {isLoggedIn ? (
-              <>
-                {/* Chat Message Icon */}
+          <div className="hidden items-center gap-1 md:flex">
+            {navLinks.map((link) => {
+              const isActive = location.pathname === link.path;
+              return (
                 <Link
-                  to="/chat"
-                  className={`relative p-2.5 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/5 transition-all active:scale-95 ${
-                    location.pathname === "/chat"
-                      ? "text-blue-600 bg-blue-50/50 dark:text-blue-400"
-                      : ""
+                  key={link.path}
+                  to={link.path}
+                  className={`relative px-4 py-2 text-sm font-medium transition-colors rounded-full ${
+                    isActive
+                      ? "text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30"
+                      : "text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5"
                   }`}
                 >
-                  <MessageSquare className="h-5 w-5" />
-                  {chatUnreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white dark:ring-gray-950 animate-pulse">
-                      {chatUnreadCount > 99 ? "99+" : chatUnreadCount}
-                    </span>
-                  )}
+                  {link.name}
                 </Link>
+              );
+            })}
+          </div>
+        </div>
 
-                {/* NOTIFICATIONS BELL DROPDOWN */}
-                <div className="relative" ref={dropdownRef}>
-                  <button
-                    onClick={() => setShowNotifications(!showNotifications)}
-                    className={`relative p-2.5 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/5 transition-all active:scale-95 ${
-                      showNotifications
-                        ? "bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white"
-                        : ""
-                    }`}
-                  >
-                    <Bell className="h-5 w-5" />
-                    {/* HUY HIỆU SỐ LƯỢNG CHƯA ĐỌC */}
-                    {unreadCount > 0 && (
-                      <span className="absolute top-1.5 right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white dark:ring-gray-950 animate-pulse">
-                        {unreadCount > 99 ? "99+" : unreadCount}
-                      </span>
-                    )}
-                  </button>
+        <div className="flex items-center gap-3">
+          {/* Theme Toggle Button */}
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="relative flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors dark:text-gray-400 dark:hover:bg-white/10 overflow-hidden"
+            aria-label="Toggle theme"
+          >
+            <Sun
+              size={20}
+              className={`absolute text-amber-400 transition-all duration-500 ease-in-out ${
+                theme === "dark"
+                  ? "rotate-0 scale-100 opacity-100"
+                  : "-rotate-90 scale-0 opacity-0"
+              }`}
+            />
+            <Moon
+              size={20}
+              className={`absolute transition-all duration-500 ease-in-out ${
+                theme === "dark"
+                  ? "rotate-99 scale-0 opacity-0"
+                  : "rotate-0 scale-100 opacity-100"
+              }`}
+            />
+          </button>
 
-                  {showNotifications && (
-                    <div className="absolute right-0 mt-2 w-80 sm:w-96 max-h-[28rem] overflow-hidden rounded-2xl border bg-white shadow-2xl dark:bg-gray-900 border-gray-100 dark:border-white/5 flex flex-col">
-                      {/* Header Dropdown */}
-                      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50 dark:border-white/5">
-                        <span className="text-sm font-bold text-gray-900 dark:text-white">
-                          Notifications
-                        </span>
-                        {unreadCount > 0 && (
-                          <button
-                            onClick={handleMarkAllRead}
-                            className="text-xs flex items-center gap-1 font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
-                          >
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            Mark all read
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Body Dropdown */}
-                      <div className="overflow-y-auto p-2">
-                        {notifications.length === 0 ? (
-                          <div className="py-10 flex flex-col items-center justify-center text-gray-400">
-                            <Bell className="h-8 w-8 mb-2 opacity-20" />
-                            <p className="text-sm font-medium">
-                              No notifications yet
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="space-y-1">
-                            {notifications.map((item) => (
-                              <button
-                                key={item.id}
-                                onClick={() =>
-                                  handleMarkAsRead(item.id, item.link_url)
-                                }
-                                className={`w-full flex flex-col gap-1 rounded-xl p-3 text-left transition-colors ${
-                                  !item.is_read
-                                    ? "bg-blue-50/50 dark:bg-blue-950/30"
-                                    : "hover:bg-gray-50 dark:hover:bg-white/5"
-                                }`}
-                              >
-                                <div className="flex justify-between items-start gap-2 w-full">
-                                  <span
-                                    className={`text-sm ${!item.is_read ? "font-bold text-gray-900 dark:text-white" : "font-semibold text-gray-700 dark:text-gray-200"}`}
-                                  >
-                                    {item.title || "New Notification"}
-                                  </span>
-                                  {!item.is_read && (
-                                    <span className="h-2 w-2 rounded-full bg-blue-600 mt-1.5 flex-shrink-0"></span>
-                                  )}
-                                </div>
-                                <span
-                                  className={`text-xs line-clamp-2 ${!item.is_read ? "text-gray-600 dark:text-gray-300" : "text-gray-500 dark:text-gray-400"}`}
-                                >
-                                  {item.message}
-                                </span>
-                                <span className="text-[10px] text-gray-400 font-medium mt-1">
-                                  {new Date(item.created_at).toLocaleString()}
-                                </span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* USER PROFILE DROPDOWN */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-all active:scale-95 text-left">
-                      <Avatar className="h-8 w-8 ring-1 ring-gray-100 dark:ring-white/10">
-                        <AvatarImage src={user.avatarUrl} alt={user.name} />
-                        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-500 text-white font-medium text-xs">
-                          {user.name?.substring(0, 2).toUpperCase() || "US"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="hidden sm:block max-w-[100px]">
-                        <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">
-                          {user.name}
-                        </p>
-                        <p className="text-[10px] text-gray-500 truncate capitalize">
-                          {user.role}
-                        </p>
-                      </div>
-                      <ChevronDown className="h-3.5 w-3.5 text-gray-400 hidden sm:block" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    className="w-52 rounded-2xl p-1.5 shadow-xl"
-                  >
-                    <div className="px-2.5 py-2 sm:hidden border-b border-gray-50 dark:border-white/5 mb-1">
-                      <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">
-                        {user.name}
-                      </p>
-                      <p className="text-[10px] text-gray-500 capitalize">
-                        {user.role}
-                      </p>
-                    </div>
-                    <DropdownMenuItem
-                      asChild
-                      className="rounded-xl px-3 py-2 text-sm focus:bg-gray-50 dark:focus:bg-white/5 cursor-pointer"
-                    >
-                      <Link
-                        to="/profile"
-                        className="flex items-center gap-2 w-full"
-                      >
-                        <User className="h-4 w-4 text-gray-400" />
-                        <span>My Profile</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      asChild
-                      className="rounded-xl px-3 py-2 text-sm focus:bg-gray-50 dark:focus:bg-white/5 cursor-pointer"
-                    >
-                      <Link
-                        to="/settings"
-                        className="flex items-center gap-2 w-full"
-                      >
-                        <Settings className="h-4 w-4 text-gray-400" />
-                        <span>Settings</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator className="my-1" />
-                    <DropdownMenuItem
-                      onClick={handleLogout}
-                      className="rounded-xl px-3 py-2 text-sm text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30 focus:text-red-600 dark:text-red-400 cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2 w-full">
-                        <LogOut className="h-4 w-4" />
-                        <span>Log out</span>
-                      </div>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </>
-            ) : (
-              <div className="hidden md:flex items-center gap-2 pl-2">
-                <Link
-                  to="/login"
-                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  Sign in
-                </Link>
-                <Link
-                  to="/register"
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-sm shadow-blue-500/10 active:scale-95"
-                >
-                  Sign up
-                </Link>
-              </div>
-            )}
-
-            {/* Mobile Menu Toggle Button */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2.5 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/5 md:hidden transition-all active:scale-95"
-              aria-label="Toggle mobile menu"
+          {/* Chat Link */}
+          {isLoggedIn && (
+            <Link
+              to="/chat"
+              className={`relative rounded-full p-2 transition-all duration-200 ${
+                location.pathname === "/chat"
+                  ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
+                  : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10"
+              }`}
+              title="Messages"
             >
-              {mobileMenuOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
+              <MessageSquare size={20} />
+              {chatUnreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white dark:ring-[#0B0F19]">
+                  {chatUnreadCount > 99 ? "99+" : chatUnreadCount}
+                </span>
+              )}
+            </Link>
+          )}
+
+          {/* Notifications Bell Dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative rounded-full p-2 text-gray-500 hover:bg-gray-100 transition-colors dark:text-gray-400 dark:hover:bg-white/10"
+            >
+              <Bell size={20} />
+              {isLoggedIn && hasUnread && (
+                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-blue-600 animate-pulse"></span>
               )}
             </button>
+
+            {showNotifications && (
+              <div className="absolute right-0 mt-3 w-80 rounded-2xl border border-gray-200 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-[#0B0F19]">
+                <div className="px-4 py-2.5 border-b border-gray-100 dark:border-white/5 flex items-center justify-between">
+                  <span className="font-semibold text-sm text-gray-900 dark:text-white">
+                    Notifications
+                  </span>
+                  <span
+                    onClick={handleMarkAllRead}
+                    className="text-xs text-blue-600 dark:text-blue-400 font-medium cursor-pointer hover:underline"
+                  >
+                    Mark all read
+                  </span>
+                </div>
+                <div className="max-h-[300px] overflow-y-auto pt-1">
+                  {notifications.length === 0 ? (
+                    <p className="text-xs text-gray-400 text-center py-6">
+                      No notifications.
+                    </p>
+                  ) : (
+                    notifications.map((notif) => (
+                      <div
+                        key={notif.id}
+                        onClick={() =>
+                          handleMarkAsRead(notif.id, notif.link_url)
+                        }
+                        className={`p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors flex gap-3 items-start ${
+                          !notif.is_read
+                            ? "bg-blue-50/60 dark:bg-blue-950/20"
+                            : ""
+                        }`}
+                      >
+                        {!notif.is_read && (
+                          <div className="mt-1.5 flex h-2 w-2 shrink-0 rounded-full bg-blue-600"></div>
+                        )}
+                        <div className="flex-1">
+                          <p
+                            className={`text-sm text-gray-900 dark:text-white ${notif.is_read ? "font-normal" : "font-semibold"}`}
+                          >
+                            {notif.title}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
+                            {notif.message}
+                          </p>
+                          <p className="text-[10px] text-gray-400 mt-1">
+                            {notif.created_at
+                              ? new Date(notif.created_at).toLocaleTimeString(
+                                  "en-US",
+                                  { hour: "2-digit", minute: "2-digit" },
+                                )
+                              : ""}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* User Profile Dropdown */}
+          {isLoggedIn ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger className="outline-none">
+                <div className="flex items-center gap-2 rounded-full p-1 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors cursor-pointer pr-3">
+                  <Avatar className="w-8 h-8 border border-gray-200 dark:border-white/10">
+                    <AvatarImage src={user.avatarUrl} alt={user.name} />
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white text-xs">
+                      {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="hidden flex-col items-start text-left md:flex">
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white leading-none max-w-[100px] truncate">
+                      {user.name}
+                    </span>
+                    <span className="text-[10px] text-gray-400 mt-0.5 capitalize">
+                      {user.role}
+                    </span>
+                  </div>
+                  <ChevronDown
+                    size={14}
+                    className="text-gray-400 hidden md:block"
+                  />
+                </div>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent
+                align="end"
+                className="w-56 rounded-2xl p-1.5 border border-gray-200 bg-white shadow-xl dark:border-white/10 dark:bg-[#0B0F19]"
+              >
+                <div className="px-3 py-2">
+                  <p className="text-xs text-gray-400">Signed in as</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white truncate mt-0.5">
+                    {user.name}
+                  </p>
+                </div>
+                <DropdownMenuSeparator className="bg-gray-100 dark:bg-white/5" />
+
+                {!isEmployer && (
+                  <DropdownMenuItem className="p-1 cursor-pointer focus:bg-transparent">
+                    <Link
+                      to="/profile"
+                      className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-green-500/10 dark:group-hover:bg-green-500/20 transition-colors">
+                        <User className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400" />
+                      </div>
+                      <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
+                        Personal Profile
+                      </span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+
+                {isEmployer && (
+                  <DropdownMenuItem className="p-1 cursor-pointer focus:bg-transparent">
+                    <Link
+                      to="/employer/profile"
+                      className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-blue-500/10 dark:group-hover:bg-blue-500/20 transition-colors">
+                        <Briefcase className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+                      </div>
+                      <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
+                        Company Profile
+                      </span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+
+                <DropdownMenuItem className="p-1 cursor-pointer focus:bg-transparent">
+                  <Link
+                    to={isEmployer ? "/employer/dashboard" : "/settings"}
+                    className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-blue-500/10 dark:group-hover:bg-blue-500/20 transition-colors">
+                      <Settings className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 group-hover:text-blue-400" />
+                    </div>
+                    <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
+                      {isEmployer ? "Dashboard" : "Settings"}
+                    </span>
+                  </Link>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator className="bg-gray-100 dark:bg-white/5" />
+
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="p-1 cursor-pointer focus:bg-transparent"
+                >
+                  <div className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group">
+                    <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-red-500/10 dark:group-hover:bg-red-500/20 transition-colors">
+                      <LogOut className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400" />
+                    </div>
+                    <span className="font-medium text-[15px] text-gray-700 dark:text-gray-300 group-hover:text-red-600 dark:group-hover:text-red-400">
+                      Log Out
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link
+              to="/auth"
+              className="text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors dark:text-gray-300 dark:hover:text-white px-2"
+            >
+              Sign In
+            </Link>
+          )}
+
+          {isLoggedIn && isEmployer && (
+            <Link
+              to="/employer/jobs/new"
+              className="hidden rounded-full bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-2 text-sm font-medium text-white shadow-md transition-all hover:opacity-90 md:block"
+            >
+              Post a Job
+            </Link>
+          )}
+
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="rounded-full p-2 text-gray-500 hover:bg-gray-100 transition-colors dark:text-gray-400 dark:hover:bg-white/10 md:hidden"
+          >
+            {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
         </div>
       </div>
 
-      {/* MOBILE NAVIGATION MENU */}
+      {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t bg-white px-4 py-4 space-y-1.5 shadow-inner dark:bg-gray-950 border-gray-100 dark:border-white/5">
+        <div className="border-t border-gray-100 bg-white px-6 py-4 space-y-3 md:hidden shadow-inner dark:border-white/5 dark:bg-[#0B0F19]">
           {navLinks.map((link) => {
             const isActive = location.pathname === link.path;
             return (
@@ -688,28 +706,9 @@ export const Navbar = () => {
               <Link
                 to="/employer/jobs/new"
                 onClick={() => setMobileMenuOpen(false)}
-                className="block px-4 py-2.5 text-sm font-semibold text-blue-600 bg-blue-50/50 dark:text-blue-400 dark:bg-blue-950/20 rounded-xl"
+                className="block w-full text-center rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 py-2.5 text-sm font-medium text-white shadow-sm"
               >
-                + Post a Job
-              </Link>
-            </div>
-          )}
-
-          {!isLoggedIn && (
-            <div className="grid grid-cols-2 gap-2 pt-4 border-t border-gray-100 dark:border-white/5">
-              <Link
-                to="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex h-10 items-center justify-center text-sm font-semibold text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5 rounded-xl transition-colors"
-              >
-                Sign in
-              </Link>
-              <Link
-                to="/register"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex h-10 items-center justify-center text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-sm shadow-blue-500/10"
-              >
-                Sign up
+                Post a Job
               </Link>
             </div>
           )}
