@@ -3,20 +3,35 @@ import { IConversation, IMessage } from "../types/chat";
 import axios from "axios";
 export const chatService = {
   getConversations: async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return []; // Thêm chốt chặn an toàn
+
     const response = await api.get<{ success: boolean; data: IConversation[] }>(
       "/api/messages/conversations",
+      {
+        headers: { Authorization: `Bearer ${token}` } // Đính kèm token
+      }
     );
     return response.data.data;
   },
 
   getMessages: async (conversationId: string) => {
+    const token = localStorage.getItem("token");
+    if (!token) return [];
+
     const response = await api.get<{ success: boolean; data: IMessage[] }>(
       `/api/messages/${conversationId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` } // Đính kèm token
+      }
     );
     return response.data.data;
   },
 
   sendMessage: async (receiverId: number, text: string, fileUrl?: string) => {
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("No token found");
+
     const response = await api.post<{ success: boolean; data: IMessage }>(
       "/api/messages/send",
       {
@@ -24,15 +39,17 @@ export const chatService = {
         text,
         fileUrl,
       },
+      {
+        headers: { Authorization: `Bearer ${token}` } // Đính kèm token
+      }
     );
     return response.data.data;
   },
 
-  // THÊM HÀM XÓA ĐOẠN CHAT NÀY VÀO ĐÂY CHUẨN THEO INSTANCE API CỦA BẠN
   deleteConversation: async (conversationId: string) => {
     const token = localStorage.getItem("token");
-    // Sử dụng BASE_URL hoặc endpoint tương ứng của project bạn
-    const response = await axios.delete(
+    // Đồng bộ dùng api.delete thay vì axios.delete cho chuẩn với các hàm trên
+    const response = await api.delete(
       `/api/messages/conversations/${conversationId}`,
       {
         headers: {

@@ -63,19 +63,24 @@ export function HighSalaryJobs({ titleFilter, locationFilter, categoryFilter, sa
   useEffect(() => {
     const fetchSavedJobs = async () => {
       const token = localStorage.getItem("token");
-    if (!token) return;
+      if (!token) return;
       try {
-        const res = await api.get("/api/favorites"); 
+        // 👇 SỬA ĐÚNG DÒNG NÀY: Thêm headers chứa Token vào sau "/api/favorites"
+        const res = await api.get("/api/favorites", {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        }); 
+        
         const savedIds = res.data.data.map((job: any) => job.id);
         setSavedJobs(savedIds);
       } catch (err) {
         console.error("Fetch saved jobs error:", err);
       }
     };
-    if (localStorage.getItem("token")) {
-      fetchSavedJobs();
-    }
-  }, []);
+
+    fetchSavedJobs();
+}, []);
 
   const handleToggleSave = useCallback(async (jobId: number) => {
     try {

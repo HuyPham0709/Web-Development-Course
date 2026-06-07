@@ -56,23 +56,30 @@ export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter, salar
     fetchJobs();
   }, [titleFilter, locationFilter, categoryFilter, salaryFilter, activeTab]);
 
-  useEffect(() => {
+ useEffect(() => {
     const fetchSavedJobs = async () => {
       const token = localStorage.getItem("token");
-    if (!token) return;
+      if (!token) return;
+      
       try {
-        const res = await api.get("/api/favorites"); 
+        // Đã thêm headers chứa token vào đây 👇
+        const res = await api.get("/api/favorites", {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }); 
+        
         const savedIds = res.data.data.map((job: any) => job.id);
         setSavedJobs(savedIds);
       } catch (err) {
         console.error("Fetch saved jobs error:", err);
       }
     };
+
     if (localStorage.getItem("token")) {
       fetchSavedJobs();
     }
   }, []);
-
   const handleToggleSave = useCallback(async (jobId: number) => {
     try {
       setSavedJobs(prev => {
