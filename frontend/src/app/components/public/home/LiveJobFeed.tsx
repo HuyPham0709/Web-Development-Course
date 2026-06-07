@@ -58,6 +58,8 @@ export function LiveJobFeed({ titleFilter, locationFilter, categoryFilter, salar
 
   useEffect(() => {
     const fetchSavedJobs = async () => {
+      const token = localStorage.getItem("token");
+    if (!token) return;
       try {
         const res = await api.get("/api/favorites"); 
         const savedIds = res.data.data.map((job: any) => job.id);
