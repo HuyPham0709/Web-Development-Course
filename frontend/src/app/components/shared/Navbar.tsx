@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 
-import chatService from "../../../services/chatService"; // Bỏ dấu { } đi
+import * as chatService from "../../../services/chatService";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "https://web-development-course-y23i.onrender.com";
 
