@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
-import { chatService } from "../../../services/chatService";
+import chatService from "../../../services/chatService";
 import { IConversation, IMessage } from "../../../types/chat";
 import { useLocation } from "react-router-dom";
 
