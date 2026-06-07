@@ -16,8 +16,8 @@ import { RecommendedjobsAside } from '../../components/candidate/profile/Recomme
 import { getRecommendations } from '../../../services/recommendationService';
 import { useSharedProfile } from '../../../hooks/useSharedProfile';
 
-// Import applicationservice để chuẩn hóa các lượt gọi API
-import { applicationservice } from '../../../services/applicationservice'; // <-- Bạn nhớ kiểm tra lại đường dẫn này xem đã đúng thư mục chưa nhé
+// Import applicationService để chuẩn hóa các lượt gọi API
+import { applicationService } from '../../../services/applicationService'; // <-- Bạn nhớ kiểm tra lại đường dẫn này xem đã đúng thư mục chưa nhé
 
 // Giữ lại API_BASE phục vụ cho việc hiển thị ảnh Logo (nếu cần xử lý fallback URL)
 const API_BASE = import.meta.env.VITE_API_URL || process.env.REACT_APP_API_URL || 'https://web-development-course-y23i.onrender.com';
@@ -60,8 +60,8 @@ export default function Myapplications() {
     try {
       setLoading(true);
       
-      // ✅ ĐÃ SỬA: Dùng applicationservice.getMyapplications() thay cho fetch thuần mang đường dẫn /api/v1 cũ
-      const response = await applicationservice.getMyapplications();
+      // ✅ ĐÃ SỬA: Dùng applicationService.getMyapplications() thay cho fetch thuần mang đường dẫn /api/v1 cũ
+      const response = await applicationService.getMyapplications();
       const result = response.data;
 
       if (result.success && Array.isArray(result.data)) {

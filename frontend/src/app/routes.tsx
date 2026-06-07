@@ -12,7 +12,7 @@ import Jobs from "./pages/public/Jobs"; // Đã import chuẩn chữ J viết ho
 
 // CANDIDATE PAGES
 import ProfileDashboard from "./pages/candidate/ProfileDashboard";
-import Myapplications from "./pages/candidate/Myapplications";
+import Myapplications from "./pages/candidate/MyApplications";
 import { InviteDetail } from "./pages/candidate/InviteDetail"; 
 
 // EMPLOYER PAGES

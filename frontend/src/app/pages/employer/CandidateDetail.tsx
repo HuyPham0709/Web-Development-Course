@@ -7,7 +7,7 @@ import {
   Mail, Phone, Linkedin, Github, Globe, Download, Printer, ChevronRight, 
   Briefcase, FileText, Send, Loader2, X, Calendar, MapPin, Clock, messagesquare 
 } from 'lucide-react';
-import { applicationservice } from '../../../services/applicationservice';
+import { applicationService } from '../../../services/applicationService';
 import { ApplicationDetail, ApplicationNote } from '../../../types/application';
 
 export default function CandidateDetail() {
@@ -40,8 +40,8 @@ export default function CandidateDetail() {
     const fetchData = async () => {
       try {
         const [detailRes, notesRes] = await Promise.all([
-          applicationservice.getApplicationById(id),
-          applicationservice.getNotes(id as any)
+          applicationService.getApplicationById(id),
+          applicationService.getNotes(id as any)
         ]);
         setCandidate(detailRes.data.data);
         setNotes(notesRes.data.data || []);
@@ -65,7 +65,7 @@ export default function CandidateDetail() {
   const handleAddNote = async () => {
     if (!newNote.trim() || !id) return;
     try {
-      const res = await applicationservice.addNote(id as any, newNote);
+      const res = await applicationService.addNote(id as any, newNote);
       setNotes([...notes, res.data.data]);
       setNewNote('');
     } catch (error) {
@@ -93,8 +93,8 @@ export default function CandidateDetail() {
     setCandidate({ ...candidate, status: backendStatus });
 
     try {
-      if (applicationservice.updateStatus) {
-        await applicationservice.updateStatus(id as any, backendStatus);
+      if (applicationService.updateStatus) {
+        await applicationService.updateStatus(id as any, backendStatus);
       }
     } catch (error) {
       console.error("Error updating status:", error);
@@ -110,23 +110,23 @@ export default function CandidateDetail() {
 
     setSendingInvite(true);
     try {
-      if (applicationservice.inviteInterview) {
+      if (applicationService.inviteInterview) {
         // Step 1: Call API to send email from the backend server
-        await applicationservice.inviteInterview({ 
+        await applicationService.inviteInterview({ 
           application_id: id,
           ...interviewForm
         });
         
         // Step 2: After successfully sending the email, update the application status to 'interviewing'
-        if (applicationservice.updateStatus) {
-          await applicationservice.updateStatus(id as any, 'interviewing');
+        if (applicationService.updateStatus) {
+          await applicationService.updateStatus(id as any, 'interviewing');
         }
 
         alert("Interview invitation has been sent via email!");
         setCandidate(prev => prev ? { ...prev, status: 'interviewing' } : null);
         setIsModalOpen(false);
       } else {
-        alert("The function inviteInterview has not been configured in applicationservice.");
+        alert("The function inviteInterview has not been configured in applicationService.");
       }
     } catch (error: any) {
       console.error(error);
