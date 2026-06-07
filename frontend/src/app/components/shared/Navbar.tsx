@@ -87,7 +87,7 @@ export default function Navbar() {
     }
   }, []);
 
-  // Đọc dữ liệu user khi component mount
+  // 1. ĐỌC DỮ LIỆU USER VÀ KIỂM TRA ĐĂNG NHẬP NGAY LẬP TỨC
   useEffect(() => {
     const token = localStorage.getItem("token");
     const storedUser = localStorage.getItem("user");
@@ -98,49 +98,38 @@ export default function Navbar() {
       setUser(parsedUser);
       setIsEmployer(parsedUser.role === "employer");
       setIsAdmin(parsedUser.role === "admin");
+
+      // Gọi API nạp dữ liệu đếm tin nhắn và thông báo ngay tại đây để không bị chậm nhịp render
+      chatService.getUnreadCount()
+        .then((res) => setUnreadChatCount(res.data.unreadCount || 0))
+        .catch((err) => console.error(err));
+
+      fetchNotifications();
     } else {
       setIsLoggedIn(false);
       setUser(null);
       setIsEmployer(false);
       setIsAdmin(false);
     }
-  }, [location.pathname]);
+  }, [location.pathname, fetchNotifications]);
 
-  // Lấy dữ liệu đếm số tin nhắn và danh sách thông báo NGAY KHI VÀO TRANG (PRE-FETCH)
-  useEffect(() => {
-    if (isLoggedIn) {
-      // 1. Lấy số lượng tin nhắn chưa đọc
-      chatService.getUnreadCount()
-        .then((res) => setUnreadChatCount(res.data.unreadCount || 0))
-        .catch((err) => console.error(err));
-
-      // 2. Tải sẵn danh sách thông báo ngầm dưới nền giúp chuông hiển thị tức thì
-      fetchNotifications();
-    }
-  }, [isLoggedIn, fetchNotifications]);
-
-  // Khởi tạo kết nối Socket.io kết hợp Real-time cho cả Chat và Notifications
+  // 2. KHỞI TẠO KẾT NỐI SOCKET.IO REAL-TIME CHỐNG CHẬM ĐỂ NHẬN TIN MỚI
   useEffect(() => {
     if (!isLoggedIn || !user?.id) return;
 
     const socket = io(BASE_URL);
     socketRef.current = socket;
 
-    // Join vào phòng cá nhân của user
     socket.emit("join_room", user.id);
 
-    // Lắng nghe tin nhắn mới
     socket.on("receive_message", () => {
       if (location.pathname !== "/chat") {
         setUnreadChatCount((prev) => prev + 1);
       }
     });
 
-    // 🌟 BỔ SUNG: Lắng nghe thông báo mới thời gian thực từ Backend
     socket.on("new_notification", (newNoti: NotificationItem) => {
-      // Đẩy thông báo mới lên đầu mảng danh sách mà không cần gọi lại API
       setNotifications((prev) => [newNoti, ...prev]);
-      // Tự động tăng số lượng thông báo chưa đọc lên 1
       setUnreadNotiCount((prev) => prev + 1);
     });
 
@@ -168,19 +157,14 @@ export default function Navbar() {
     const nextState = !showNotifications;
     setShowNotifications(nextState);
 
-    // Nếu người dùng mở chuông ra và đang có thông báo chưa đọc
     if (nextState && unreadNotiCount > 0) {
-      // Chuyển UI đếm về 0 ngay lập tức cho mượt
       setUnreadNotiCount(0);
-
-      // Gọi API đánh dấu đã đọc ngầm dưới nền
       const token = localStorage.getItem("token");
       if (token) {
         try {
           await axios.put(`${BASE_URL}/api/notifications/mark-all-read`, {}, {
             headers: { Authorization: `Bearer ${token}` },
           });
-          // Cập nhật lại trạng thái cục bộ của danh sách thông báo
           setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
         } catch (err) {
           console.error("Error marking notifications as read:", err);
@@ -202,7 +186,6 @@ export default function Navbar() {
     navigate("/login");
   };
 
-  // Cấu hình các đường dẫn Menu chính
   const mainLinks = isAdmin
     ? [{ name: "Dashboard", to: "/admin" }]
     : isEmployer
@@ -463,7 +446,7 @@ export default function Navbar() {
               <Link
                 to="/login"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex h-10 items-center justify-center text-sm font-semibold text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5 rounded-xl transition-colors"
+                className="flex h-10 items-center justify-center text-sm font-semibold text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white/5 rounded-xl transition-colors"
               >
                 Sign in
               </Link>
