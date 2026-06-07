@@ -7,21 +7,40 @@ export const api = axios.create({
   baseURL: API,
 });
 
-// Request interceptor - đính kèm token vào header
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+// Request interceptor - đính kèm token vào header bảo mật và chuẩn hóa định dạng
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    
+    // Kiểm tra token hợp lệ, tránh truyền chuỗi rỗng hoặc từ khóa "undefined"/"null" do lỗi bộ nhớ lưu trữ
+    if (token && token !== "undefined" && token !== "null" && token.trim() !== "") {
+      // Tự động kiểm tra: Nếu token đã có sẵn chữ "Bearer " thì giữ nguyên, chưa có thì mới thêm vào
+      const authorizationHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+      config.headers.Authorization = authorizationHeader;
+    }
+    
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return config;
-});
+);
 
-// Response interceptor - Xử lý tập trung các lỗi Auth & Banned (Đã gộp)
+// Response interceptor - Xử lý tập trung các lỗi Auth & Banned (Đã được gia cố an toàn)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status;
     const message = error.response?.data?.message ?? "";
+    const url = error.config?.url ?? "";
+
+    // 🔍 NHẬT KÝ KIỂM TRA: In lỗi ra Console F12 để bạn biết chính xác API nào đang bị lỗi 401/403
+    console.warn(`[Axios Interceptor] Phát hiện lỗi API: URL="${url}" | Status=${status} | Message="${message}"`);
+
+    // 🛑 PHANH AN TOÀN CHỐNG VĂNG: Nếu người dùng đang ở trang Auth (/auth) thì KHÔNG kích hoạt ép văng, tránh xung đột luồng login
+    if (window.location.pathname.includes("/auth")) {
+      return Promise.reject(error);
+    }
 
     // 1. Kiểm tra Token hết hạn / không hợp lệ
     const isTokenExpired =
@@ -36,31 +55,35 @@ api.interceptors.response.use(
     // 2. Kiểm tra tài khoản bị khóa
     const isBanned = status === 403 && message.includes("bị khóa");
 
-    // XỬ LÝ LOGIC
+    // XỬ LÝ LOGIC ÉP ĐĂNG XUẤT KHI THỰC SỰ HẾT HẠN PHIÊN
     if (isTokenExpired) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      // Chỉ thực hiện xóa khi trong bộ nhớ thực sự đang có token cũ lỗi
+      if (localStorage.getItem("token")) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
 
-      toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", {
-        duration: 4000,
-      });
+        toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", {
+          duration: 4000,
+        });
 
-      setTimeout(() => {
-        window.location.href = "/auth";
-      }, 1500);
+        setTimeout(() => {
+          window.location.href = "/auth";
+        }, 1500);
+      }
       
     } else if (isBanned) {
-      // Dùng else if để tách biệt rõ ràng với lỗi hết hạn token
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      if (localStorage.getItem("token")) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
 
-      toast.error(message || "Tài khoản của bạn đã bị khóa.", { 
-        duration: 5000 
-      });
+        toast.error(message || "Tài khoản của bạn đã bị khóa.", { 
+          duration: 5000 
+        });
 
-      setTimeout(() => {
-        window.location.href = "/auth";
-      }, 1500);
+        setTimeout(() => {
+          window.location.href = "/auth";
+        }, 1500);
+      }
     }
 
     return Promise.reject(error);
