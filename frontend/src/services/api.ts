@@ -5,6 +5,7 @@ const API = "https://web-development-course-y23i.onrender.com";
 
 export const api = axios.create({
   baseURL: API,
+  withCredentials: true,
 });
 
 // 🛡️ Request interceptor - Bản nâng cấp tự bóc tách và sửa lỗi định dạng chuỗi token
