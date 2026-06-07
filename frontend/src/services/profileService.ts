@@ -1,6 +1,8 @@
 // frontend/src/services/profileservice.ts
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://web-development-course-y23i.onrender.com/';
+const RAW_BASE_URL = import.meta.env.VITE_API_URL || 'https://web-development-course-y23i.onrender.com';
+// ✅ Loại bỏ dấu gạch chéo ở cuối (nếu có) để triệt tiêu lỗi song gạch `//api`
+const BASE_URL = RAW_BASE_URL.endsWith('/') ? RAW_BASE_URL.slice(0, -1) : RAW_BASE_URL;
 
 // ─── Headers ────────────────────────────────────────────────────────────────
 
@@ -178,8 +180,6 @@ export const uploadProfileImage = async (
   const formData = new FormData();
   formData.append(type, file);
 
-  // ✅ ĐÃ ĐỔI: `/api/profile/upload-${type}` -> `/api/profile/${type}`
-  // Khi chạy thực tế sẽ sinh ra đúng endpoint: `/api/profile/avatar` hoặc `/api/profile/cover`
   const res = await fetch(
     `${BASE_URL}/api/profile/${type}`,
     {
@@ -213,9 +213,16 @@ export async function searchCandidates(
       queryParams.append('exp_max', params.exp_max.toString());
     if (params.skills) queryParams.append('skills', params.skills);
 
-    const url = `${BASE_URL}/api/profile/search-cv?${queryParams.toString()}`;
+    // ✅ ĐÃ SỬA: Kiểm tra xem có chứa param tìm kiếm nào không.
+    // Nếu có tham số thì mới nối `?queryString`, nếu trống rỗng thì chỉ gọi `/search-cv` chuẩn URL
+    const queryString = queryParams.toString();
+    const url = queryString 
+      ? `${BASE_URL}/api/profile/search-cv?${queryString}`
+      : `${BASE_URL}/api/profile/search-cv`;
+
     const res = await fetch(url, { method: 'GET', headers: authHeaders() });
     if (!res.ok) return [];
+    
     const json = await res.json();
     return json.data || [];
   } catch (error) {
