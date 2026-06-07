@@ -69,17 +69,25 @@ export default function Navbar() {
   const socketRef = useRef<Socket | null>(null);
 
   // Hàm lấy danh sách thông báo từ API
-  const fetchNotifications = useCallback(async () => {
+ const fetchNotifications = useCallback(async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
       const res = await axios.get(`${BASE_URL}/api/notifications`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      
+      console.log("🔔 [DEBUG API] Dữ liệu thông báo trả về:", res.data); // XEM LOG NÀY
+
       if (res.data && res.data.success) {
-        const list = res.data.data || [];
+        // Phòng hờ API trả về thẳng mảng, hoặc bọc trong object data
+        const list = res.data.data || res.data || [];
         setNotifications(list);
-        const unread = list.filter((n: NotificationItem) => !n.is_read).length;
+        
+        // Sửa lại cách đếm: Bắt cả trường hợp MySQL trả về số 0 hoặc boolean false
+        const unread = list.filter((n: any) => n.is_read === 0 || n.is_read === false || n.is_read === "0").length;
+        
+        console.log("🔔 [DEBUG ĐẾM] Số lượng chưa đọc tính toán được:", unread); // XEM LOG NÀY
         setUnreadNotiCount(unread);
       }
     } catch (err) {
@@ -88,30 +96,34 @@ export default function Navbar() {
   }, []);
 
   // 1. ĐỌC DỮ LIỆU USER VÀ KIỂM TRA ĐĂNG NHẬP NGAY LẬP TỨC
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
+ useEffect(() => {
+    if (!isLoggedIn || !user?.id) return;
 
-    if (token && storedUser) {
-      setIsLoggedIn(true);
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-      setIsEmployer(parsedUser.role === "employer");
-      setIsAdmin(parsedUser.role === "admin");
+    const socket = io(BASE_URL);
+    socketRef.current = socket;
 
-      // Gọi API nạp dữ liệu đếm tin nhắn và thông báo ngay tại đây để không bị chậm nhịp render
-      chatService.getUnreadCount()
-        .then((res) => setUnreadChatCount(res.data.unreadCount || 0))
-        .catch((err) => console.error(err));
+    // Ép kiểu ID sang chuỗi (String) vì Socket.io join room bằng chuỗi sẽ chuẩn xác hơn
+    const roomId = user.id.toString();
+    console.log("🔌 [DEBUG SOCKET] Đang join room ID:", roomId);
+    socket.emit("join_room", roomId);
 
-      fetchNotifications();
-    } else {
-      setIsLoggedIn(false);
-      setUser(null);
-      setIsEmployer(false);
-      setIsAdmin(false);
-    }
-  }, [location.pathname, fetchNotifications]);
+    socket.on("receive_message", () => {
+      if (location.pathname !== "/chat") {
+        setUnreadChatCount((prev) => prev + 1);
+      }
+    });
+
+    // Lắng nghe thông báo real-time
+    socket.on("new_notification", (newNoti: NotificationItem) => {
+      console.log("🔥 [DEBUG SOCKET] Server vừa bắn thông báo Real-time:", newNoti); // NẾU KHÔNG CÓ DÒNG NÀY LÀ DO BACKEND
+      setNotifications((prev) => [newNoti, ...prev]);
+      setUnreadNotiCount((prev) => prev + 1);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [isLoggedIn, user?.id, location.pathname]);
 
   // 2. KHỞI TẠO KẾT NỐI SOCKET.IO REAL-TIME CHỐNG CHẬM ĐỂ NHẬN TIN MỚI
   useEffect(() => {
