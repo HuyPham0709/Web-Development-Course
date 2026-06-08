@@ -16,6 +16,16 @@ import { formatDate, formatSalary } from "../../../utils"
 import { AdminJob, jobstats, PaginationMeta } from '../../../types'
 import { jobService } from "../../../services/jobService"
 
+// Kỹ thuật bọc an toàn tự động sửa lỗi thiếu tiền tố /api từ constants
+const getCleanBaseUrl = (baseUrl: string) => {
+  if (!baseUrl.includes('/api/')) {
+    return baseUrl.replace('.com/admin', '.com/api/admin');
+  }
+  return baseUrl;
+};
+
+const CLEAN_ADMIN_JOBS_API = getCleanBaseUrl(ADMIN_jobs_API);
+
 const STATUS_BADGE: Record<string, React.ReactElement> = {
   approved: <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40">Approved</Badge>,
   pending: <Badge className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/40">Pending</Badge>,
@@ -60,7 +70,12 @@ export function JobManagement() {
       if (filterLevel) params.append('experience_level', filterLevel)
       if (search) params.append('search', search)
 
-      const res = await fetch(`${ADMIN_jobs_API}/all?${params}`, { headers: getHeaders() })
+      const res = await fetch(`${CLEAN_ADMIN_JOBS_API}/all?${params}`, { headers: getHeaders() })
+      
+      if (res.status === 404) {
+        throw new Error('Đường dẫn API (404) không tồn tại. Vui lòng kiểm tra lại cấu hình Router.');
+      }
+      
       const data = await res.json()
 
       if (data.success) {
@@ -71,8 +86,8 @@ export function JobManagement() {
       } else {
         setError(data.message || 'Failed to load data')
       }
-    } catch {
-      setError('Unable to connect to server')
+    } catch (err: any) {
+      setError(err.message || 'Unable to connect to server')
     } finally {
       setLoading(false)
     }
@@ -116,7 +131,7 @@ export function JobManagement() {
 
     setIsBulkDeleting(true)
     try {
-      const res = await fetch(`${ADMIN_jobs_API}/bulk-delete`, {
+      const res = await fetch(`${CLEAN_ADMIN_JOBS_API}/bulk-delete`, {
         method: 'POST',
         headers: { ...getHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: selectedJobIds })
@@ -141,7 +156,7 @@ export function JobManagement() {
     if (!window.confirm(`Delete job "${job.title}"?`)) return
     setDeletingId(job.id)
     try {
-      const res = await fetch(`${ADMIN_jobs_API}/${job.id}`, {
+      const res = await fetch(`${CLEAN_ADMIN_JOBS_API}/${job.id}`, {
         method: 'DELETE',
         headers: getHeaders()
       })
@@ -169,7 +184,7 @@ export function JobManagement() {
       if (filterLevel) params.append('experience_level', filterLevel)
       if (search) params.append('search', search)
 
-      const res = await fetch(`${ADMIN_jobs_API}/export?${params}`, {
+      const res = await fetch(`${CLEAN_ADMIN_JOBS_API}/export?${params}`, {
         headers: getHeaders()
       })
 
