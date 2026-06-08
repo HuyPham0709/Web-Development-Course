@@ -17,14 +17,8 @@ import { AdminJob, jobstats, PaginationMeta } from '../../../types'
 import { jobService } from "../../../services/jobService"
 
 // Kỹ thuật bọc an toàn tự động sửa lỗi thiếu tiền tố /api từ constants
-const getCleanBaseUrl = (baseUrl: string) => {
-  if (!baseUrl.includes('/api/')) {
-    return baseUrl.replace('.com/admin', '.com/api/admin');
-  }
-  return baseUrl;
-};
-
-const CLEAN_ADMIN_JOBS_API = getCleanBaseUrl(ADMIN_jobs_API);
+// XÓA đoạn hàm getCleanBaseUrl cũ đi và THAY BẰNG dòng này:
+const CLEAN_ADMIN_JOBS_API = "https://web-development-course-y23i.onrender.com/api/admin/jobs";
 
 const STATUS_BADGE: Record<string, React.ReactElement> = {
   approved: <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40">Approved</Badge>,
